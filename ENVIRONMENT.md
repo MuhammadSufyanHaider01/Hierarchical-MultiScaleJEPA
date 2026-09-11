@@ -41,8 +41,7 @@ The Phase 0 checks use the existing environment at
 - h5py 3.10.0
 - CUDA runtime reported by PyTorch: 12.1
 - `torch.cuda.is_available()`: currently `False`
-- `nvidia-smi`: currently reports an NVML mismatch because the loaded kernel
-  module is 595.84 while the installed user-space driver is 595.91.07
+- `nvidia-smi`: operational after reboot; driver 595.91.07 and CUDA 13.2
 
 This older environment remains sufficient for the read-only HDF5 audit but is
 not suitable for GPU training: its PyTorch 2.3.1+cu121 build has no `sm_120`
@@ -50,8 +49,8 @@ kernels. The repository-local `.venv` is the environment to use for GPU
 pretraining and finetuning.
 
 PyTorch CUDA allocation and a 2048x2048 matrix multiplication have been
-verified successfully in `.venv`. A reboot is still recommended before long
-experiments so `nvidia-smi` and NVML load the installed 595.91.07 module.
+verified successfully in `.venv`. The host was rebooted and `nvidia-smi` now
+loads the installed 595.91.07 module correctly.
 
 ## Reproducibility requirements
 
