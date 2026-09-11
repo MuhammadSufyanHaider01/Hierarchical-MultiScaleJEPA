@@ -22,6 +22,11 @@ JEPA encoder, predictor, masking, loss, optimizer, scheduler, and EMA update
 remain unchanged apart from extracting the EMA arithmetic into a testable
 method.
 
+Phase 2 adds only an optional representation-read API and frozen downstream
+head wrappers around that encoder. The pinned checkout remains the reference
+for any regenerated P0 results; Phase 2 must not be presented as a change to
+the original LatentWave baseline.
+
 ## Phase 0 import audit
 
 The source tree compiles successfully. A runtime import using the existing

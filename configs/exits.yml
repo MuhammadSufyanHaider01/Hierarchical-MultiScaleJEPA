@@ -1,0 +1,37 @@
+# Phase 2 frozen P0 target-encoder exits.
+# These paths and labels are evaluation metadata; no test split is used for
+# selecting an exit.
+source_checkpoint: pretraining_checkpoints/p0.ckpt
+exit_layers: [2, 4, 6, 8]
+head:
+  pooling: mean
+  normalization: layernorm
+selection:
+  tolerance: 0.05
+  classification_higher_is_better: true
+  position_higher_is_better: false
+tasks:
+  rfs:
+    data: data/downstream/rfs.h5
+    sample_key: image
+    label_key: label
+    num_outputs: 20
+    target_type: classification
+  nrpos-outdoor:
+    data: data/downstream/nrpos-outdoor.h5
+    sample_key: features
+    label_key: label
+    num_outputs: 3
+    target_type: position
+  deepmimo-beam:
+    data: data/downstream/deepmimo.h5
+    sample_key: sample
+    label_key: label_beam_16
+    num_outputs: 16
+    target_type: classification
+  deepmimo-los:
+    data: data/downstream/deepmimo.h5
+    sample_key: sample
+    label_key: label_los
+    num_outputs: 2
+    target_type: classification

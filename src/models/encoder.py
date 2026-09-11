@@ -83,7 +83,7 @@ class Encoder(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, masks=None):
+    def _prepare_tokens(self, x, masks=None):
         if masks is not None:
             if not isinstance(masks, list):
                 masks = [masks]
@@ -104,9 +104,44 @@ class Encoder(nn.Module):
             x = apply_masks(x, masks)
 
         x = x.reshape(x.size(0), -1, x.shape[-1])  # (B, C*P, D)
-        
+
+        return x
+
+    def _forward_layers(self, x, masks, return_layers):
+        requested = tuple(dict.fromkeys(int(layer) for layer in return_layers))
+        if not requested:
+            return {}
+        if any(layer < 1 or layer > len(self.blocks) for layer in requested):
+            raise ValueError(f"exit layers must be in [1, {len(self.blocks)}], got {requested}")
+
+        x = self._prepare_tokens(x, masks=masks)
+        outputs = {}
+        for layer_index, block in enumerate(self.blocks, start=1):
+            x = block(x)
+            if layer_index in requested:
+                # The pinned encoder applies this same final normalization after
+                # its last block. Reuse it at optional exits without feeding the
+                # normalized tensor into subsequent blocks.
+                outputs[layer_index] = self.norm(x)
+        return outputs
+
+    def forward_to_layer(self, x, exit_layer):
+        """Run full-input inference through one frozen encoder exit.
+
+        ``exit_layer`` is one-indexed: L2 means the first two transformer
+        blocks, while L8 is the complete pinned encoder. The output is always
+        full-input tokens with the encoder's final normalization applied.
+        """
+        return self._forward_layers(x, masks=None, return_layers=[exit_layer])[int(exit_layer)]
+
+    def forward(self, x, masks=None, return_layers=None):
+        if return_layers is not None:
+            return self._forward_layers(x, masks=masks, return_layers=return_layers)
+
+        x = self._prepare_tokens(x, masks=masks)
+
         # -- fwd prop
-        for i, blk in enumerate(self.blocks):
+        for blk in self.blocks:
             x = blk(x)
 
         x = self.norm(x)
