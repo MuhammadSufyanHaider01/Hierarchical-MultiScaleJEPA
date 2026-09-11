@@ -3,9 +3,26 @@
 
 **Purpose of this document:** This file is intended to be sufficient on its own for implementing the proposed work without referring back to any chat history. It records the motivation, exact architecture, objective-function design, tensor flow, masking/scale logic, downstream early-exit adaptation, baselines, ablations, evaluation protocol, implementation order, sanity checks, and paper/repository references.
 
-**Status:** Proposed research design; implementation has not yet been validated experimentally.
+**Status:** Version 1 research design; P0/P1 infrastructure exists, but no
+pretraining or downstream research result has been validated experimentally.
 
-**Last updated:** 2026-09-10
+**Last updated:** 2026-09-11
+
+## Version 1 design amendment — authoritative
+
+The concise, authoritative update is
+[`docs/hierarchical_design_amendment.md`](docs/hierarchical_design_amendment.md).
+It incorporates the post-design refinements adopted on 2026-09-11 and
+supersedes conflicting historical passages in this detailed specification.
+
+In brief: the physical mask stays fixed throughout the context encoder;
+mask-aligned target-side pooling changes only the scale of tapped target
+latents; P1/P2 average only L2/L4/L6 and retain the original L8 LatentWave
+loss as their sole final anchor; the target encoder remains full-depth during
+pretraining; and frozen downstream heads use the trained context encoder.
+Global `14 -> 7 -> 4 -> 2` target-grid pooling and a primary coarse L8
+auxiliary loss are retired from Version 1 and retained below only as historical
+design discussion.
 
 ---
 
@@ -384,7 +401,7 @@ A practical design is to save the tensor immediately after each selected Transfo
 Recommended first implementation:
 
 \[
-P_2, P_4, P_6, P_8
+P_2, P_4, P_6
 \]
 
 Use independent predictors rather than sharing parameters.
@@ -395,7 +412,9 @@ Reason:
 - avoids confounding depth-specific behavior with shared predictor capacity;
 - all predictors are discarded after pretraining, so they do not affect downstream inference cost.
 
-Start with the same predictor architecture as LatentWave at every depth:
+Start with the same predictor architecture as LatentWave at every auxiliary
+depth. The original final-layer LatentWave predictor remains the separate L8
+anchor branch:
 
 ```text
 input dimension 256
@@ -501,7 +520,12 @@ It is essential because V-JEPA 2.1 already motivates deep self-supervision.
 
 ---
 
-# 8. Proposed multi-depth, multi-scale JEPA
+# 8. Historical global-grid multi-scale design (retired)
+
+> **Do not implement this section as Version 1.** It is retained only to
+> preserve the earlier design discussion. The mask-aligned target-side design
+> in [`docs/hierarchical_design_amendment.md`](docs/hierarchical_design_amendment.md)
+> supersedes its global target grids, adaptive pooling, and coarse L8 branch.
 
 ## 8.1 Central idea
 
@@ -766,7 +790,10 @@ Use MSE, as LatentWave already does.
 
 ---
 
-# 13. Preserve original LatentWave loss as an anchor
+# 13. Historical four-auxiliary-loss formulation (retired)
+
+> **Do not implement this section as Version 1.** Version 1 uses the unchanged
+> original LatentWave L8 loss and averages only L2/L4/L6 auxiliary losses.
 
 Do **not** replace the original final-layer LatentWave loss in the main model.
 
@@ -1184,21 +1211,23 @@ No auxiliary predictors.
 
 ## Experiment P1 — Multi-depth JEPA, same scale
 
-Use intermediate losses at layers 2/4/6/8.
+Use intermediate losses at layers 2/4/6. Keep the original L8 LatentWave
+objective as the separate final anchor.
 
-All targets stay on the fine `14 × 14` grid.
+All auxiliary targets stay at the fine resolution of the same prediction-mask
+patches.
 
 Objective:
 
 \[
 L = L_{\text{LW}} +
-\frac{\lambda_H}{4}(L_2+L_4+L_6+L_8)
+\frac{\lambda_H}{3}(L_2+L_4+L_6)
 \]
 
 with:
 
 ```text
-target grids = [14,14,14,14]
+L2/L4/L6 = fine prediction-mask targets
 ```
 
 Purpose:
@@ -1208,10 +1237,13 @@ Purpose:
 
 ## Experiment P2 — Proposed multi-depth + multi-scale JEPA
 
-Same objective form, but target scales:
+Use the same normalized objective, but change only target scale for the same
+physical prediction-mask area:
 
 ```text
-[14,7,4,2]
+L2 = fine patches
+L4 = local 2x2 mask-aligned pooling
+L6 = whole valid mask-aligned region
 ```
 
 Purpose:
@@ -1222,11 +1254,10 @@ Purpose:
 ## Experiment P3 — Optional scale ablation
 
 Examples:
-- `[14, 14, 7, 7]`
-- `[14, 7, 7, 2]`
-- `[14, 7, 2, 1]`
-- `[14, 14, 14, 14]`
-- reverse coarse-to-fine (negative-control experiment).
+- alternate local pooling factors;
+- different valid mask-region sizes;
+- fine/same-scale at every auxiliary depth;
+- reverse coarse-to-fine target schedules as a negative control.
 
 Do this only after P0/P1/P2 work reliably.
 
@@ -1239,7 +1270,7 @@ Do this only after P0/P1/P2 work reliably.
 Discard:
 - target encoder;
 - original JEPA predictor;
-- auxiliary predictors `P2/P4/P6/P8`.
+- auxiliary predictors `P2/P4/P6`.
 
 Keep:
 - pretrained **context encoder only**.
@@ -2549,35 +2580,35 @@ Use hypothesis language until demonstrated.
 If only one section is read during coding, use this:
 
 1. Clone/reproduce official LatentWave.
-2. Modify the 8-layer context and target encoders so they optionally return layers `2,4,6,8`.
+2. Modify the 8-layer context and target encoders so they optionally return layers `2,4,6,8` without changing the default path.
 3. Preserve the original final-layer LatentWave predictor and loss exactly.
-4. Add four depth-specific auxiliary JEPA predictors.
-5. Same-scale baseline: all four predictors target fine `14×14` latent regions.
-6. Proposed model: target grids `14×14`, `7×7`, `4×4`, `2×2`.
-7. Pool **target encoder latent features only** to construct larger latent target regions.
-8. Predictors directly output one vector per coarse masked region; do not predict fine patches and pool afterward.
-9. Use only coarse regions fully covered by the original mask in the first implementation.
-10. Auxiliary loss at each layer is MSE between predicted region latent and stop-gradient EMA target latent.
+4. Add three depth-specific auxiliary JEPA predictors at L2/L4/L6.
+5. Same-scale B2: all auxiliary branches target the same fine prediction-mask patches.
+6. Hierarchical B3: retain the same physical context mask; use fine L2 targets, local `2×2` mask-aligned L4 pooling, and one mask-aligned L6 whole-region target.
+7. Pool **tapped target-encoder latent features only** in a side branch; never insert pooling into or truncate the target backbone.
+8. Predictors directly output one vector per target region; do not predict fine patches and pool afterward.
+9. Use only target regions fully covered by the original prediction mask; reject unsupported geometry loudly.
+10. Each auxiliary loss is MSE between a predicted region latent and a stop-gradient EMA target latent.
 11. Final objective:
 
 \[
 L_{\text{total}} =
 L_{\text{LW}}
 +
-\frac{\lambda_H}{4}
-(L_2+L_4+L_6+L_8)
+\frac{\lambda_H}{3}
+(L_2+L_4+L_6)
 \]
 
-12. Start with `lambda_H = 1.0`; optionally warm it up.
-13. Target encoder remains gradient-free and EMA-updated.
+12. Start with `lambda_H = 1.0` and a 12-epoch warm-up.
+13. Target encoder remains gradient-free, EMA-updated, and full-depth during pretraining.
 14. After pretraining, discard target encoder and all predictors.
 15. Freeze the retained context encoder for the primary downstream evaluation.
 16. Attach identical mean-pool + LayerNorm + Linear heads at exits `2,4,6,8`.
 17. Train only the heads.
-18. Primary baseline: original LatentWave with the same frozen exit heads.
-19. Critical ablation: same-scale multi-depth JEPA vs multi-scale multi-depth JEPA.
-20. Primary deployment: fixed task-specific exit; dynamic entropy routing is secondary.
-21. Report accuracy/error, FLOPs, measured latency, selected exit, and savings.
+18. Required primary baseline: original LatentWave with the same frozen early-exit heads.
+19. Critical ablation: B2 same-scale deep supervision versus B3 hierarchical multi-scale JEPA.
+20. Primary deployment: fixed task-specific exit; dynamic entropy routing is classification-only secondary evaluation.
+21. Report accuracy/error, FLOPs, measured latency, selected exit, inference savings, and pretraining overhead separately.
 22. The strongest success case is achieving near-L8 performance at L2/L4/L6 while preserving L8 quality.
 
 ---
@@ -2612,4 +2643,4 @@ L_{\text{LW}}
 
 # 52. Final one-paragraph project definition
 
-**Proposed method:** Starting from LatentWave, retain its shared per-antenna tokenizer, 8-layer ViT context/EMA-target encoders, original masking, and final latent-prediction loss. Add auxiliary JEPA predictors at encoder layers 2, 4, 6, and 8. Each auxiliary branch independently predicts the EMA target encoder's latent representation of masked regions at the same depth. A same-scale baseline uses the original 14×14 target granularity at every depth; the proposed multi-scale model uses progressively coarser target regions (initially 14×14, 7×7, 4×4, and 2×2) constructed by target-side latent pooling, with predictors directly generating one latent vector per coarse masked region. Train with the original LatentWave loss plus the average auxiliary loss, keep the target encoder stop-gradient/EMA-updated, then discard all predictors and the target encoder. For downstream tasks, freeze the learned context encoder, attach identical lightweight heads at layers 2/4/6/8, train only those heads, and compare original LatentWave versus the proposed pretrained model using fixed task-specific and secondary dynamic early-exit policies. The central evaluation is whether near-full downstream performance becomes available at earlier depths, thereby improving the performance–FLOP and performance–latency Pareto frontier.
+**Proposed method:** Starting from LatentWave, retain its shared per-antenna tokenizer, 8-layer ViT context/EMA-target encoders, original context masking, and final latent-prediction loss. Add independent auxiliary JEPA predictors at L2, L4, and L6. The context mask remains fixed throughout the context path. Same-scale B2 predicts the corresponding fine EMA-target mask tokens at every auxiliary depth. Hierarchical multi-scale B3 instead taps full-depth EMA target features and aggregates exactly the same masked physical region from fine L2 targets to local `2×2` pooled L4 targets and a mask-aligned coarse L6 region target. Predictors directly generate one latent vector per target region. Train with `L_LW + lambda_H(epoch) / 3 * (L2 + L4 + L6)`, keep the target encoder stop-gradient and EMA-updated, then discard it and every prediction branch. For downstream tasks, freeze the learned context encoder, train identical lightweight heads at L2/L4/L6/L8, and compare original LatentWave plus frozen early exits against B2 and B3 using fixed task-specific and secondary dynamic classification exits. The central evaluation is whether near-full downstream performance becomes available at earlier depths, thereby improving the performance–FLOP and performance–latency Pareto frontier.

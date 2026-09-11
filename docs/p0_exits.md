@@ -13,7 +13,7 @@ baseline.
 `Encoder.forward(x, masks=None)` remains the original full-depth path. Passing
 `return_layers=[2, 4, 6, 8]` returns a dictionary of full-input token tensors
 after those transformer blocks. `forward_to_layer(x, exit_layer)` returns one
-full-input representation for target-encoder downstream use. Every optional
+full-input representation for downstream use. Every optional
 representation applies the encoder's final `LayerNorm` to the selected block
 output, while the normalized tensor is never fed into later blocks.
 
@@ -21,10 +21,15 @@ output, while the normalized tensor is never fed into later blocks.
 
 `FrozenEncoderExit` attaches an independent head to one exit. Each head uses
 mean pooling over tokens, trainable `LayerNorm`, and a linear task projection.
-The whole target backbone is frozen, including patch embedding, fixed
+The whole context backbone is frozen, including patch embedding, fixed
 positional embeddings, all transformer blocks, and final normalization. Only
-head parameters are optimized. Target checkpoints are loaded from the
-`target_encoder.*` prefix produced by the P0 Lightning module.
+head parameters are optimized. Under the Version 1 hierarchical protocol,
+exits wrap the frozen pretrained `context_encoder.*` checkpoint namespace; the
+EMA target encoder and every JEPA predictor are discarded after pretraining.
+
+The current generic wrapper can technically load a target-encoder namespace,
+but the primary B1/P0 early-exit comparison must be aligned to context-encoder
+checkpoint loading before main experiments begin.
 
 ## Tasks and selection
 
@@ -41,5 +46,6 @@ Run the real-data CPU smoke test with:
 PYTHONPATH=src .venv/bin/python scripts/exit_smoke.py --device cpu --task rfs --steps 1 --batch-size 1
 ```
 
-On the configured CUDA host, use `--device cuda`; the script can also load a
-P0 target checkpoint with `--checkpoint`.
+On the configured CUDA host, use `--device cuda`. The smoke script's
+checkpoint loader will be aligned to the context-encoder protocol before main
+experiments begin.

@@ -9,9 +9,10 @@ early-exit behavior is enabled.
 
 The primary configuration is `configs/p0.yml`. Its paths are relative to the
 repository root and point to the four local pretraining caches plus the three
-downstream files. The downstream foundation weights are taken from the
-`target_encoder` checkpoint namespace and are consumed by the existing
-`latentwfm` finetuning path.
+downstream files. Under the Version 1 hierarchical evaluation protocol, the
+trained `context_encoder` checkpoint namespace is the frozen downstream
+foundation backbone. The EMA `target_encoder` is a pretraining-only,
+stop-gradient branch and is discarded before downstream head training.
 
 ## Checks
 

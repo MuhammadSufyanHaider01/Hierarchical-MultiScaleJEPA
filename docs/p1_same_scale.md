@@ -7,12 +7,17 @@ repository at commit
 remains the P0 reference. P1 is an additive extension and must not be used to
 rewrite regenerated P0 results.
 
+The preferred Version 1 protocol is defined by
+[`hierarchical_design_amendment.md`](hierarchical_design_amendment.md). It
+defines P1 as the deep-supervision control for the proposed hierarchical
+multi-scale method, not as a claim of standalone novelty.
+
 ## Objective
 
 For a training example, the P1 objective is:
 
 ```text
-L_P1 = L_L8 + lambda_H(epoch) * (L_L2 + L_L4 + L_L6)
+L_P1 = L_LW + lambda_H(epoch) / 3 * (L_L2 + L_L4 + L_L6)
 ```
 
 Each auxiliary predictor is independent and has the same predictor structure
@@ -22,15 +27,18 @@ same fine-resolution prediction-mask tokens as P0.
 
 The matching target features come from the same depth of the frozen EMA target
 encoder on the full input. They use the original prediction masks and retain
-the original batch, channel, mask, and embedding ordering. No region pooling,
-coarse geometry, or mask-relative grouping is used in P1; those are Phase 4
-P2 behavior.
+the original batch, channel, mask, and embedding ordering. The same physical
+mask remains fixed throughout the context path. No region pooling, coarse
+geometry, or mask-relative grouping is used in P1; those are Phase 4 P2
+behavior.
 
 ## Warm-up and logging
 
 The default `configs/p1.yml` uses `lambda_H=1.0` with a 12-epoch linear
 warm-up. The first epoch uses `1/12` of the auxiliary weight, and the full
-weight is reached after the twelfth epoch. The L8 anchor remains unscaled.
+weight is reached after the twelfth epoch. The three raw auxiliary losses are
+averaged before the hierarchy weight is applied, so the L8 anchor remains
+unscaled and `lambda_H` has the same meaning independent of branch count.
 
 Training logs include the anchor loss, each auxiliary loss, effective
 hierarchy weight, valid target-token count, target and predictor RMS, auxiliary
@@ -42,6 +50,15 @@ The target encoder is always under `torch.no_grad()` and receives no gradient.
 The context encoder, original predictor, and three auxiliary predictors are
 optimized. When hierarchy is disabled, no auxiliary predictors are
 instantiated and P0's default forward/loss/optimizer path is preserved.
+
+## Version 1 implementation-alignment status
+
+This protocol refinement was adopted after Phase 3 code was committed. The
+current P1 implementation applies `lambda_H * (L2 + L4 + L6)` rather than the
+Version 1 mean above. It must be changed in a separately approved maintenance
+patch, with a numerical test for the `/3` factor, before any P1 result is
+reported as Version 1 protocol-compliant. This document update deliberately
+does not change model code.
 
 ## Configuration
 
