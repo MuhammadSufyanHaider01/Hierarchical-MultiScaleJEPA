@@ -20,3 +20,13 @@ The HDF5 files in this directory are local dataset artifacts and are intentional
 | `downstream/deepmimo.h5` | `sample`, `label_beam_16`, `label_los` | `(14840, 2, 32, 32)` | Beam prediction and LoS/NLoS classification |
 
 The original source files remain one directory above this repository. The copied files are intended to be referenced through configuration, not committed to the remote repository.
+
+## Audit
+
+Run the read-only schema audit from the repository root:
+
+```bash
+python scripts/audit_hdf5.py
+```
+
+Use `python scripts/audit_hdf5.py --scan-finite` for a full numeric finite-value scan instead of the default first/last sample check.

@@ -1,2 +1,20 @@
 data/**/*.h5
 
+# Local experiment outputs and caches.
+pretraining_checkpoints/
+wandb/
+runs/
+scratch/
+figures/
+*.ckpt
+*.pth
+*.pt
+
+# Python tooling.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+uvicorn_config.json

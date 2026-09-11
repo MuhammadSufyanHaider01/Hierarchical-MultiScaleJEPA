@@ -1,0 +1,65 @@
+encoder:
+  img_size: [224, 224]
+  patch_size: 16
+  embed_dim: 256
+  depth: 8
+  num_heads: 8
+
+projector:
+  hidden_dim: 1024
+  num_blocks: 2
+
+wandb:
+  project_name: "latent-wfm"
+
+data:
+  pretrain_datasets:
+  - name: "spectrogram"
+    path: ../preprocessed_datasets/spectrogram-pretrain.h5
+    key: "spectrogram"
+  - name: "rfp"
+    path: ../preprocessed_datasets/rfp.h5
+    key: "normalized_spectrograms"
+  - name: "wifi-csi"
+    path: ../preprocessed_datasets/wifi-csi.h5
+    key: "normalized_csi"
+  - name: "nrpos-indoor"
+    path: ../preprocessed_datasets/nrpos-indoor.h5
+    key: "normalized_csi"
+
+  rfs_path: ../preprocessed_datasets/rfs.h5
+  pos_path: ../preprocessed_datasets/nrpos-outdoor.h5
+  beam_path: ../preprocessed_datasets/deepmimo.h5
+  batch_size: 64
+  num_workers: 4
+  pin_mem: true
+
+transforms:
+  output_size: [224, 224]
+  crop: true
+  crop_scale: [0.3, 1.0]
+  n_time_masks: 0
+  time_mask_max_width: 20
+  n_freq_masks: 0
+  freq_mask_max_width: 20
+  add_noise: false
+  noise_std: 0.1
+
+optimization:
+  epochs: 240
+  warmup: 12
+  start_lr: 1.0e-06
+  ref_lr: 0.001
+  final_lr: 1.0e-06
+  ref_weight_decay: 0.04
+  final_weight_decay: 0.04
+  inv_loss_weight: 25.0
+  var_loss_weight: 25.0
+  cov_loss_weight: 1.0
+  grad_clip: null
+
+checkpoint:
+  dir: "pretraining_checkpoints"
+  every_n_epochs: 5
+
+seed: 0
