@@ -1,6 +1,5 @@
 from .multi_block_mask import MultiBlockMask
 from .random_mask import RandomMask
-from .two_views import TwoViewsCollator
 
 def get_collator(name):
     if name == "random":

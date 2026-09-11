@@ -15,6 +15,13 @@ The pinned tree is the implementation reference for P0. Any compatibility
 changes required because of missing optional modules or environment drift must
 be recorded explicitly and must not be silently treated as upstream behavior.
 
+Phase 1 adds a narrow local compatibility layer: the package initializers and
+P0 entrypoint expose only the JEPA files that actually exist at this commit;
+the unused optional collator and deferred WavesFM path are not imported. The
+JEPA encoder, predictor, masking, loss, optimizer, scheduler, and EMA update
+remain unchanged apart from extracting the EMA arithmetic into a testable
+method.
+
 ## Phase 0 import audit
 
 The source tree compiles successfully. A runtime import using the existing

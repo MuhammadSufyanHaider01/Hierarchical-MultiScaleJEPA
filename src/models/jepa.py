@@ -9,6 +9,7 @@ from configs import JEPAConfig
 from models import Encoder, Predictor
 from .utils import apply_masks, repeat_interleave_batch, get_effective_rank, sample_channel_subsets
 from .validation import ValidationModule
+from checkpointing import build_checkpoint_metadata
 from schedulers import WarmupCosineSchedule, CosineWDSchedule
 
 
@@ -42,6 +43,7 @@ class JEPA(ValidationModule):
 
         self._freeze_target_encoder()
         self.config = CONFIG
+        self.checkpoint_metadata = build_checkpoint_metadata(CONFIG, seed=CONFIG.seed)
 
     def _freeze_target_encoder(self):
         for param in self.target_encoder.parameters():
@@ -117,10 +119,18 @@ class JEPA(ValidationModule):
     def on_train_batch_end(self, outputs, batch, batch_idx):
         with torch.no_grad():
             m = self.ema_start + (self.global_step - 1) * (self.ema_end - self.ema_start) / self.total_steps
-            for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
-                param_k.data.mul_(m).add_((1.-m) * param_q.detach().data) 
+            self.update_target_encoder(m)
             
         self.log("ema_momentum", m, on_step=True, on_epoch=False, logger=True)
+
+    @torch.no_grad()
+    def update_target_encoder(self, momentum: float) -> None:
+        """Apply the original LatentWave EMA update to target parameters."""
+        for param_q, param_k in zip(self.context_encoder.parameters(), self.target_encoder.parameters()):
+            param_k.data.mul_(momentum).add_((1.0 - momentum) * param_q.detach().data)
+
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
+        checkpoint["metadata"] = self.checkpoint_metadata
 
     def _get_validation_tokens_reps(self, x):
         return self.target_encoder(x)

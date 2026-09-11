@@ -3,7 +3,21 @@ from __future__ import annotations
 from typing import Dict
 
 import torch
-from timm.utils import accuracy
+
+try:
+    from timm.utils import accuracy
+except ModuleNotFoundError:
+    def accuracy(output, target, topk=(1,)):
+        """Small local equivalent for the only timm utility used here."""
+        maxk = max(topk)
+        _, prediction = output.topk(maxk, dim=1, largest=True, sorted=True)
+        prediction = prediction.t()
+        correct = prediction.eq(target.reshape(1, -1).expand_as(prediction))
+        batch_size = target.shape[0]
+        return tuple(
+            correct[:k].reshape(-1).float().sum(0).mul_(100.0 / batch_size)
+            for k in topk
+        )
 
 from utils import AverageMeter, apply_lr, pretty_dict
 

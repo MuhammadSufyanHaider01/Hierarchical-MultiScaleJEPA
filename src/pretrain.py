@@ -12,17 +12,10 @@ from typing import Annotated, Literal
 from lightning.pytorch import callbacks
 from lightning.pytorch.utilities import CombinedLoader
 from lightning.pytorch.loggers import WandbLogger
-from configs import (
-    init_jepa_config,
-    init_jepa_simclr_config, 
-    init_mae_config,
-    init_jepa_mae_config,
-    init_simclr_config,
-    init_vicreg_config
-)
-from models import JEPA, JEPASimCLR, MAE, JEPAMAE, SimCLR, VICReg
+from configs import init_jepa_config
+from models import JEPA
 from datasets import PretrainCache, ImageDataset, DeepMIMO
-from collators import get_collator, TwoViewsCollator
+from collators import get_collator
 from evaluation import evaluate_class, evaluate_pos
 
 
@@ -32,25 +25,15 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 
 INIT_CONFIG = {
     "jepa": init_jepa_config,
-    "jepa_simclr": init_jepa_simclr_config,
-    "mae": init_mae_config,
-    "jepa_mae": init_jepa_mae_config,
-    "simclr": init_simclr_config,
-    "vicreg": init_vicreg_config
 }
 
 MODEL = {
     "jepa": JEPA,
-    "jepa_simclr": JEPASimCLR,
-    "mae": MAE,
-    "jepa_mae": JEPAMAE,
-    "simclr": SimCLR,
-    "vicreg": VICReg
 }
 
 
 @app.command()
-def main(method: Annotated[Literal["jepa", "jepa_simclr", "mae", "jepa_mae", "simclr", "vicreg"], typer.Option()], config_path: Annotated[str, typer.Option()]):
+def main(method: Annotated[Literal["jepa"], typer.Option()], config_path: Annotated[str, typer.Option()]):
     CONFIG = INIT_CONFIG.get(method)(config_path)
 
     torch.manual_seed(CONFIG.seed)
@@ -68,25 +51,12 @@ def main(method: Annotated[Literal["jepa", "jepa_simclr", "mae", "jepa_mae", "si
         callbacks.RichProgressBar(),
     ]
 
-    if method in ["simclr", "vicreg"]:
-        collator = TwoViewsCollator(
-            output_size=CONFIG.transforms.output_size,
-            crop=CONFIG.transforms.crop,
-            crop_scale=CONFIG.transforms.crop_scale,
-            n_time_masks=CONFIG.transforms.n_time_masks,
-            time_mask_max_width=CONFIG.transforms.time_mask_max_width,
-            n_freq_masks=CONFIG.transforms.n_freq_masks,
-            freq_mask_max_width=CONFIG.transforms.freq_mask_max_width,
-            add_noise=CONFIG.transforms.add_noise,
-            noise_std=CONFIG.transforms.noise_std
-        )
-    else:
-        collator_class = get_collator(CONFIG.masks.type)
-        collator = collator_class(
-            input_size=CONFIG.encoder.img_size,
-            patch_size=CONFIG.encoder.patch_size,
-            **getattr(CONFIG.masks, CONFIG.masks.type).model_dump()
-        )
+    collator_class = get_collator(CONFIG.masks.type)
+    collator = collator_class(
+        input_size=CONFIG.encoder.img_size,
+        patch_size=CONFIG.encoder.patch_size,
+        **getattr(CONFIG.masks, CONFIG.masks.type).model_dump()
+    )
 
     dataloaders = {}
     for dataset_config in CONFIG.data.pretrain_datasets:
@@ -127,6 +97,7 @@ def main(method: Annotated[Literal["jepa", "jepa_simclr", "mae", "jepa_mae", "si
         [evaluate_class, evaluate_pos, evaluate_class], 
         ["rfs_pca", "pos_error", "beam_pca"]
     )
+    model.checkpoint_metadata["config_path"] = str(config_path)
     
     trainer = L.Trainer(
         max_epochs=CONFIG.optimization.epochs,
