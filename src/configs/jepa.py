@@ -1,7 +1,15 @@
 import yaml
 
 from pydantic_settings import BaseSettings
-from .components import EncoderConfig, PredictorConfig, WandBConfig, DatasetConfig, MasksConfig, CheckpointConfig
+from .components import (
+    CheckpointConfig,
+    DatasetConfig,
+    EncoderConfig,
+    HierarchyConfig,
+    MasksConfig,
+    PredictorConfig,
+    WandBConfig,
+)
 
 
 class OptimizationConfig(BaseSettings):
@@ -25,6 +33,7 @@ class Config(BaseSettings):
     optimization: OptimizationConfig
     checkpoint: CheckpointConfig
     seed: int
+    hierarchy: HierarchyConfig = HierarchyConfig()
 
 
 CONFIG: Config = None

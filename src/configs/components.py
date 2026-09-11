@@ -19,6 +19,16 @@ class PredictorConfig(BaseSettings):
     num_heads: int
 
 
+class HierarchyConfig(BaseSettings):
+    """Optional same-scale multi-depth JEPA supervision configuration."""
+
+    enabled: bool = False
+    mode: Literal["same_scale"] = "same_scale"
+    layers: list[int] = [2, 4, 6]
+    lambda_h: float = Field(default=1.0, validation_alias="lambda")
+    warmup_epochs: int = 12
+
+
 class ProjectorConfig(BaseSettings):
     num_blocks: int
     hidden_dim: int

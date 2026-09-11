@@ -27,6 +27,10 @@ head wrappers around that encoder. The pinned checkout remains the reference
 for any regenerated P0 results; Phase 2 must not be presented as a change to
 the original LatentWave baseline.
 
+Phase 3 adds same-scale auxiliary predictors only when the separate P1
+configuration enables them. The original P0 configuration keeps the
+hierarchy-disabled path and remains the minimal-deviation reference.
+
 ## Phase 0 import audit
 
 The source tree compiles successfully. A runtime import using the existing
