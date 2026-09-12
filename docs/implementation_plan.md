@@ -222,6 +222,12 @@ Only after the main-result review:
 
 Every ablation must answer a stated research question before GPU allocation.
 
+Implementation protocol: [`phase6_ablations_ood.md`](phase6_ablations_ood.md).
+The Phase 6 framework provides lambda and opt-in L8-coarse P2 ablations,
+held-out jamming/interference/human-activity task registration, and
+classification-only dynamic entropy routing. GPU execution remains deferred
+until the Phase 5 main-result review.
+
 ## Interfaces and experiment definitions
 
 Planned interfaces:

@@ -27,6 +27,7 @@ class HierarchyConfig(BaseSettings):
     layers: list[int] = [2, 4, 6]
     lambda_h: float = Field(default=1.0, validation_alias="lambda")
     warmup_epochs: int = 12
+    include_l8_coarse: bool = False
 
 
 class ProjectorConfig(BaseSettings):

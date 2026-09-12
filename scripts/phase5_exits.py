@@ -26,9 +26,17 @@ from configs import init_jepa_config  # noqa: E402
 from evaluation import select_best_exit, select_earliest_within_tolerance  # noqa: E402
 from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint  # noqa: E402
 from phase5 import TaskSpec, build_task_dataset, load_or_create_split_manifest, task_subsets  # noqa: E402
+from phase6 import (  # noqa: E402
+    OOD_TASKS,
+    build_ood_task_dataset,
+    default_ood_root,
+    load_or_create_ood_split_manifest,
+    ood_task_subsets,
+)
 
 
-TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
+PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
+TASKS = PRIMARY_TASKS + OOD_TASKS
 EXIT_LAYERS = (2, 4, 6, 8)
 
 
@@ -46,6 +54,8 @@ def _arguments() -> argparse.Namespace:
         help="Encoder config; defaults to the config corresponding to --method.",
     )
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
+    parser.add_argument("--dataset-suite", choices=("primary", "ood"), default="primary")
+    parser.add_argument("--ood-root", type=Path, default=default_ood_root(REPOSITORY_ROOT))
     parser.add_argument("--task", choices=TASKS, action="append")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -283,17 +293,33 @@ def main() -> int:
 
     run_dir = args.run_root / args.method / f"seed_{args.pretrain_seed:03d}" / "downstream"
     run_dir.mkdir(parents=True, exist_ok=True)
-    manifest = load_or_create_split_manifest(args.run_root / f"splits_seed_{args.split_seed}.json", REPOSITORY_ROOT, seed=args.split_seed)
+    if args.dataset_suite == "primary":
+        allowed_tasks = PRIMARY_TASKS
+        manifest_path = args.run_root / f"splits_seed_{args.split_seed}.json"
+        manifest = load_or_create_split_manifest(manifest_path, REPOSITORY_ROOT, seed=args.split_seed)
+        build_dataset = lambda task: build_task_dataset(task, REPOSITORY_ROOT)
+        make_subsets = task_subsets
+    else:
+        allowed_tasks = OOD_TASKS
+        manifest_path = args.run_root / f"ood_splits_seed_{args.split_seed}.json"
+        manifest = load_or_create_ood_split_manifest(manifest_path, args.ood_root, seed=args.split_seed)
+        build_dataset = lambda task: build_ood_task_dataset(task, args.ood_root)
+        make_subsets = ood_task_subsets
     config_path = args.config or (REPOSITORY_ROOT / "configs" / f"{args.method}.yml")
     config = init_jepa_config(str(config_path))
-    tasks = tuple(args.task or TASKS)
+    tasks = tuple(args.task or allowed_tasks)
+    unsupported = sorted(set(tasks).difference(allowed_tasks))
+    if unsupported:
+        raise ValueError(f"tasks {unsupported} are not in the {args.dataset_suite} dataset suite")
     output = run_dir / "exit_metrics.json"
     all_results = {
         "method": args.method,
         "pretrain_seed": args.pretrain_seed,
         "head_seed": head_seed,
         "checkpoint": str(checkpoint),
-        "split_manifest": str(args.run_root / f"splits_seed_{args.split_seed}.json"),
+        "dataset_suite": args.dataset_suite,
+        "ood_root": str(args.ood_root.resolve()) if args.dataset_suite == "ood" else None,
+        "split_manifest": str(manifest_path),
         "protocol": {
             "head_epochs": args.epochs,
             "tolerance": args.tolerance,
@@ -315,11 +341,11 @@ def main() -> int:
     for task_index, task_name in enumerate(tasks):
         if task_name in all_results["tasks"]:
             continue
-        dataset, spec = build_task_dataset(task_name, REPOSITORY_ROOT)
+        dataset, spec = build_dataset(task_name)
         split_record = manifest["tasks"][task_name]
         if int(split_record["counts"]["train"]) + int(split_record["counts"]["validation"]) + int(split_record["counts"]["test"]) != len(dataset):
             raise ValueError(f"split manifest size mismatch for {task_name}")
-        subsets = task_subsets(dataset, split_record)
+        subsets = make_subsets(dataset, split_record)
         train_loader = _loader(subsets["train"], batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
                                seed=head_seed + task_index, pin_memory=device.type == "cuda")
         validation_loader = _loader(subsets["validation"], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,

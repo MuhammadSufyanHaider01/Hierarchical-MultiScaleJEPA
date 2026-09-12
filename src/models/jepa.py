@@ -40,8 +40,12 @@ class JEPA(ValidationModule):
         self.hierarchy_layers = tuple(int(layer) for layer in getattr(hierarchy, "layers", (2, 4, 6)))
         self.hierarchy_lambda = float(getattr(hierarchy, "lambda_h", 1.0))
         self.hierarchy_warmup_epochs = int(getattr(hierarchy, "warmup_epochs", 12))
+        self.include_l8_coarse = bool(getattr(hierarchy, "include_l8_coarse", False))
         self._validate_hierarchy_config()
-        active_hierarchy_layers = self.hierarchy_layers if self.hierarchy_enabled else ()
+        self.auxiliary_layers = self.hierarchy_layers
+        if self.hierarchy_enabled and self.include_l8_coarse:
+            self.auxiliary_layers = self.hierarchy_layers + (len(self.context_encoder.blocks),)
+        active_hierarchy_layers = self.auxiliary_layers if self.hierarchy_enabled else ()
         self.aux_predictors = nn.ModuleDict({
             str(layer): Predictor(
                 num_patches=(CONFIG.encoder.img_size[0] // CONFIG.encoder.patch_size) ** 2,
@@ -86,6 +90,10 @@ class JEPA(ValidationModule):
             raise ValueError(
                 f"P2 requires auxiliary layers {P2_LAYERS}, got {self.hierarchy_layers}"
             )
+        if self.include_l8_coarse and (
+            not self.hierarchy_enabled or self.hierarchy_mode != "mask_relative_fine_to_coarse"
+        ):
+            raise ValueError("include_l8_coarse is an opt-in P2-only ablation")
 
     def _freeze_target_encoder(self):
         for param in self.target_encoder.parameters():
@@ -118,7 +126,7 @@ class JEPA(ValidationModule):
     def _hierarchy_total_loss(self, anchor_loss, auxiliary_losses, hierarchy_weight):
         """Combine the unchanged anchor with the mean auxiliary loss."""
         auxiliary_mean = torch.stack(
-            [auxiliary_losses[layer] for layer in self.hierarchy_layers]
+            [auxiliary_losses[layer] for layer in self.auxiliary_layers]
         ).mean()
         return anchor_loss + hierarchy_weight * auxiliary_mean
 
@@ -132,7 +140,7 @@ class JEPA(ValidationModule):
         p2_layout = None
 
         if hierarchy_requested:
-            context_layers = tuple(sorted(set(self.hierarchy_layers + (len(self.context_encoder.blocks),))))
+            context_layers = tuple(sorted(set(self.auxiliary_layers + (len(self.context_encoder.blocks),))))
             context_outputs = self.context_encoder(x, masks_enc, return_layers=context_layers)
             context_emb = context_outputs[len(self.context_encoder.blocks)]
         else:
@@ -148,12 +156,12 @@ class JEPA(ValidationModule):
             auxiliary_targets = {}
             if hierarchy_requested:
                 if self.hierarchy_mode == "same_scale":
-                    target_outputs = self.target_encoder(x, return_layers=self.hierarchy_layers)
+                    target_outputs = self.target_encoder(x, return_layers=self.auxiliary_layers)
                     auxiliary_targets = {
                         layer: self._target_for_prediction_masks(
                             target_outputs[layer], C, masks_enc, masks_pred
                         )
-                        for layer in self.hierarchy_layers
+                        for layer in self.auxiliary_layers
                     }
                 else:
                     p2_layout = build_mask_relative_region_layout(
@@ -162,7 +170,7 @@ class JEPA(ValidationModule):
                     )
                     target_outputs = self.target_encoder(
                         x,
-                        return_layers=self.hierarchy_layers,
+                        return_layers=self.auxiliary_layers,
                         normalize_exits=False,
                     )
                     num_context_masks = len(masks_enc) if isinstance(masks_enc, list) else 1
@@ -171,11 +179,13 @@ class JEPA(ValidationModule):
                             target_outputs[layer],
                             channels=C,
                             layout=p2_layout,
-                            layer=layer,
+                            # L8 coarse supervision pools the same complete
+                            # masked block as L6, but from L8 target features.
+                            layer=6 if layer == len(self.context_encoder.blocks) else layer,
                         )
                         .unsqueeze(1)
                         .expand(-1, num_context_masks, -1, -1, -1, -1)
-                        for layer in self.hierarchy_layers
+                        for layer in self.auxiliary_layers
                     }
 
         if not hierarchy_requested:
@@ -186,7 +196,7 @@ class JEPA(ValidationModule):
                 layer: self.aux_predictors[str(layer)](
                     context_outputs[layer], C, masks_enc, masks_pred
                 )
-                for layer in self.hierarchy_layers
+                for layer in self.auxiliary_layers
             }
         else:
             auxiliary_predictions = {
@@ -194,9 +204,9 @@ class JEPA(ValidationModule):
                     context_outputs[layer],
                     C,
                     masks_enc,
-                    p2_layout.for_layer(layer),
+                    p2_layout.for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
                 )
-                for layer in self.hierarchy_layers
+                for layer in self.auxiliary_layers
             }
         return latent_mask_pred, latent_mask_target, target_out, auxiliary_predictions, auxiliary_targets
 
@@ -252,7 +262,7 @@ class JEPA(ValidationModule):
             self.log("hierarchy_weight", hierarchy_weight, on_step=True, on_epoch=True, logger=True)
             self.log(f"train_loss_{name}_anchor", anchor_loss, on_step=True, on_epoch=True, logger=True)
             auxiliary_losses = {}
-            for layer in self.hierarchy_layers:
+            for layer in self.auxiliary_layers:
                 auxiliary_prediction = auxiliary_predictions[layer]
                 auxiliary_target = auxiliary_targets[layer]
                 auxiliary_loss = self.loss(auxiliary_prediction, auxiliary_target)

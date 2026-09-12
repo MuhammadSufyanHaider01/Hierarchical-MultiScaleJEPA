@@ -28,6 +28,13 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--methods", choices=tuple(METHOD_LABELS), nargs="+", default=tuple(METHOD_LABELS))
     parser.add_argument("--seeds", type=int, nargs="+", default=(0, 1, 2))
     parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument("--output-prefix", type=str, default="phase5")
+    parser.add_argument("--title", type=str, default="Phase 5 experiment summary")
+    parser.add_argument(
+        "--skip-pretraining-overhead",
+        action="store_true",
+        help="For OOD-only reports whose checkpoints were accounted for in the main suite.",
+    )
     return parser.parse_args()
 
 
@@ -133,10 +140,10 @@ def _format(value: object) -> str:
 
 def _markdown(summary: dict[str, object]) -> str:
     lines = [
-        "# Phase 5 experiment summary",
+        f"# {summary['title']}",
         "",
         "This is an aggregation of recorded artifacts, not an inferential claim. "
-        "A complete main result requires all three seeds for P0/B0-B1, P1/B2, and P2/B3.",
+        "A complete report requires artifacts for every requested method and seed.",
         "",
         f"Requested methods: {', '.join(summary['requested_methods'])}; seeds: {', '.join(map(str, summary['requested_seeds']))}.",
         "",
@@ -165,13 +172,14 @@ def _markdown(summary: dict[str, object]) -> str:
                 f"| {METHOD_LABELS[method]} | {row['task']} | L{row['exit_layer']} | {row['measure']} | "
                 f"{_format(row['mean'])} | {_format(row['standard_deviation'])} | {_format(row.get('savings_relative_to_l8'))} |"
             )
-    lines.extend(["", "## Pretraining overhead", "", "These measurements are reported separately and are not treated as inference savings.", "", "| Method | Measure | n | Mean | SD |", "|---|---|---:|---:|---:|"])
-    for method, rows in summary["pretraining_overhead"].items():
-        for row in rows:
-            lines.append(
-                f"| {METHOD_LABELS[method]} | {row['measure']} | {row['count']} | "
-                f"{_format(row['mean'])} | {_format(row['standard_deviation'])} |"
-            )
+    if summary["pretraining_overhead_included"]:
+        lines.extend(["", "## Pretraining overhead", "", "These measurements are reported separately and are not treated as inference savings.", "", "| Method | Measure | n | Mean | SD |", "|---|---|---:|---:|---:|"])
+        for method, rows in summary["pretraining_overhead"].items():
+            for row in rows:
+                lines.append(
+                    f"| {METHOD_LABELS[method]} | {row['measure']} | {row['count']} | "
+                    f"{_format(row['mean'])} | {_format(row['standard_deviation'])} |"
+                )
     lines.append("")
     return "\n".join(lines)
 
@@ -210,6 +218,8 @@ def main() -> int:
     args = _arguments()
     output_dir = args.output_dir or args.run_root
     output_dir.mkdir(parents=True, exist_ok=True)
+    if Path(args.output_prefix).name != args.output_prefix:
+        raise ValueError("output-prefix must be a simple filename prefix")
     # The workspace sandbox does not expose a writable user config directory.
     # Keep Matplotlib's cache alongside the gitignored report artifacts.
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
@@ -222,7 +232,7 @@ def main() -> int:
             base = args.run_root / method / f"seed_{seed:03d}"
             metrics = _read(base / "downstream/exit_metrics.json")
             benchmarks = _read(base / "benchmarks.json")
-            pretraining = _read(base / "summary.json")
+            pretraining = None if args.skip_pretraining_overhead else _read(base / "summary.json")
             if metrics is None:
                 missing.append(f"missing downstream metrics: {base / 'downstream/exit_metrics.json'}")
             else:
@@ -231,11 +241,12 @@ def main() -> int:
                 missing.append(f"missing benchmark: {base / 'benchmarks.json'}")
             else:
                 benchmarks_by_method[method].append((seed, benchmarks))
-            if pretraining is None:
+            if pretraining is None and not args.skip_pretraining_overhead:
                 missing.append(f"missing pretraining summary: {base / 'summary.json'}")
-            else:
+            elif pretraining is not None:
                 pretraining_by_method[method].append((seed, pretraining))
     summary = {
+        "title": args.title,
         "requested_methods": list(args.methods),
         "requested_seeds": list(args.seeds),
         "missing_artifacts": missing,
@@ -244,9 +255,10 @@ def main() -> int:
         "pretraining_overhead": {
             method: _pretraining_rows(records) for method, records in pretraining_by_method.items()
         },
+        "pretraining_overhead_included": not args.skip_pretraining_overhead,
     }
-    (output_dir / "phase5_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True))
-    (output_dir / "phase5_summary.md").write_text(_markdown(summary))
+    (output_dir / f"{args.output_prefix}_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True))
+    (output_dir / f"{args.output_prefix}_summary.md").write_text(_markdown(summary))
     csv_rows = []
     for method, rows in summary["metrics"].items():
         csv_rows.extend({"category": "metric", "method": method, **row} for row in rows)
@@ -255,12 +267,12 @@ def main() -> int:
     for method, rows in summary["pretraining_overhead"].items():
         csv_rows.extend({"category": "pretraining_overhead", "method": method, **row} for row in rows)
     fields = sorted({field for row in csv_rows for field in row})
-    with (output_dir / "phase5_summary.csv").open("w", newline="") as handle:
+    with (output_dir / f"{args.output_prefix}_summary.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(csv_rows)
-    plot = _plot(summary, output_dir / "phase5_selected_exits.png")
-    print(json.dumps({"summary": str(output_dir / "phase5_summary.md"), "plot": plot, "missing_artifacts": len(missing)}, indent=2))
+    plot = _plot(summary, output_dir / f"{args.output_prefix}_selected_exits.png")
+    print(json.dumps({"summary": str(output_dir / f"{args.output_prefix}_summary.md"), "plot": plot, "missing_artifacts": len(missing)}, indent=2))
     return 0
 
 

@@ -71,6 +71,9 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--method", choices=tuple(METHOD_CONFIGS), required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
+    parser.add_argument("--run-name", type=str, default=None, help="Optional result-directory name, for ablations.")
+    parser.add_argument("--hierarchy-lambda", type=float, default=None, help="Override lambda_H for P1/P2 ablations.")
+    parser.add_argument("--include-l8-coarse", action="store_true", help="Enable the opt-in P2 L8 whole-block auxiliary loss.")
     parser.add_argument("--max-epochs", type=int, default=240)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--accumulate-grad-batches", type=int, default=4)
@@ -138,7 +141,10 @@ def _build_validation_loaders(config):
 
 
 def _run_directory(args: argparse.Namespace) -> Path:
-    return args.run_root / args.method / f"seed_{args.seed:03d}"
+    name = args.run_name or args.method
+    if Path(name).name != name:
+        raise ValueError("run-name must be a single directory name")
+    return args.run_root / name / f"seed_{args.seed:03d}"
 
 
 def main() -> int:
@@ -147,6 +153,10 @@ def main() -> int:
         raise ValueError("epochs, batch size, accumulation, workers, and checkpoint interval must be positive")
     if args.validate_every < 0:
         raise ValueError("validate-every must be non-negative")
+    if args.hierarchy_lambda is not None and (args.method == "p0" or args.hierarchy_lambda < 0):
+        raise ValueError("hierarchy-lambda must be non-negative and is only valid for P1/P2")
+    if args.include_l8_coarse and args.method != "p2":
+        raise ValueError("include-l8-coarse is only valid for the P2 ablation")
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but is unavailable")
 
@@ -164,6 +174,10 @@ def main() -> int:
     config.data.batch_size = args.batch_size
     config.data.num_workers = args.num_workers
     config.optimization.epochs = args.max_epochs
+    if args.hierarchy_lambda is not None:
+        config.hierarchy.lambda_h = args.hierarchy_lambda
+    if args.include_l8_coarse:
+        config.hierarchy.include_l8_coarse = True
     config.checkpoint.dir = str(run_dir / "checkpoints")
     config.checkpoint.every_n_epochs = args.checkpoint_every
 
@@ -173,6 +187,7 @@ def main() -> int:
     runtime = {
         "phase": 5,
         "method": args.method,
+        "run_name": args.run_name or args.method,
         "seed": args.seed,
         "config_path": str(config_path.relative_to(REPOSITORY_ROOT)),
         "microbatch_size": args.batch_size,
@@ -185,6 +200,8 @@ def main() -> int:
         "limit_train_batches": args.limit_train_batches,
         "limit_val_batches": args.limit_val_batches,
         "validate_every": args.validate_every,
+        "hierarchy_lambda_override": args.hierarchy_lambda,
+        "include_l8_coarse": args.include_l8_coarse,
     }
     metadata = build_checkpoint_metadata(config, seed=args.seed, config_path=config_path)
     metadata["phase5"] = runtime

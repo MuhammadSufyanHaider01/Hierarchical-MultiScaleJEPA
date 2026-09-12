@@ -156,6 +156,26 @@ class P2HierarchyTest(unittest.TestCase):
         # exposes L2/L4/L6 raw taps and must still execute through L8.
         self.assertEqual(len(full_depth_calls), 2)
 
+    def test_optional_l8_coarse_ablation_uses_full_block_regions(self):
+        config = tiny_p2_config()
+        config.hierarchy.include_l8_coarse = True
+        model = JEPA(
+            config,
+            iterations_per_epoch=2,
+            eval_fns=[lambda *_: 0.0],
+            metrics=["smoke"],
+        ).eval()
+        output = model(self.x, self.masks_enc, self.masks_pred, return_hierarchy=True)
+        _, anchor_target, _, predictions, targets = output
+        self.assertEqual(set(predictions), {2, 4, 6, 8})
+        self.assertEqual(tuple(predictions[8].shape), (1, 1, 2, 1, 1, 16))
+        self.assertEqual(tuple(targets[8].shape), (1, 1, 2, 1, 1, 16))
+        loss = self.model.loss(predictions[8], targets[8]) + self.model.loss(
+            self.model(self.x, self.masks_enc, self.masks_pred)[0], anchor_target
+        )
+        self.assertTrue(torch.isfinite(loss))
+        self.assertFalse(targets[8].requires_grad)
+
 
 if __name__ == "__main__":
     unittest.main()
