@@ -107,7 +107,7 @@ class Encoder(nn.Module):
 
         return x
 
-    def _forward_layers(self, x, masks, return_layers):
+    def _forward_layers(self, x, masks, return_layers, *, normalize_exits=True):
         requested = tuple(dict.fromkeys(int(layer) for layer in return_layers))
         if not requested:
             return {}
@@ -122,7 +122,7 @@ class Encoder(nn.Module):
                 # The pinned encoder applies this same final normalization after
                 # its last block. Reuse it at optional exits without feeding the
                 # normalized tensor into subsequent blocks.
-                outputs[layer_index] = self.norm(x)
+                outputs[layer_index] = self.norm(x) if normalize_exits else x
         return outputs
 
     def forward_to_layer(self, x, exit_layer):
@@ -134,9 +134,14 @@ class Encoder(nn.Module):
         """
         return self._forward_layers(x, masks=None, return_layers=[exit_layer])[int(exit_layer)]
 
-    def forward(self, x, masks=None, return_layers=None):
+    def forward(self, x, masks=None, return_layers=None, *, normalize_exits=True):
         if return_layers is not None:
-            return self._forward_layers(x, masks=masks, return_layers=return_layers)
+            return self._forward_layers(
+                x,
+                masks=masks,
+                return_layers=return_layers,
+                normalize_exits=normalize_exits,
+            )
 
         x = self._prepare_tokens(x, masks=masks)
 

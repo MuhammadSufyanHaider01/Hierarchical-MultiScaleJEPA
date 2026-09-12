@@ -182,6 +182,10 @@ contains a visible patch; the target encoder remains a full-depth EMA branch;
 prediction and target shapes/order match; malformed or unsupported masks fail
 loudly; and a finite short CUDA smoke run completes.
 
+Implementation reference: [`p2_mask_relative.md`](p2_mask_relative.md).
+The Phase 4 implementation and CPU/CUDA smoke verification are complete;
+main-result training remains Phase 5 work.
+
 ## Phase 5 — Main experiments
 
 Train B0/P0, B2/P1, and B3/P2 with three pretraining seeds on the RTX 5070 Ti

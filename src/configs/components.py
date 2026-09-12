@@ -20,10 +20,10 @@ class PredictorConfig(BaseSettings):
 
 
 class HierarchyConfig(BaseSettings):
-    """Optional same-scale multi-depth JEPA supervision configuration."""
+    """Optional P1 same-scale or P2 mask-relative JEPA supervision."""
 
     enabled: bool = False
-    mode: Literal["same_scale"] = "same_scale"
+    mode: Literal["same_scale", "mask_relative_fine_to_coarse"] = "same_scale"
     layers: list[int] = [2, 4, 6]
     lambda_h: float = Field(default=1.0, validation_alias="lambda")
     warmup_epochs: int = 12

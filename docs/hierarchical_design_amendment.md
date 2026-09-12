@@ -149,4 +149,8 @@ use the learned `context_encoder`; checkpoint loading explicitly prefers its
 namespace and falls back to target-encoder weights only for legacy checkpoints
 that lack a context branch. The legacy full-depth `LatentWFM` frozen-head path
 also freezes patch embedding and final normalization by default, matching the
-complete-backbone frozen-evaluation contract.
+complete-backbone frozen-evaluation contract. P2 now derives L2/L4/L6 target
+regions from each actual prediction mask, uses target-side pooling only, and
+directly predicts one vector per region. Its tests cover hand-computed pooling,
+mask leakage, malformed geometry, target gradient absence, and full-depth EMA
+target execution; CPU and RTX 5070 Ti smoke runs are finite.

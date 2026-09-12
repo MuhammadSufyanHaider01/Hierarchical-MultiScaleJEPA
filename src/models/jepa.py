@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from configs import JEPAConfig
 from models import Encoder, Predictor
 from .utils import apply_masks, repeat_interleave_batch, get_effective_rank, sample_channel_subsets
+from .regions import P2_LAYERS, build_mask_relative_region_layout, pool_target_regions
 from .validation import ValidationModule
 from checkpointing import build_checkpoint_metadata
 from schedulers import WarmupCosineSchedule, CosineWDSchedule
@@ -67,7 +68,8 @@ class JEPA(ValidationModule):
     def _validate_hierarchy_config(self):
         if not self.hierarchy_enabled:
             return
-        if self.hierarchy_mode != "same_scale":
+        supported_modes = {"same_scale", "mask_relative_fine_to_coarse"}
+        if self.hierarchy_mode not in supported_modes:
             raise ValueError(f"unsupported hierarchy mode: {self.hierarchy_mode!r}")
         if self.hierarchy_warmup_epochs < 0:
             raise ValueError("hierarchy warmup_epochs must be non-negative")
@@ -79,6 +81,10 @@ class JEPA(ValidationModule):
         if any(layer < 1 or layer >= depth for layer in self.hierarchy_layers):
             raise ValueError(
                 f"same-scale auxiliary layers must be in [1, {depth - 1}], got {self.hierarchy_layers}"
+            )
+        if self.hierarchy_mode == "mask_relative_fine_to_coarse" and self.hierarchy_layers != P2_LAYERS:
+            raise ValueError(
+                f"P2 requires auxiliary layers {P2_LAYERS}, got {self.hierarchy_layers}"
             )
 
     def _freeze_target_encoder(self):
@@ -109,17 +115,23 @@ class JEPA(ValidationModule):
         progress = min(1.0, max(0.0, (epoch + 1) / self.hierarchy_warmup_epochs))
         return self.hierarchy_lambda * progress
 
-    def _p1_total_loss(self, anchor_loss, auxiliary_losses, hierarchy_weight):
-        """Combine the unchanged anchor with the mean P1 auxiliary loss."""
+    def _hierarchy_total_loss(self, anchor_loss, auxiliary_losses, hierarchy_weight):
+        """Combine the unchanged anchor with the mean auxiliary loss."""
         auxiliary_mean = torch.stack(
             [auxiliary_losses[layer] for layer in self.hierarchy_layers]
         ).mean()
         return anchor_loss + hierarchy_weight * auxiliary_mean
 
+    def _p1_total_loss(self, anchor_loss, auxiliary_losses, hierarchy_weight):
+        """Compatibility wrapper for the P1 objective helper."""
+        return self._hierarchy_total_loss(anchor_loss, auxiliary_losses, hierarchy_weight)
+
     def forward(self, x, masks_enc, masks_pred, *, return_hierarchy=False):
         C = x.size(1)
+        hierarchy_requested = self.hierarchy_enabled and return_hierarchy
+        p2_layout = None
 
-        if self.hierarchy_enabled and return_hierarchy:
+        if hierarchy_requested:
             context_layers = tuple(sorted(set(self.hierarchy_layers + (len(self.context_encoder.blocks),))))
             context_outputs = self.context_encoder(x, masks_enc, return_layers=context_layers)
             context_emb = context_outputs[len(self.context_encoder.blocks)]
@@ -134,24 +146,58 @@ class JEPA(ValidationModule):
                 target_out, C, masks_enc, masks_pred
             )
             auxiliary_targets = {}
-            if self.hierarchy_enabled and return_hierarchy:
-                target_outputs = self.target_encoder(x, return_layers=self.hierarchy_layers)
-                auxiliary_targets = {
-                    layer: self._target_for_prediction_masks(
-                        target_outputs[layer], C, masks_enc, masks_pred
+            if hierarchy_requested:
+                if self.hierarchy_mode == "same_scale":
+                    target_outputs = self.target_encoder(x, return_layers=self.hierarchy_layers)
+                    auxiliary_targets = {
+                        layer: self._target_for_prediction_masks(
+                            target_outputs[layer], C, masks_enc, masks_pred
+                        )
+                        for layer in self.hierarchy_layers
+                    }
+                else:
+                    p2_layout = build_mask_relative_region_layout(
+                        masks_pred,
+                        grid_size=int(self.num_patches ** 0.5),
                     )
-                    for layer in self.hierarchy_layers
-                }
+                    target_outputs = self.target_encoder(
+                        x,
+                        return_layers=self.hierarchy_layers,
+                        normalize_exits=False,
+                    )
+                    num_context_masks = len(masks_enc) if isinstance(masks_enc, list) else 1
+                    auxiliary_targets = {
+                        layer: pool_target_regions(
+                            target_outputs[layer],
+                            channels=C,
+                            layout=p2_layout,
+                            layer=layer,
+                        )
+                        .unsqueeze(1)
+                        .expand(-1, num_context_masks, -1, -1, -1, -1)
+                        for layer in self.hierarchy_layers
+                    }
 
-        if not (self.hierarchy_enabled and return_hierarchy):
+        if not hierarchy_requested:
             return latent_mask_pred, latent_mask_target, target_out
 
-        auxiliary_predictions = {
-            layer: self.aux_predictors[str(layer)](
-                context_outputs[layer], C, masks_enc, masks_pred
-            )
-            for layer in self.hierarchy_layers
-        }
+        if self.hierarchy_mode == "same_scale":
+            auxiliary_predictions = {
+                layer: self.aux_predictors[str(layer)](
+                    context_outputs[layer], C, masks_enc, masks_pred
+                )
+                for layer in self.hierarchy_layers
+            }
+        else:
+            auxiliary_predictions = {
+                layer: self.aux_predictors[str(layer)].forward_regions(
+                    context_outputs[layer],
+                    C,
+                    masks_enc,
+                    p2_layout.for_layer(layer),
+                )
+                for layer in self.hierarchy_layers
+            }
         return latent_mask_pred, latent_mask_target, target_out, auxiliary_predictions, auxiliary_targets
 
     def training_step(self, batches, _):
@@ -220,7 +266,7 @@ class JEPA(ValidationModule):
                 )
                 self.log(
                     f"valid_target_count_L{layer}",
-                    float(auxiliary_target.shape[0] * auxiliary_target.shape[1]),
+                    float(self._target_vector_count(auxiliary_target)),
                     on_step=True,
                     on_epoch=True,
                     logger=True,
@@ -239,7 +285,7 @@ class JEPA(ValidationModule):
                     on_epoch=True,
                     logger=True,
                 )
-            loss = self._p1_total_loss(anchor_loss, auxiliary_losses, hierarchy_weight)
+            loss = self._hierarchy_total_loss(anchor_loss, auxiliary_losses, hierarchy_weight)
         self.log(f'train_loss_{name}', loss, on_step=True, on_epoch=True, logger=True)
 
         mask_percentage = 1 - len(masks_enc[0][0]) / self.num_patches
@@ -251,6 +297,13 @@ class JEPA(ValidationModule):
     @staticmethod
     def _rms(value):
         return value.detach().square().mean().sqrt()
+
+    @staticmethod
+    def _target_vector_count(value):
+        count = 1
+        for dimension in value.shape[:-1]:
+            count *= dimension
+        return count
 
     def on_after_backward(self):
         if not self.hierarchy_enabled:

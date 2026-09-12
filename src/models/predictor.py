@@ -129,6 +129,93 @@ class Predictor(nn.Module):
 
         return x
 
+    def _region_positional_embeddings(self, region_indices):
+        """Average fine positional embeddings into one embedding per region."""
+        if region_indices.ndim != 4:
+            raise ValueError(
+                "region indices must have shape [M, B, R, K], "
+                f"got {tuple(region_indices.shape)}"
+            )
+        if torch.any(region_indices < 0) or torch.any(region_indices >= self.pos_embed.size(2)):
+            raise ValueError("region indices are outside the predictor positional-embedding grid")
+        region_indices = region_indices.to(device=self.pos_embed.device, dtype=torch.long)
+        return self.pos_embed[0, 0][region_indices].mean(dim=3)
+
+    def forward_regions(self, x, channels, masks_enc, region_indices):
+        """Predict one latent vector per mask-relative P2 target region.
+
+        ``region_indices`` has explicit
+        ``[prediction_mask, batch, region, fine_patch]`` axes. Context tokens
+        follow the pinned P0 path; only the prediction queries differ, using a
+        learned mask token plus the mean positional embedding of each region's
+        member fine patches.
+        """
+
+        if masks_enc is None:
+            raise ValueError("cannot run region predictor without encoder-mask indices")
+        if not isinstance(masks_enc, list):
+            masks_enc = [masks_enc]
+        if region_indices.ndim != 4:
+            raise ValueError(
+                "region indices must have shape [M, B, R, K], "
+                f"got {tuple(region_indices.shape)}"
+            )
+
+        num_context_masks = len(masks_enc)
+        if len(x) % num_context_masks:
+            raise ValueError("context token batch is not divisible by the number of encoder masks")
+        batch_size = len(x) // num_context_masks
+        mask_count, region_batch_size, regions, _ = region_indices.shape
+        if region_batch_size != batch_size:
+            raise ValueError(
+                f"region batch size {region_batch_size} does not match context batch size {batch_size}"
+            )
+        if channels < 1 or x.size(1) % channels:
+            raise ValueError(f"context token count {x.size(1)} is incompatible with channels={channels}")
+
+        unmasked_patches = x.size(1) // channels
+        x = self.embed(x)
+        context_pos_embed = self.pos_embed.repeat(batch_size, channels, 1, 1)
+        context_pos_embed = apply_masks(context_pos_embed, masks_enc)
+        x = x.reshape(x.size(0), channels, unmasked_patches, -1) + context_pos_embed
+        x = x.reshape(x.size(0), -1, x.shape[-1])
+        context_tokens = x.size(1)
+
+        region_pos_embed = self._region_positional_embeddings(region_indices).to(device=x.device)
+        region_pos_embed = region_pos_embed.unsqueeze(1).unsqueeze(3).expand(
+            mask_count,
+            num_context_masks,
+            batch_size,
+            channels,
+            regions,
+            -1,
+        )
+        mask_tokens = self.mask_token.reshape(1, 1, 1, 1, 1, -1).expand_as(region_pos_embed)
+        prediction_tokens = (mask_tokens + region_pos_embed).reshape(
+            mask_count * num_context_masks * batch_size,
+            channels * regions,
+            -1,
+        )
+        repeated_context = x.unsqueeze(0).expand(mask_count, -1, -1, -1).reshape(
+            mask_count * num_context_masks * batch_size,
+            context_tokens,
+            -1,
+        )
+        x = torch.cat([repeated_context, prediction_tokens], dim=1)
+
+        for block in self.blocks:
+            x = block(x)
+        x = self.predictor_norm(x)
+        x = self.predictor_proj(x[:, context_tokens:])
+        return x.reshape(
+            mask_count,
+            num_context_masks,
+            batch_size,
+            channels,
+            regions,
+            -1,
+        )
+
 
 class PredictorCLS(Predictor):
     def forward(self, x, channels,masks_enc, masks_pred):
