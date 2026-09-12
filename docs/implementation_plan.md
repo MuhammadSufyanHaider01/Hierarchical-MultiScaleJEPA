@@ -200,9 +200,11 @@ GPU timing with warm-up iterations and fixed hardware. Keep WavesFM contextual
 or deferred unless exact source and checkpoints become available.
 
 Implementation protocol: [`phase5_main_experiments.md`](phase5_main_experiments.md).
-Formal Phase 5 runs persist a shared 80/10/10 downstream split manifest,
-select exits using validation only, and do not run the legacy full-dataset
-downstream probe during pretraining.
+Formal Phase 5 runs persist a shared 80/10/10 downstream split manifest and a
+fixed 10% held-out pretraining-cache split. Pretraining logs both train and
+latent validation loss per epoch, uses validation-loss early stopping with a
+240-epoch upper bound, selects exits using downstream validation only, and does
+not run the legacy full-dataset downstream probe during pretraining.
 
 Review gate: inspect metrics, checkpoints, logs, plots, and failure cases
 before spending GPU time on ablations.

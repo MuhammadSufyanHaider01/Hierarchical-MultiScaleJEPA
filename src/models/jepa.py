@@ -68,6 +68,17 @@ class JEPA(ValidationModule):
         self._freeze_target_encoder()
         self.config = CONFIG
         self.checkpoint_metadata = build_checkpoint_metadata(CONFIG, seed=CONFIG.seed)
+        self.pretrain_validation_names = None
+        self._validation_loss_sums = {}
+        self._validation_loss_counts = {}
+
+    def enable_pretrain_validation(self, dataset_names):
+        """Enable held-out latent-loss validation for a list of cache loaders."""
+        self.pretrain_validation_names = tuple(dataset_names)
+        if not self.pretrain_validation_names:
+            raise ValueError("at least one pretraining validation dataset is required")
+        self._validation_loss_sums = {name: 0.0 for name in self.pretrain_validation_names}
+        self._validation_loss_counts = {name: 0 for name in self.pretrain_validation_names}
 
     def _validate_hierarchy_config(self):
         if not self.hierarchy_enabled:
@@ -209,6 +220,60 @@ class JEPA(ValidationModule):
                 for layer in self.auxiliary_layers
             }
         return latent_mask_pred, latent_mask_target, target_out, auxiliary_predictions, auxiliary_targets
+
+    def _validation_objective(self, batch):
+        """Compute the same latent objective as training without stochastic channels."""
+        x, masks_enc, masks_pred = batch
+        if self.hierarchy_enabled:
+            (
+                latent_mask_pred,
+                latent_mask_target,
+                _,
+                auxiliary_predictions,
+                auxiliary_targets,
+            ) = self(x, masks_enc, masks_pred, return_hierarchy=True)
+            anchor_loss = self.loss(latent_mask_pred, latent_mask_target)
+            auxiliary_losses = {
+                layer: self.loss(auxiliary_predictions[layer], auxiliary_targets[layer])
+                for layer in self.auxiliary_layers
+            }
+            return self._hierarchy_total_loss(anchor_loss, auxiliary_losses, self.hierarchy_weight())
+
+        latent_mask_pred, latent_mask_target, _ = self(x, masks_enc, masks_pred)
+        return self.loss(latent_mask_pred, latent_mask_target)
+
+    def on_validation_epoch_start(self):
+        if self.pretrain_validation_names is not None:
+            self._validation_loss_sums = {name: 0.0 for name in self.pretrain_validation_names}
+            self._validation_loss_counts = {name: 0 for name in self.pretrain_validation_names}
+
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        if self.pretrain_validation_names is None:
+            return super().validation_step(batch, batch_idx, dataloader_idx)
+
+        if dataloader_idx >= len(self.pretrain_validation_names):
+            raise IndexError(f"unexpected validation dataloader index: {dataloader_idx}")
+        name = self.pretrain_validation_names[dataloader_idx]
+        with torch.no_grad():
+            loss = self._validation_objective(batch)
+        if not torch.isfinite(loss):
+            raise RuntimeError(f"non-finite validation loss for {name}: {loss.item()}")
+        self._validation_loss_sums[name] += float(loss.detach().cpu())
+        self._validation_loss_counts[name] += 1
+
+    def on_validation_epoch_end(self):
+        if self.pretrain_validation_names is None:
+            return super().on_validation_epoch_end()
+
+        dataset_losses = {}
+        for name in self.pretrain_validation_names:
+            count = self._validation_loss_counts[name]
+            if count == 0:
+                raise RuntimeError(f"validation dataloader produced no batches: {name}")
+            dataset_losses[name] = self._validation_loss_sums[name] / count
+            self.log(f"val_loss_{name}", dataset_losses[name], on_epoch=True, logger=True)
+        validation_loss = sum(dataset_losses.values()) / len(dataset_losses)
+        self.log("val_loss", validation_loss, on_epoch=True, prog_bar=True, logger=True)
 
     def training_step(self, batches, _):
         losses = []

@@ -14,9 +14,12 @@ source for B1, the required post-hoc frozen early-exit baseline.
   Scheduler lengths and EMA schedules use optimizer steps, not microbatches;
   the target EMA updates only after a context optimizer update. With
   accumulation 1, the pinned P0 update timing is unchanged.
-- Formal runs use 240 epochs, FP32 with the original entrypoint's
-  `torch.set_float32_matmul_precision("high")` policy, deterministic
-  Lightning execution, one GPU, and local CSV logs/checkpoints only.
+- Formal runs use 240 epochs as an upper bound, FP32 with the original
+  entrypoint's `torch.set_float32_matmul_precision("high")` policy,
+  deterministic Lightning execution, one GPU, and local CSV logs/checkpoints
+  only. New runs use a fixed 10% held-out pretraining split and stop on the
+  latent `val_loss` with patience 20 and `min_delta=1e-4`; 240 remains the
+  maximum epoch count, not a requirement to train all 240 epochs.
 - The legacy all-record downstream PCA probe is disabled during formal
   pretraining. This prevents downstream test records from being touched before
   frozen-head selection.
@@ -45,17 +48,27 @@ Follow the explicit approval procedure in
 successfully before the first formal job. Each command below is one job; do not
 wrap them in a loop or queue multiple seeds without separate approval.
 
-The interrupted P0 seed-0 baseline resumes from its matching checkpoint:
+The interrupted fixed-budget P0 seed-0 run is preserved under
+`runs/phase5/p0/seed_000/` and is not reused for the early-stopping protocol.
+The replacement run starts from scratch under a separate output root:
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
-  --method p0 --seed 0 --device cuda \
-  --resume runs/phase5/p0/seed_000/checkpoints/last.ckpt
+  --method p0 --seed 0 --run-root runs/phase5_earlystop \
+  --device cuda --early-stopping \
+  --validation-fraction 0.1 --validation-seed 2025 \
+  --early-stopping-patience 20 --early-stopping-min-delta 1e-4
 ```
 
 Use this template only for an individually approved new pretraining job. A job
 can be resumed with its matching `last.ckpt`; do not reuse a nonempty run
 directory without `--resume`.
+
+Each validation epoch prints both total losses in the terminal, for example
+`[epoch 012] train_loss=0.412345 val_loss=0.398765`. The CSV logger also
+records `train_loss_epoch`, `val_loss`, and per-dataset validation losses.
+Frozen-exit evaluation must use the saved `best_checkpoint` from
+`summary.json`, not `last.ckpt`, when early stopping is enabled.
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \

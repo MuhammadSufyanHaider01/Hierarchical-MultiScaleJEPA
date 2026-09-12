@@ -22,7 +22,7 @@ import torch
 from lightning.pytorch import callbacks
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, Subset
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 import sys
@@ -92,6 +92,15 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--limit-val-batches", type=_limit, default=1.0)
     parser.add_argument("--precision", choices=("32-true", "16-mixed", "bf16-mixed"), default="32-true")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
+    parser.add_argument(
+        "--early-stopping",
+        action="store_true",
+        help="Use a fixed held-out latent pretraining validation loss for early stopping.",
+    )
+    parser.add_argument("--validation-fraction", type=float, default=0.1)
+    parser.add_argument("--validation-seed", type=int, default=2025)
+    parser.add_argument("--early-stopping-patience", type=int, default=20)
+    parser.add_argument("--early-stopping-min-delta", type=float, default=1.0e-4)
     parser.add_argument("--resume", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -129,6 +138,87 @@ def _build_pretrain_loader(config):
     return loader
 
 
+def _split_pretrain_indices(size: int, validation_fraction: float, seed: int) -> tuple[np.ndarray, np.ndarray]:
+    validation_count = max(1, math.ceil(size * validation_fraction))
+    if validation_count >= size:
+        raise ValueError("validation split must leave at least one training sample per cache")
+    indices = np.arange(size, dtype=np.int64)
+    np.random.default_rng(seed).shuffle(indices)
+    return np.sort(indices[validation_count:]), np.sort(indices[:validation_count])
+
+
+def _build_pretrain_loaders_with_validation(
+    config,
+    *,
+    validation_fraction: float,
+    validation_seed: int,
+    manifest_path: Path,
+):
+    """Build disjoint cache loaders and persist their deterministic split manifest."""
+    train_collator = get_collator(config.masks.type)(
+        input_size=config.encoder.img_size,
+        patch_size=config.encoder.patch_size,
+        **getattr(config.masks, config.masks.type).model_dump(),
+    )
+    train_dataloaders = {}
+    validation_dataloaders = []
+    manifest = {
+        "schema_version": 1,
+        "validation_fraction": validation_fraction,
+        "validation_seed": validation_seed,
+        "datasets": [],
+    }
+    for dataset_index, dataset_config in enumerate(config.data.pretrain_datasets):
+        dataset = PretrainCache(dataset_config.path, dataset_config.key)
+        train_indices, validation_indices = _split_pretrain_indices(
+            len(dataset), validation_fraction, validation_seed + dataset_index
+        )
+        train_dataset = Subset(dataset, train_indices.tolist())
+        validation_dataset = Subset(dataset, validation_indices.tolist())
+        train_dataloaders[dataset_config.name] = DataLoader(
+            train_dataset,
+            batch_size=config.data.batch_size,
+            sampler=RandomSampler(train_dataset),
+            num_workers=config.data.num_workers,
+            pin_memory=config.data.pin_mem,
+            collate_fn=train_collator,
+            persistent_workers=config.data.num_workers > 0,
+        )
+        validation_collator = get_collator(config.masks.type)(
+            input_size=config.encoder.img_size,
+            patch_size=config.encoder.patch_size,
+            **getattr(config.masks, config.masks.type).model_dump(),
+        )
+        validation_dataloaders.append(
+            DataLoader(
+                validation_dataset,
+                batch_size=config.data.batch_size,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=config.data.pin_mem,
+                collate_fn=validation_collator,
+            )
+        )
+        manifest["datasets"].append(
+            {
+                "name": dataset_config.name,
+                "path": dataset_config.path,
+                "key": dataset_config.key,
+                "count": len(dataset),
+                "train_count": len(train_dataset),
+                "validation_count": len(validation_dataset),
+                "train_indices": train_indices.tolist(),
+                "validation_indices": validation_indices.tolist(),
+            }
+        )
+
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    train_loader = CombinedLoader(train_dataloaders, mode="max_size_cycle")
+    iter(train_loader)
+    names = tuple(dataset_config.name for dataset_config in config.data.pretrain_datasets)
+    return train_loader, validation_dataloaders, names, manifest
+
+
 def _build_validation_loaders(config):
     rfs = ImageDataset(config.data.rfs_path)
     position = ImageDataset(config.data.pos_path, sample_key="features", label_dtype=torch.float32)
@@ -153,6 +243,16 @@ def main() -> int:
         raise ValueError("epochs, batch size, accumulation, workers, and checkpoint interval must be positive")
     if args.validate_every < 0:
         raise ValueError("validate-every must be non-negative")
+    if not 0.0 < args.validation_fraction < 1.0:
+        raise ValueError("validation-fraction must be in (0, 1)")
+    if args.validation_seed < 0:
+        raise ValueError("validation-seed must be non-negative")
+    if args.early_stopping_patience < 1:
+        raise ValueError("early-stopping-patience must be positive")
+    if args.early_stopping_min_delta < 0:
+        raise ValueError("early-stopping-min-delta must be non-negative")
+    if args.early_stopping and args.validate_every:
+        raise ValueError("--validate-every downstream probing cannot be combined with latent early stopping")
     if args.hierarchy_lambda is not None and (args.method == "p0" or args.hierarchy_lambda < 0):
         raise ValueError("hierarchy-lambda must be non-negative and is only valid for P1/P2")
     if args.include_l8_coarse and args.method != "p2":
@@ -181,7 +281,20 @@ def main() -> int:
     config.checkpoint.dir = str(run_dir / "checkpoints")
     config.checkpoint.every_n_epochs = args.checkpoint_every
 
-    train_loader = _build_pretrain_loader(config)
+    validation_dataset_names = None
+    validation_manifest = None
+    if args.early_stopping:
+        train_loader, validation_loaders, validation_dataset_names, validation_manifest = (
+            _build_pretrain_loaders_with_validation(
+                config,
+                validation_fraction=args.validation_fraction,
+                validation_seed=args.validation_seed,
+                manifest_path=run_dir / "pretrain_split.json",
+            )
+        )
+    else:
+        train_loader = _build_pretrain_loader(config)
+        validation_loaders = None
     microbatches_per_epoch = _limited_length(len(train_loader), args.limit_train_batches)
     optimizer_steps_per_epoch = math.ceil(microbatches_per_epoch / args.accumulate_grad_batches)
     runtime = {
@@ -202,6 +315,11 @@ def main() -> int:
         "validate_every": args.validate_every,
         "hierarchy_lambda_override": args.hierarchy_lambda,
         "include_l8_coarse": args.include_l8_coarse,
+        "early_stopping": args.early_stopping,
+        "validation_fraction": args.validation_fraction if args.early_stopping else None,
+        "validation_seed": args.validation_seed if args.early_stopping else None,
+        "early_stopping_patience": args.early_stopping_patience if args.early_stopping else None,
+        "early_stopping_min_delta": args.early_stopping_min_delta if args.early_stopping else None,
     }
     metadata = build_checkpoint_metadata(config, seed=args.seed, config_path=config_path)
     metadata["phase5"] = runtime
@@ -211,7 +329,8 @@ def main() -> int:
         print(json.dumps({"run_dir": str(run_dir), "runtime": runtime, "dry_run": True}, indent=2))
         return 0
 
-    validation_loaders = _build_validation_loaders(config) if args.validate_every else None
+    if args.validate_every:
+        validation_loaders = _build_validation_loaders(config)
     model = JEPA(
         config,
         iterations_per_epoch=optimizer_steps_per_epoch,
@@ -219,6 +338,8 @@ def main() -> int:
         metrics=["rfs_pca", "pos_error", "beam_pca"],
     )
     model.checkpoint_metadata = metadata
+    if args.early_stopping:
+        model.enable_pretrain_validation(validation_dataset_names)
 
     checkpoint_callback = callbacks.ModelCheckpoint(
         dirpath=config.checkpoint.dir,
@@ -227,12 +348,53 @@ def main() -> int:
         save_top_k=-1,
         save_last=True,
     )
+    class EpochLossPrinter(callbacks.Callback):
+        def on_validation_end(self, trainer, pl_module):
+            if not args.early_stopping:
+                return
+            train_loss = trainer.callback_metrics.get("train_loss")
+            validation_loss = trainer.callback_metrics.get("val_loss")
+            if train_loss is None or validation_loss is None:
+                return
+            train_value = float(train_loss.detach().cpu()) if torch.is_tensor(train_loss) else float(train_loss)
+            validation_value = float(validation_loss.detach().cpu()) if torch.is_tensor(validation_loss) else float(validation_loss)
+            print(
+                f"[epoch {trainer.current_epoch + 1:03d}] "
+                f"train_loss={train_value:.6f} val_loss={validation_value:.6f}",
+                flush=True,
+            )
+
+    callbacks_list = [checkpoint_callback, callbacks.LearningRateMonitor(logging_interval="step")]
+    best_checkpoint_callback = None
+    if args.early_stopping:
+        best_checkpoint_callback = callbacks.ModelCheckpoint(
+            dirpath=config.checkpoint.dir,
+            filename="best-epoch={epoch:03d}-val_loss={val_loss:.6f}",
+            monitor="val_loss",
+            mode="min",
+            save_top_k=1,
+            save_last=False,
+        )
+        callbacks_list.extend(
+            [
+                best_checkpoint_callback,
+                callbacks.EarlyStopping(
+                    monitor="val_loss",
+                    mode="min",
+                    patience=args.early_stopping_patience,
+                    min_delta=args.early_stopping_min_delta,
+                    check_on_train_epoch_end=False,
+                    verbose=True,
+                ),
+                EpochLossPrinter(),
+            ]
+        )
     trainer = L.Trainer(
         accelerator="gpu" if args.device == "cuda" else "cpu",
         devices=1,
         max_epochs=args.max_epochs,
         accumulate_grad_batches=args.accumulate_grad_batches,
-        callbacks=[checkpoint_callback, callbacks.LearningRateMonitor(logging_interval="step")],
+        callbacks=callbacks_list,
         logger=CSVLogger(save_dir=str(run_dir), name="logs"),
         default_root_dir=str(run_dir),
         log_every_n_steps=1,
@@ -253,6 +415,7 @@ def main() -> int:
     summary = {
         "run_dir": str(run_dir),
         "last_checkpoint": str(Path(config.checkpoint.dir) / "last.ckpt"),
+        "best_checkpoint": best_checkpoint_callback.best_model_path if best_checkpoint_callback is not None else None,
         "global_step": global_step,
         "current_epoch": int(trainer.current_epoch),
         "pretraining_overhead": {
@@ -264,6 +427,8 @@ def main() -> int:
         },
         "runtime": runtime,
     }
+    if validation_manifest is not None:
+        summary["pretrain_validation_manifest"] = str(run_dir / "pretrain_split.json")
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     return 0

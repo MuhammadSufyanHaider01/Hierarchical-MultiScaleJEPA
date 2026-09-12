@@ -39,6 +39,9 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
 ## Formal-job rules
 
 - Use `--device cuda` explicitly for all approved Phase 5 and Phase 6 jobs.
+- New pretraining jobs use the fixed held-out latent validation loss and early
+  stopping policy documented in `phase5_main_experiments.md`; the 240-epoch
+  value is an upper bound.
 - Do not reuse a nonempty pretraining directory without the matching
   `--resume path/to/last.ckpt` argument.
 - Use `phase5_exits.py --resume` only to continue the same interrupted
