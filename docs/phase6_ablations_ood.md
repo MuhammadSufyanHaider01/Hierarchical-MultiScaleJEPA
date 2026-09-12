@@ -2,8 +2,10 @@
 
 Phase 6 is implemented as a reproducible framework. It does not alter the
 primary P0/P1/P2 definition or consume the active Phase 5 GPU allocation. Run
-the scheduled experiments only after reviewing the complete three-seed main
-result, as required by the implementation plan.
+an experiment only after reviewing the complete three-seed main result and
+explicitly approving that one command under the
+[`gpu_run_protocol.md`](gpu_run_protocol.md). No ablation or OOD command is
+queued automatically.
 
 ## Registered OOD tasks
 

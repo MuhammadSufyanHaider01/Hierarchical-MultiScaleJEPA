@@ -38,22 +38,32 @@ test split. The policies are best validation metric and earliest exit within
 5% of the best validation metric. Classification uses macro accuracy; position
 uses physical mean Euclidean distance after undoing label normalization.
 
-## Commands
+## Per-run commands
 
-Run the nine pretraining jobs sequentially. A job can be resumed with its
-`last.ckpt`; do not reuse a nonempty run directory without `--resume`.
+Follow the explicit approval procedure in
+[`gpu_run_protocol.md`](gpu_run_protocol.md). Run the mandatory preflight
+successfully before the first formal job. Each command below is one job; do not
+wrap them in a loop or queue multiple seeds without separate approval.
+
+The interrupted P0 seed-0 baseline resumes from its matching checkpoint:
 
 ```bash
-for method in p0 p1 p2; do
-  for seed in 0 1 2; do
-    PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
-      --method "$method" --seed "$seed" --device cuda
-  done
-done
+PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
+  --method p0 --seed 0 --device cuda \
+  --resume runs/phase5/p0/seed_000/checkpoints/last.ckpt
 ```
 
-For each completed pretraining checkpoint, train all frozen exits, benchmark
-them, then aggregate once all artifacts exist:
+Use this template only for an individually approved new pretraining job. A job
+can be resumed with its matching `last.ckpt`; do not reuse a nonempty run
+directory without `--resume`.
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
+  --method p2 --seed 0 --device cuda
+```
+
+For an individually approved completed checkpoint, train frozen exits or
+benchmark it with one of these jobs:
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_exits.py \

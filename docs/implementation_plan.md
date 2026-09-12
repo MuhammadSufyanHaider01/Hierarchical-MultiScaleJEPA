@@ -190,7 +190,10 @@ main-result training remains Phase 5 work.
 
 Train B0/P0, B2/P1, and B3/P2 with three pretraining seeds on the RTX 5070 Ti
 host. Train independent frozen context-encoder heads for all core tasks and
-exits. B1 is original LatentWave with the same frozen early-exit heads.
+exits. B1 is original LatentWave with the same frozen early-exit heads. Each
+GPU command requires separate explicit approval under
+[`gpu_run_protocol.md`](gpu_run_protocol.md); no seeds, evaluations, or
+ablations are queued automatically.
 Report mean and standard deviation for task performance by exit, selected exit,
 FLOPs, batch-1 latency, and relative compute/latency savings. Use synchronized
 GPU timing with warm-up iterations and fixed hardware. Keep WavesFM contextual
