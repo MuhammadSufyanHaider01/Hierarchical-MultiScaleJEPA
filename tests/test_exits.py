@@ -34,6 +34,23 @@ class ExitTest(unittest.TestCase):
             outputs[2], self.encoder.forward_to_layer(self.inputs, 2), rtol=0.0, atol=0.0
         )
 
+    def test_forward_to_layer_stops_after_requested_block(self):
+        calls = [0] * len(self.encoder.blocks)
+        handles = []
+        for index, block in enumerate(self.encoder.blocks):
+            handles.append(
+                block.register_forward_hook(
+                    lambda *_args, index=index: calls.__setitem__(index, calls[index] + 1)
+                )
+            )
+        try:
+            self.encoder.forward_to_layer(self.inputs, 2)
+        finally:
+            for handle in handles:
+                handle.remove()
+        self.assertEqual(calls[:2], [1, 1])
+        self.assertEqual(calls[2:], [0] * (len(self.encoder.blocks) - 2))
+
     def test_invalid_exit_layers_fail(self):
         with self.assertRaises(ValueError):
             self.encoder(self.inputs, return_layers=[0])

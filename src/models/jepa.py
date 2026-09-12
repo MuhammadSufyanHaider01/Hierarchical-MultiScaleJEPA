@@ -327,6 +327,13 @@ class JEPA(ValidationModule):
         self.log('weight_decay', wd, on_step=True, on_epoch=False, logger=True) 
     
     def on_train_batch_end(self, outputs, batch, batch_idx):
+        # The pinned path has one optimizer update per batch. Phase 5 uses
+        # gradient accumulation to retain its effective batch size on the
+        # available GPU. Do not apply an EMA update to a target branch when
+        # the context branch has not yet taken an optimizer step. With
+        # accumulation=1 this guard is never taken, preserving P0 behavior.
+        if self.trainer.fit_loop._should_accumulate():
+            return
         with torch.no_grad():
             m = self.ema_start + (self.global_step - 1) * (self.ema_end - self.ema_start) / self.total_steps
             self.update_target_encoder(m)

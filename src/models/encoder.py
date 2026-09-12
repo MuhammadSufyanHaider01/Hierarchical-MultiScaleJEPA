@@ -107,7 +107,7 @@ class Encoder(nn.Module):
 
         return x
 
-    def _forward_layers(self, x, masks, return_layers, *, normalize_exits=True):
+    def _forward_layers(self, x, masks, return_layers, *, normalize_exits=True, stop_at_last_requested=False):
         requested = tuple(dict.fromkeys(int(layer) for layer in return_layers))
         if not requested:
             return {}
@@ -116,6 +116,7 @@ class Encoder(nn.Module):
 
         x = self._prepare_tokens(x, masks=masks)
         outputs = {}
+        last_requested = max(requested)
         for layer_index, block in enumerate(self.blocks, start=1):
             x = block(x)
             if layer_index in requested:
@@ -123,6 +124,11 @@ class Encoder(nn.Module):
                 # its last block. Reuse it at optional exits without feeding the
                 # normalized tensor into subsequent blocks.
                 outputs[layer_index] = self.norm(x) if normalize_exits else x
+            # ``forward_to_layer`` is a deployment early exit. Generic
+            # ``return_layers`` remains a full-depth tap API for the target
+            # branch, whose P2 contract requires full EMA encoding.
+            if stop_at_last_requested and layer_index == last_requested:
+                break
         return outputs
 
     def forward_to_layer(self, x, exit_layer):
@@ -132,7 +138,12 @@ class Encoder(nn.Module):
         blocks, while L8 is the complete pinned encoder. The output is always
         full-input tokens with the encoder's final normalization applied.
         """
-        return self._forward_layers(x, masks=None, return_layers=[exit_layer])[int(exit_layer)]
+        return self._forward_layers(
+            x,
+            masks=None,
+            return_layers=[exit_layer],
+            stop_at_last_requested=True,
+        )[int(exit_layer)]
 
     def forward(self, x, masks=None, return_layers=None, *, normalize_exits=True):
         if return_layers is not None:

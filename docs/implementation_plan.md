@@ -196,6 +196,11 @@ FLOPs, batch-1 latency, and relative compute/latency savings. Use synchronized
 GPU timing with warm-up iterations and fixed hardware. Keep WavesFM contextual
 or deferred unless exact source and checkpoints become available.
 
+Implementation protocol: [`phase5_main_experiments.md`](phase5_main_experiments.md).
+Formal Phase 5 runs persist a shared 80/10/10 downstream split manifest,
+select exits using validation only, and do not run the legacy full-dataset
+downstream probe during pretraining.
+
 Review gate: inspect metrics, checkpoints, logs, plots, and failure cases
 before spending GPU time on ablations.
 

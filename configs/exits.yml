@@ -1,4 +1,4 @@
-# Phase 2 frozen P0 target-encoder exits.
+# Phase 2 frozen P0 context-encoder exits.
 # These paths and labels are evaluation metadata; no test split is used for
 # selecting an exit.
 source_checkpoint: pretraining_checkpoints/p0.ckpt

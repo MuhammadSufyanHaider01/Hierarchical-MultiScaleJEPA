@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import platform
 import subprocess
 import sys
@@ -43,6 +44,37 @@ def _git_revision() -> str | None:
         return None
     revision = result.stdout.strip()
     return revision or None
+
+
+def _source_tree_fingerprint() -> dict[str, Any]:
+    """Fingerprint all non-ignored source files, including uncommitted work."""
+
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=REPOSITORY_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {"available": False}
+    if result.returncode != 0:
+        return {"available": False, "error": result.stderr.strip() or "git ls-files failed"}
+
+    digest = hashlib.sha256()
+    count = 0
+    for relative in sorted(line for line in result.stdout.splitlines() if line):
+        path = REPOSITORY_ROOT / relative
+        if not path.is_file():
+            continue
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+        count += 1
+    return {"available": True, "file_count": count, "sha256": digest.hexdigest()}
 
 
 def _nvidia_smi_metadata() -> dict[str, Any]:
@@ -139,6 +171,7 @@ def build_checkpoint_metadata(config: Any, seed: int, config_path: str | Path | 
             "commit": PINNED_LATENTWAVE_COMMIT,
         },
         "git_revision": _git_revision(),
+        "source_tree": _source_tree_fingerprint(),
         "seed": int(seed),
         "config_path": str(config_path) if config_path is not None else None,
         "config": _model_dump(config),
