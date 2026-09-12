@@ -210,6 +210,8 @@ def _train_exit(
     best_epoch = None
     for epoch in range(args.epochs):
         model.train()
+        train_loss_sum = 0.0
+        train_examples = 0
         for batch_index, batch in enumerate(train_loader):
             if args.limit_train_batches is not None and batch_index >= args.limit_train_batches:
                 break
@@ -218,6 +220,9 @@ def _train_exit(
             labels = labels.to(device=device, non_blocking=True)
             output = model(samples)
             loss = criterion(output, labels.long() if spec.target_type == "classification" else labels.float())
+            batch_size = samples.size(0)
+            train_loss_sum += float(loss.detach().item()) * batch_size
+            train_examples += batch_size
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             if any(parameter.grad is not None for parameter in encoder.parameters()):
@@ -233,6 +238,14 @@ def _train_exit(
             limit_batches=args.limit_validation_batches,
         )
         value = validation[spec.metric_name]
+        train_loss = train_loss_sum / max(1, train_examples)
+        print(
+            f"[{spec.name} L{exit_layer} epoch {epoch + 1:03d}] "
+            f"train_loss={train_loss:.6f} "
+            f"val_loss={validation['loss']:.6f} "
+            f"val_{spec.metric_name}={value:.6f}",
+            flush=True,
+        )
         improved = value > best_value if spec.higher_is_better else value < best_value
         if improved:
             best_value = value
