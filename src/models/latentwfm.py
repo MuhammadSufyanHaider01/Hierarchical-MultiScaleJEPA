@@ -17,9 +17,17 @@ class LatentWFM(Encoder):
 
     def freeze_encoder(self, num_blocks: int | None = None):
         if num_blocks is None:
+            # The default is the frozen-backbone protocol used for linear
+            # probing: patch embedding, all transformer blocks, and final
+            # normalization are fixed while the task head remains trainable.
+            for p in self.patch_embed.parameters():
+                p.requires_grad = False
             for p in self.blocks.parameters():
                 p.requires_grad = False
         else:
+            # Partial-block freezing is a separate fine-tuning mode. Callers
+            # that want a frozen tokenizer in this mode can use
+            # ``freeze_tokenizer`` explicitly.
             for p in self.blocks[:num_blocks].parameters():
                 p.requires_grad = False
 
@@ -37,6 +45,7 @@ class LatentWFM(Encoder):
                 param.requires_grad = True
 
     def freeze_tokenizer(self):
+        """Freeze patch embedding for an explicitly partial fine-tuning run."""
         for p in self.patch_embed.parameters():
             p.requires_grad = False
 

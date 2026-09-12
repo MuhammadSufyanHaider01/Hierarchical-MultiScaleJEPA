@@ -41,10 +41,23 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lora-alpha", type=float, default=1.0, help="LoRA alpha scaling (default: 1.0).")
     p.add_argument("--vis-patch", type=int, default=16, help="Vision patch size.")
     p.add_argument("--vis-img-size", type=int, default=224, help="Vision input size (H=W).")
-    p.add_argument("--freeze-encoder", action="store_true", help="Freeze the transformer encoder blocks.")
-    p.add_argument("--frozen-blocks", type=int, default=None, help="Freeze only the first N blocks.")
+    p.add_argument(
+        "--freeze-encoder",
+        action="store_true",
+        help="Freeze the complete backbone (patch embedding, transformer blocks, and final normalization).",
+    )
+    p.add_argument(
+        "--frozen-blocks",
+        type=int,
+        default=None,
+        help="Partial fine-tuning: freeze only the first N transformer blocks plus final normalization.",
+    )
     p.add_argument("--trim-blocks", type=int, default=None, help="Use only the first N transformer blocks in the forward pass.")
-    p.add_argument("--freeze-tokenizer", action="store_true", help="Freeze tokenizer (patch embedding) parameters.")
+    p.add_argument(
+        "--freeze-tokenizer",
+        action="store_true",
+        help="Freeze patch embedding in partial-block fine-tuning; full frozen-backbone mode already freezes it.",
+    )
     p.add_argument("--sl-baseline", action="store_true", help="Disable encoder freezing (train full model).")
     p.add_argument("--model-type", type=str, required=True, choices=["latentwfm"], help="Which model architecture to use.")
     p.add_argument("--checkpoint-key-prefix", type=str, required=True)

@@ -53,12 +53,11 @@ instantiated and P0's default forward/loss/optimizer path is preserved.
 
 ## Version 1 implementation-alignment status
 
-This protocol refinement was adopted after Phase 3 code was committed. The
-current P1 implementation applies `lambda_H * (L2 + L4 + L6)` rather than the
-Version 1 mean above. It must be changed in a separately approved maintenance
-patch, with a numerical test for the `/3` factor, before any P1 result is
-reported as Version 1 protocol-compliant. This document update deliberately
-does not change model code.
+The Version 1 objective is implemented in `JEPA._p1_total_loss`: the three raw
+auxiliary losses are averaged before `lambda_H(epoch)` is applied. The P1 smoke
+script uses the same helper, and the unit suite includes a numerical regression
+test for the `/3` factor. This preserves the unchanged L8 anchor and keeps the
+meaning of `lambda_H` independent of the number of auxiliary layers.
 
 ## Configuration
 

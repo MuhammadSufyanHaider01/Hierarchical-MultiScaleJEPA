@@ -109,6 +109,13 @@ class JEPA(ValidationModule):
         progress = min(1.0, max(0.0, (epoch + 1) / self.hierarchy_warmup_epochs))
         return self.hierarchy_lambda * progress
 
+    def _p1_total_loss(self, anchor_loss, auxiliary_losses, hierarchy_weight):
+        """Combine the unchanged anchor with the mean P1 auxiliary loss."""
+        auxiliary_mean = torch.stack(
+            [auxiliary_losses[layer] for layer in self.hierarchy_layers]
+        ).mean()
+        return anchor_loss + hierarchy_weight * auxiliary_mean
+
     def forward(self, x, masks_enc, masks_pred, *, return_hierarchy=False):
         C = x.size(1)
 
@@ -198,11 +205,12 @@ class JEPA(ValidationModule):
             hierarchy_weight = self.hierarchy_weight()
             self.log("hierarchy_weight", hierarchy_weight, on_step=True, on_epoch=True, logger=True)
             self.log(f"train_loss_{name}_anchor", anchor_loss, on_step=True, on_epoch=True, logger=True)
+            auxiliary_losses = {}
             for layer in self.hierarchy_layers:
                 auxiliary_prediction = auxiliary_predictions[layer]
                 auxiliary_target = auxiliary_targets[layer]
                 auxiliary_loss = self.loss(auxiliary_prediction, auxiliary_target)
-                loss = loss + hierarchy_weight * auxiliary_loss
+                auxiliary_losses[layer] = auxiliary_loss
                 self.log(
                     f"train_loss_{name}_L{layer}",
                     auxiliary_loss,
@@ -231,6 +239,7 @@ class JEPA(ValidationModule):
                     on_epoch=True,
                     logger=True,
                 )
+            loss = self._p1_total_loss(anchor_loss, auxiliary_losses, hierarchy_weight)
         self.log(f'train_loss_{name}', loss, on_step=True, on_epoch=True, logger=True)
 
         mask_percentage = 1 - len(masks_enc[0][0]) / self.num_patches
@@ -281,7 +290,9 @@ class JEPA(ValidationModule):
         checkpoint["metadata"] = self.checkpoint_metadata
 
     def _get_validation_tokens_reps(self, x):
-        return self.target_encoder(x)
+        # Version 1 downstream evaluation uses the learned context branch;
+        # the EMA target branch is pretraining-only.
+        return self.context_encoder(x)
 
     def _pool_validation_reps(self, token_latent_reps):
         return token_latent_reps.mean(dim=1)

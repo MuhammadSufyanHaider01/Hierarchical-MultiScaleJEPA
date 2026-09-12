@@ -140,9 +140,13 @@ entropy exits remain classification-only secondary evaluation.
 
 ## Documentation and implementation alignment
 
-This amendment changes the preferred protocol after Phase 3 was committed.
-The currently committed P1 code applies `lambda_H * (L2 + L4 + L6)`, while the
-Version 1 protocol above requires their mean. No P1 result should be labelled
-Version 1 protocol-compliant until an approved implementation-alignment patch
-changes that factor and adds a numerical regression test. This documentation
-update intentionally makes no model-code change.
+The Version 1 P1 objective is implemented as the mean of the three raw
+auxiliary losses before the epoch-dependent hierarchy weight is applied. A
+numerical regression test locks this `/3` factor, so reported P1 results use
+the Version 1 objective rather than scaling the auxiliary contribution with
+the number of branches. Downstream exits and validation representations now
+use the learned `context_encoder`; checkpoint loading explicitly prefers its
+namespace and falls back to target-encoder weights only for legacy checkpoints
+that lack a context branch. The legacy full-depth `LatentWFM` frozen-head path
+also freezes patch embedding and final normalization by default, matching the
+complete-backbone frozen-evaluation contract.

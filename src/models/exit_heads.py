@@ -1,4 +1,4 @@
-"""Frozen target-encoder exits for Phase 2 downstream evaluation.
+"""Frozen context-encoder exits for Phase 2 downstream evaluation.
 
 The encoder itself remains the pinned LatentWave implementation. These
 wrappers only add full-input intermediate reads and independently trainable
@@ -49,7 +49,7 @@ class FrozenEncoderExit(nn.Module):
         self.encoder.eval()
 
     def train(self, mode: bool = True):
-        # Keep the complete target backbone in inference mode even when the
+        # Keep the complete context backbone in inference mode even when the
         # task head is switched to training mode by a surrounding trainer.
         super().train(mode)
         self.encoder.eval()
@@ -73,10 +73,12 @@ def _checkpoint_state_dict(checkpoint: object) -> Mapping[str, torch.Tensor]:
 
 
 def _select_encoder_state_dict(state_dict: Mapping[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-    # Lightning P0 checkpoints use ``target_encoder.*``. The other prefixes
-    # make the loader useful for ordinary wrapped module checkpoints without
-    # changing the pinned model's state-dict layout.
+    # Version 1 downstream evaluation uses the learned context encoder. Retain
+    # target-encoder prefixes only to support already-written legacy P0
+    # checkpoints that contain no context state.
     prefixes = (
+        "context_encoder.",
+        "module.context_encoder.",
         "target_encoder.",
         "module.target_encoder.",
         "encoder.",
@@ -99,17 +101,22 @@ def _select_encoder_state_dict(state_dict: Mapping[str, torch.Tensor]) -> dict[s
     }
     if selected:
         return selected
-    raise KeyError("checkpoint does not contain target-encoder or encoder weights")
+    raise KeyError("checkpoint does not contain context-encoder, target-encoder, or encoder weights")
 
 
-def load_target_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path) -> None:
-    """Load target-encoder weights and fail if the backbone is incomplete."""
+def load_context_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path) -> None:
+    """Load the downstream context backbone, with legacy-prefix fallback."""
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state_dict = _select_encoder_state_dict(_checkpoint_state_dict(checkpoint))
     missing, unexpected = encoder.load_state_dict(state_dict, strict=False)
     if missing or unexpected:
         raise RuntimeError(
-            "target encoder checkpoint mismatch: "
+            "context encoder checkpoint mismatch: "
             f"missing={list(missing)}, unexpected={list(unexpected)}"
         )
+
+
+def load_target_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path) -> None:
+    """Compatibility alias; downstream evaluation now prefers context weights."""
+    load_context_encoder_checkpoint(encoder, checkpoint_path)

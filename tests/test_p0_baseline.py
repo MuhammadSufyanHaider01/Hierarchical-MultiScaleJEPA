@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -110,6 +111,18 @@ class P0BaselineTest(unittest.TestCase):
         self.assertEqual(checkpoint["metadata"]["source"]["commit"], "330e9ef5f6eb69e728ba43b3755036cffdd086cd")
         self.assertIn("environment", checkpoint["metadata"])
         self.assertIn("dataset_manifest", checkpoint["metadata"])
+
+    def test_validation_representations_use_context_encoder(self):
+        expected = torch.randn(2, 16, 16)
+        with (
+            patch.object(self.model.context_encoder, "forward", return_value=expected) as context_forward,
+            patch.object(self.model.target_encoder, "forward") as target_forward,
+        ):
+            actual = self.model._get_validation_tokens_reps(self.x)
+
+        context_forward.assert_called_once_with(self.x)
+        target_forward.assert_not_called()
+        self.assertIs(actual, expected)
 
 
 if __name__ == "__main__":

@@ -27,9 +27,16 @@ head parameters are optimized. Under the Version 1 hierarchical protocol,
 exits wrap the frozen pretrained `context_encoder.*` checkpoint namespace; the
 EMA target encoder and every JEPA predictor are discarded after pretraining.
 
-The current generic wrapper can technically load a target-encoder namespace,
-but the primary B1/P0 early-exit comparison must be aligned to context-encoder
-checkpoint loading before main experiments begin.
+`load_context_encoder_checkpoint` explicitly prefers `context_encoder.*` when
+both branches are present in a Lightning checkpoint. It retains a
+`target_encoder.*` fallback only for legacy checkpoints that contain no context
+state; the target branch is never the preferred downstream source.
+
+The older `LatentWFM` fine-tuning entrypoint now gives `freeze_encoder()` the
+same full-backbone semantics: it freezes patch embedding, every transformer
+block, and final normalization while leaving the task head trainable. Its
+explicit partial-block mode remains a distinct fine-tuning ablation rather
+than a frozen-exit evaluation.
 
 ## Tasks and selection
 
@@ -46,6 +53,4 @@ Run the real-data CPU smoke test with:
 PYTHONPATH=src .venv/bin/python scripts/exit_smoke.py --device cpu --task rfs --steps 1 --batch-size 1
 ```
 
-On the configured CUDA host, use `--device cuda`. The smoke script's
-checkpoint loader will be aligned to the context-encoder protocol before main
-experiments begin.
+On the configured CUDA host, use `--device cuda`.

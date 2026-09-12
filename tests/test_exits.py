@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 
 from evaluation import select_best_exit, select_earliest_within_tolerance
-from models import Encoder, FrozenEncoderExit, load_target_encoder_checkpoint
+from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint
 
 
 class ExitTest(unittest.TestCase):
@@ -49,7 +49,35 @@ class ExitTest(unittest.TestCase):
         self.assertTrue(all(parameter.grad is None for parameter in self.encoder.parameters()))
         self.assertTrue(all(parameter.grad is not None for parameter in model.head.parameters()))
 
-    def test_target_encoder_checkpoint_prefix_loads(self):
+    def test_context_encoder_checkpoint_prefix_is_preferred(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "context.ckpt"
+            legacy_state = {
+                key: value.detach().clone() + 1.0
+                for key, value in self.encoder.state_dict().items()
+            }
+            checkpoint = {
+                "state_dict": {
+                    **{f"target_encoder.{key}": value for key, value in legacy_state.items()},
+                    **{
+                        f"context_encoder.{key}": value.detach().clone()
+                        for key, value in self.encoder.state_dict().items()
+                    },
+                }
+            }
+            torch.save(checkpoint, path)
+            restored = Encoder(
+                img_size=(32, 32),
+                patch_size=8,
+                embed_dim=16,
+                depth=8,
+                num_heads=2,
+            )
+            load_context_encoder_checkpoint(restored, path)
+            for key, expected in self.encoder.state_dict().items():
+                torch.testing.assert_close(expected, restored.state_dict()[key])
+
+    def test_legacy_target_encoder_checkpoint_prefix_loads(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "target.ckpt"
             checkpoint = {
@@ -66,9 +94,9 @@ class ExitTest(unittest.TestCase):
                 depth=8,
                 num_heads=2,
             )
-            load_target_encoder_checkpoint(restored, path)
-            for expected, actual in zip(self.encoder.parameters(), restored.parameters()):
-                torch.testing.assert_close(expected, actual)
+            load_context_encoder_checkpoint(restored, path)
+            for key, expected in self.encoder.state_dict().items():
+                torch.testing.assert_close(expected, restored.state_dict()[key])
 
     def test_validation_exit_selection(self):
         metrics = {2: 0.80, 4: 0.90, 6: 0.90, 8: 0.89}

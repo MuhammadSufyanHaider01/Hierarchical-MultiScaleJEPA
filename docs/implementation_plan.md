@@ -119,8 +119,7 @@ Scope:
 - Add optional L2/L4/L6/L8 intermediate outputs without changing the default
   forward path.
 - Add `forward_to_layer(x, exit_layer)` for full-input representation reads.
-- Apply the frozen target encoder's final normalization consistently at every
-  exit.
+- Apply the encoder's final normalization consistently at every exit.
 - Add independent exit heads with mean pooling, trainable LayerNorm, and a
   linear task layer.
 - Freeze the entire context backbone, including patch embedding and

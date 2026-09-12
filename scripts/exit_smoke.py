@@ -17,7 +17,7 @@ sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 
 from configs import init_jepa_config  # noqa: E402
 from datasets import DeepMIMO, ImageDataset  # noqa: E402
-from models import Encoder, FrozenEncoderExit, load_target_encoder_checkpoint  # noqa: E402
+from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint  # noqa: E402
 
 
 def _path(value: str | Path) -> Path:
@@ -86,7 +86,7 @@ def main() -> None:
         num_heads=config.encoder.num_heads,
     ).to(device)
     if args.checkpoint:
-        load_target_encoder_checkpoint(encoder, _path(args.checkpoint))
+        load_context_encoder_checkpoint(encoder, _path(args.checkpoint))
     encoder.eval()
 
     losses = {}
@@ -112,7 +112,7 @@ def main() -> None:
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             if any(parameter.grad is not None for parameter in encoder.parameters()):
-                raise RuntimeError("frozen target encoder received gradients")
+                raise RuntimeError("frozen context encoder received gradients")
             optimizer.step()
             if not torch.isfinite(loss):
                 raise RuntimeError(f"non-finite loss at exit L{exit_layer}: {loss.item()}")

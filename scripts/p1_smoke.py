@@ -70,11 +70,12 @@ def main() -> int:
             batch, masks_enc, masks_pred, return_hierarchy=True
         )
         anchor_loss = F.mse_loss(prediction, target)
-        loss = anchor_loss
+        auxiliary_loss_values = {}
         for layer in model.hierarchy_layers:
             auxiliary_loss = F.mse_loss(auxiliary_predictions[layer], auxiliary_targets[layer])
             auxiliary_losses[layer].append(float(auxiliary_loss.detach().cpu()))
-            loss = loss + hierarchy_weight * auxiliary_loss
+            auxiliary_loss_values[layer] = auxiliary_loss
+        loss = model._p1_total_loss(anchor_loss, auxiliary_loss_values, hierarchy_weight)
         if not torch.isfinite(loss):
             raise RuntimeError(f"non-finite P1 loss: {loss.item()}")
         loss.backward()

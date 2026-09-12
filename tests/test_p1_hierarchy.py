@@ -104,6 +104,22 @@ class P1HierarchyTest(unittest.TestCase):
         }
         self.assertTrue(auxiliary_parameter_ids.issubset(optimizer_parameter_ids))
 
+    def test_p1_total_loss_averages_all_auxiliary_layers(self):
+        anchor_loss = torch.tensor(2.0)
+        auxiliary_losses = {
+            2: torch.tensor(3.0),
+            4: torch.tensor(6.0),
+            6: torch.tensor(12.0),
+        }
+
+        loss = self.model._p1_total_loss(
+            anchor_loss,
+            auxiliary_losses,
+            hierarchy_weight=0.5,
+        )
+
+        self.assertEqual(loss.item(), 5.5)
+
     def test_disabled_hierarchy_does_not_add_auxiliary_predictors(self):
         model = JEPA(
             tiny_hierarchy_config(enabled=False),
