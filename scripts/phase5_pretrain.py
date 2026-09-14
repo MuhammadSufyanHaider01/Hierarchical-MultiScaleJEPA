@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Run one reproducible Phase 5 P0, P1, or P2 pretraining job.
 
-Formal jobs reproduce the pinned LatentWave 240-epoch optimization horizon and
-use the complete four-cache pretraining set.  Latent-loss early stopping is
+Formal jobs use a fixed 60-epoch Phase 5 pilot horizon and the complete
+four-cache pretraining set. The pinned LatentWave 240-epoch source schedule is
+retained as a separate optional reproduction protocol. Latent-loss early stopping is
 retained only as an explicitly labelled diagnostic because an EMA target and
 stochastic masks make that loss unsuitable for formal model selection.
 """
@@ -44,7 +45,7 @@ METHOD_CONFIGS = {
     "p1": REPOSITORY_ROOT / "configs/p1.yml",
     "p2": REPOSITORY_ROOT / "configs/p2.yml",
 }
-FORMAL_EPOCHS = 240
+FORMAL_EPOCHS = 60
 
 
 def _allocator_configuration() -> str | None:
@@ -94,7 +95,7 @@ def _arguments() -> argparse.Namespace:
         choices=("formal", "diagnostic"),
         default="formal",
         help=(
-            "formal uses the fixed 240-epoch source schedule; diagnostic permits "
+            "formal uses the fixed 60-epoch Phase 5 pilot schedule; diagnostic permits "
             "short runs and latent-loss early stopping that cannot be reported as a main result"
         ),
     )

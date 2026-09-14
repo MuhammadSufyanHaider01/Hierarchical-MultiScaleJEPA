@@ -1,4 +1,4 @@
-# Phase 5: formal P0/B1/P2 experiments
+# Phase 5: 60-epoch P0/B1/P2 pilot experiments
 
 Phase 5 compares the pinned LatentWave baseline with the two hierarchical
 extensions on the local NVIDIA GeForce RTX 5070 Ti. Every GPU command remains
@@ -16,10 +16,12 @@ proposal results, and no primary P0/B1/P2 comparison may use them.
   validation loss. Their 10% cache split was fixed, but its prediction masks
   were sampled anew and the EMA target encoder changed throughout training.
   That loss is therefore not a stationary model-selection criterion.
-- `runs/phase5/p0/seed_000/checkpoints/last.ckpt` is an interrupted P0
-  diagnostic checkpoint saved at zero-based epoch 39 (40 completed epochs;
-  optimizer step 9,040). It is useful for the source-style probe below, but it
-  is not a completed 240-epoch baseline.
+- `runs/phase5/p0/seed_000/checkpoints/last.ckpt` is an older interrupted P0
+  diagnostic checkpoint and is not part of the 60-epoch pilot.
+- The current `runs/phase5_formal/p0/seed_000/` run was stopped after 65
+  completed epochs. Its `epoch=epoch=059-step=step=13560.ckpt` file is the
+  exact 60-epoch checkpoint to use for the pilot; its later checkpoint is
+  preserved but is not the standardized pilot checkpoint.
 - The latest P1 batch-4 attempt was interrupted before completion. Preserve
   its files under `runs/phase5_earlystop_b4fp32/` as memory diagnostics; do
   not resume or report it.
@@ -76,8 +78,10 @@ or make final statistical claims from them.
 
 - Distinct pretraining methods and pilot seed: P0 and P2; seed `0`. B1 is
   derived from P0 after pretraining. P1/B2 is a deferred controlled ablation.
-- Formal jobs run the full four original pretraining caches for exactly 240
-  epochs. This is the pinned source configuration, not an upper bound.
+- Pilot pretraining jobs run the full four original pretraining caches for
+  exactly 60 epochs. This is a fixed, matched pilot budget, not early stopping.
+  The pinned LatentWave 240-epoch schedule remains an optional separate
+  source-faithful reproduction and must not be conflated with this pilot.
 - Formal jobs use FP32, deterministic Lightning execution, one GPU,
   `torch.set_float32_matmul_precision("high")`, the original masking,
   optimizer, LR/weight-decay schedules, EMA branch, and L8 anchor.
@@ -89,7 +93,7 @@ or make final statistical claims from them.
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
   `--memory-safe`. The runner verifies batch size 4, accumulation 16, FP32,
   CUDA, and the allocator setting and records it in `experiment.json`.
-- Formal pretraining has no held-out latent validation set and no early
+- Pilot pretraining has no held-out latent validation set and no early
   stopping. Its downstream checkpoint is `last.ckpt` after the fixed horizon.
   The `--early-stopping` switch remains available only with
   `--run-kind diagnostic`; its result directory and metadata explicitly say it
@@ -137,15 +141,18 @@ overhead table remains separate from deployment savings.
 The next GPU job is never implicit. The intended order after this protocol
 change is:
 
-1. Run fresh fixed-horizon P0 seed 0 under `runs/phase5_formal/`. The
-   historical 40-epoch P0 checkpoint may receive its own source-style probe,
-   but remains diagnostic and cannot replace this run.
+1. Use the exact 60-epoch P0 seed-0 checkpoint under
+   `runs/phase5_formal/p0/seed_000/`. The current run's
+   `epoch=epoch=059-step=step=13560.ckpt` is the standardized pilot checkpoint.
+   The historical P0 checkpoint may receive its own source-style probe, but
+   remains diagnostic and cannot replace the pilot checkpoint.
 2. For the completed P0 checkpoint, run the source-style EMA-target L8 probe,
    primary context-encoder frozen exits, the primary benchmark, OOD frozen
    exits, and an OOD-shape benchmark when an OOD input shape differs. Review
    the complete P0/B1 packet before starting P2.
-3. Run P2 seed 0 with the memory-safe profile, then the same primary exits,
-   primary benchmark, OOD frozen exits, and any needed OOD-shape benchmark.
+3. Run P2 seed 0 for the fixed 60-epoch horizon with the memory-safe profile,
+   then the same primary exits, primary benchmark, OOD frozen exits, and any
+   needed OOD-shape benchmark.
    Review the three-track pilot comparison.
 4. Only then repeat the fixed P0/B1/P2 protocol for seeds 1 and 2 and the
    remaining mask regimes. Run P1/B2 only when a specific ablation question is

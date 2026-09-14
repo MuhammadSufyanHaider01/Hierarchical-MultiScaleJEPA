@@ -40,6 +40,9 @@ class PretrainValidationSplitTest(unittest.TestCase):
         values.update(overrides)
         return SimpleNamespace(**values)
 
+    def test_phase5_pilot_horizon_is_60_epochs(self):
+        self.assertEqual(FORMAL_EPOCHS, 60)
+
     def test_split_is_deterministic_disjoint_and_complete(self):
         train_a, validation_a = _split_pretrain_indices(101, 0.1, 2025)
         train_b, validation_b = _split_pretrain_indices(101, 0.1, 2025)

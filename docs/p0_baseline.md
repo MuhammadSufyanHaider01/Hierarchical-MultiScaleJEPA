@@ -20,11 +20,13 @@ runs scikit-learn probes. `scripts/p0_source_probe.py` preserves that path for
 a P0 reproduction probe. Its target-branch metrics are not comparable to the
 context-encoder L2/L4/L6/L8 early-exit results and are reported separately.
 
-Formal Phase 5 P0 runs retain the source configuration's fixed 240-epoch
-schedule over all four pretraining caches. They do not use a held-out latent
-loss or early stopping. The historical latent-early-stopped runs are diagnostic
-only, because their changing EMA target and stochastic mask draw do not form a
-stationary model-selection objective.
+The Phase 5 P0 pilot uses a fixed 60-epoch schedule over all four pretraining
+caches. It does not use a held-out latent loss or early stopping. This is a
+matched pilot budget chosen from the observed P0 trajectory, not a claim that
+the pinned paper schedule is 60 epochs. The source-faithful 240-epoch schedule
+remains available as a separate reproduction. The historical
+latent-early-stopped runs are diagnostic only, because their changing EMA target
+and stochastic mask draw do not form a stationary model-selection objective.
 
 ## Checks
 

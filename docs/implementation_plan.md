@@ -214,8 +214,8 @@ as a reviewed ablation. Keep WavesFM contextual or deferred unless exact source
 and checkpoints become available.
 
 Implementation protocol: [`phase5_main_experiments.md`](phase5_main_experiments.md).
-Formal Phase 5 pretraining uses the complete four-cache input and the pinned
-fixed 240-epoch schedule for P0 and P2; it has no raw-latent-loss early stopping or
+Formal Phase 5 pilot pretraining uses the complete four-cache input and a fixed
+60-epoch horizon for P0 and P2; it has no raw-latent-loss early stopping or
 pretraining validation split. That loss is non-stationary because both the EMA
 target and stochastic prediction masks evolve. The legacy target-L8
 source-style P0 scikit-learn probe is kept separate from the context-encoder

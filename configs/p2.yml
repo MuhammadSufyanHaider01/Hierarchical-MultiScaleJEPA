@@ -55,7 +55,7 @@ masks:
 
 optimization:
   ema: [0.996, 1.0]
-  epochs: 240
+  epochs: 60
   warmup: 12
   start_lr: 1.0e-06
   ref_lr: 0.001

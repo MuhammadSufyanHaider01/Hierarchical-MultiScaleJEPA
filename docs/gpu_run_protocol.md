@@ -40,8 +40,9 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
 ## Formal-job rules
 
 - Use `--device cuda` explicitly for all approved Phase 5 and Phase 6 jobs.
-- Formal P0/P2 pretraining uses the full four-cache input and the fixed
-  240-epoch pinned-source horizon. It does not use latent-loss early stopping.
+- Phase 5 pilot P0/P2 pretraining uses the full four-cache input and a fixed
+  60-epoch horizon. It does not use latent-loss early stopping. The pinned
+  240-epoch source schedule remains a separate optional reproduction.
   `--early-stopping` requires `--run-kind diagnostic` and its artifacts cannot
   be used in the main result table.
 - Formal P2 jobs use microbatch 4, accumulation 16, FP32, and
