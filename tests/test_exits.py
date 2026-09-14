@@ -7,7 +7,12 @@ from pathlib import Path
 import torch
 
 from evaluation import select_best_exit, select_earliest_within_tolerance
-from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint
+from models import (
+    Encoder,
+    FrozenEncoderExit,
+    load_context_encoder_checkpoint,
+    load_target_encoder_checkpoint,
+)
 
 
 class ExitTest(unittest.TestCase):
@@ -114,6 +119,56 @@ class ExitTest(unittest.TestCase):
             load_context_encoder_checkpoint(restored, path)
             for key, expected in self.encoder.state_dict().items():
                 torch.testing.assert_close(expected, restored.state_dict()[key])
+
+    def test_target_encoder_checkpoint_prefix_is_preferred(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "target.ckpt"
+            target_state = {
+                key: value.detach().clone() + 1.0
+                for key, value in self.encoder.state_dict().items()
+            }
+            checkpoint = {
+                "state_dict": {
+                    **{
+                        f"context_encoder.{key}": value.detach().clone()
+                        for key, value in self.encoder.state_dict().items()
+                    },
+                    **{f"target_encoder.{key}": value for key, value in target_state.items()},
+                }
+            }
+            torch.save(checkpoint, path)
+            restored = Encoder(
+                img_size=(32, 32),
+                patch_size=8,
+                embed_dim=16,
+                depth=8,
+                num_heads=2,
+            )
+            load_target_encoder_checkpoint(restored, path)
+            for key, expected in target_state.items():
+                torch.testing.assert_close(expected, restored.state_dict()[key])
+
+    def test_target_loader_rejects_context_only_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "context-only.ckpt"
+            torch.save(
+                {
+                    "state_dict": {
+                        f"context_encoder.{key}": value.detach().clone()
+                        for key, value in self.encoder.state_dict().items()
+                    }
+                },
+                path,
+            )
+            restored = Encoder(
+                img_size=(32, 32),
+                patch_size=8,
+                embed_dim=16,
+                depth=8,
+                num_heads=2,
+            )
+            with self.assertRaises(KeyError):
+                load_target_encoder_checkpoint(restored, path)
 
     def test_validation_exit_selection(self):
         metrics = {2: 0.80, 4: 0.90, 6: 0.90, 8: 0.89}

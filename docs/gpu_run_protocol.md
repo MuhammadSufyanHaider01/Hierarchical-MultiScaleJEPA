@@ -7,7 +7,8 @@ or Phase 6 experiments. Every runner performs one explicitly named job.
 Before launching a requested GPU job, record the following in the experiment
 discussion or run log:
 
-- method and purpose: P0/B0-B1, P1/B2, P2/B3, or a Phase 6 study;
+- method and purpose: P0/B1, P1/B2, P2/B3, an OOD frozen-head transfer job,
+  or a Phase 6 study;
 - seed, configuration, checkpoint or resume source, and exact command;
 - input datasets, expected output directory, and expected GPU work;
 - completion criteria and known dependencies or risks.
@@ -39,19 +40,28 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
 ## Formal-job rules
 
 - Use `--device cuda` explicitly for all approved Phase 5 and Phase 6 jobs.
-- New pretraining jobs use the fixed held-out latent validation loss and early
-  stopping policy documented in `phase5_main_experiments.md`; the 240-epoch
-  value is an upper bound.
+- Formal P0/P1/P2 pretraining uses the full four-cache input and the fixed
+  240-epoch pinned-source horizon. It does not use latent-loss early stopping.
+  `--early-stopping` requires `--run-kind diagnostic` and its artifacts cannot
+  be used in the main result table.
+- Formal P1/P2 jobs use microbatch 4, accumulation 16, FP32, and
+  `PYTORCH_ALLOC_CONF=expandable_segments:True` with `--memory-safe`. The
+  runner verifies and records this profile before allocating GPU memory.
 - Do not reuse a nonempty pretraining directory without the matching
   `--resume path/to/last.ckpt` argument.
 - Use `phase5_exits.py --resume` only to continue the same interrupted
   frozen-head job.
 - Preserve generated artifacts under gitignored `runs/`; HDF5 files remain
   local and untracked.
-- The interrupted P0 seed-0 run is resumable only from
-  `runs/phase5/p0/seed_000/checkpoints/last.ckpt`, recorded at epoch 9 and
-  global optimizer step 2,260. It is not resumed until that specific command
-  is approved.
+- The historical P0 seed-0 checkpoint under
+  `runs/phase5/p0/seed_000/checkpoints/last.ckpt` is diagnostic-only and is
+  not resumed into a formal result. It may be used only by an explicitly
+  approved source-style target-L8 probe.
+- The first official comparison is sequential and uses seed `0` plus the
+  shared stochastic `multi_block`/`span_time` masking configuration. Complete
+  each method's primary exits, OOD frozen-head transfer, and benchmark packet
+  before approving the next method's pretraining. Seeds `1`/`2` and additional
+  masking regimes are follow-up work after reviewing that pilot.
 
 See [`phase5_main_experiments.md`](phase5_main_experiments.md) and
 [`phase6_ablations_ood.md`](phase6_ablations_ood.md) for the per-job command

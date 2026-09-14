@@ -72,18 +72,10 @@ def _checkpoint_state_dict(checkpoint: object) -> Mapping[str, torch.Tensor]:
     return checkpoint
 
 
-def _select_encoder_state_dict(state_dict: Mapping[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-    # Version 1 downstream evaluation uses the learned context encoder. Retain
-    # target-encoder prefixes only to support already-written legacy P0
-    # checkpoints that contain no context state.
-    prefixes = (
-        "context_encoder.",
-        "module.context_encoder.",
-        "target_encoder.",
-        "module.target_encoder.",
-        "encoder.",
-        "module.encoder.",
-    )
+def _select_prefixed_encoder_state_dict(
+    state_dict: Mapping[str, torch.Tensor],
+    prefixes: tuple[str, ...],
+) -> dict[str, torch.Tensor]:
     for prefix in prefixes:
         selected = {
             key[len(prefix):]: value
@@ -93,30 +85,76 @@ def _select_encoder_state_dict(state_dict: Mapping[str, torch.Tensor]) -> dict[s
         if selected:
             return selected
 
+    return {}
+
+
+def _select_unprefixed_encoder_state_dict(state_dict: Mapping[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    """Return a direct encoder state dict from a legacy standalone checkpoint."""
+
     encoder_keys = ("patch_embed.", "pos_embed", "blocks.", "norm.")
     selected = {
         key: value
         for key, value in state_dict.items()
         if isinstance(key, str) and key.startswith(encoder_keys)
     }
+    return selected
+
+
+def _select_encoder_state_dict(
+    state_dict: Mapping[str, torch.Tensor],
+    *,
+    branch: str,
+) -> dict[str, torch.Tensor]:
+    """Select an encoder branch without silently substituting the wrong one.
+
+    The Version 1 early-exit protocol uses the optimized context branch and
+    permits a target-only fallback for old P0 checkpoints.  The source-style
+    P0 reproduction probe instead requires the EMA target branch; it must not
+    accidentally evaluate context weights when both namespaces are present.
+    """
+
+    if branch == "context":
+        primary = ("context_encoder.", "module.context_encoder.")
+        fallback = ("target_encoder.", "module.target_encoder.", "encoder.", "module.encoder.")
+    elif branch == "target":
+        primary = ("target_encoder.", "module.target_encoder.")
+        # A bare encoder checkpoint can only be interpreted as a standalone
+        # encoder.  Do not fall back to context_encoder.* here: that would
+        # invalidate a source-style target-branch probe.
+        fallback = ("encoder.", "module.encoder.")
+    else:
+        raise ValueError(f"unsupported encoder branch: {branch!r}")
+
+    selected = _select_prefixed_encoder_state_dict(state_dict, primary)
     if selected:
         return selected
-    raise KeyError("checkpoint does not contain context-encoder, target-encoder, or encoder weights")
+    selected = _select_prefixed_encoder_state_dict(state_dict, fallback)
+    if selected:
+        return selected
+    selected = _select_unprefixed_encoder_state_dict(state_dict)
+    if selected:
+        return selected
+    raise KeyError(f"checkpoint does not contain {branch}-encoder weights")
+
+
+def _load_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path, *, branch: str) -> None:
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state_dict = _select_encoder_state_dict(_checkpoint_state_dict(checkpoint), branch=branch)
+    missing, unexpected = encoder.load_state_dict(state_dict, strict=False)
+    if missing or unexpected:
+        raise RuntimeError(
+            f"{branch} encoder checkpoint mismatch: "
+            f"missing={list(missing)}, unexpected={list(unexpected)}"
+        )
 
 
 def load_context_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path) -> None:
     """Load the downstream context backbone, with legacy-prefix fallback."""
 
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    state_dict = _select_encoder_state_dict(_checkpoint_state_dict(checkpoint))
-    missing, unexpected = encoder.load_state_dict(state_dict, strict=False)
-    if missing or unexpected:
-        raise RuntimeError(
-            "context encoder checkpoint mismatch: "
-            f"missing={list(missing)}, unexpected={list(unexpected)}"
-        )
+    _load_encoder_checkpoint(encoder, checkpoint_path, branch="context")
 
 
 def load_target_encoder_checkpoint(encoder: nn.Module, checkpoint_path: str | Path) -> None:
-    """Compatibility alias; downstream evaluation now prefers context weights."""
-    load_context_encoder_checkpoint(encoder, checkpoint_path)
+    """Load the EMA target branch for the original LatentWave L8 probe."""
+
+    _load_encoder_checkpoint(encoder, checkpoint_path, branch="target")

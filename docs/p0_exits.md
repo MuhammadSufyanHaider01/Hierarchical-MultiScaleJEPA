@@ -32,6 +32,11 @@ both branches are present in a Lightning checkpoint. It retains a
 `target_encoder.*` fallback only for legacy checkpoints that contain no context
 state; the target branch is never the preferred downstream source.
 
+`load_target_encoder_checkpoint` is intentionally distinct: it requires the
+EMA `target_encoder.*` namespace (or a standalone encoder checkpoint) and
+never silently substitutes `context_encoder.*`. It exists only for the pinned
+source-style P0 L8 probe, not for the Version 1 early-exit table.
+
 The older `LatentWFM` fine-tuning entrypoint now gives `freeze_encoder()` the
 same full-backbone semantics: it freezes patch embedding, every transformer
 block, and final normalization while leaving the task head trainable. Its
@@ -46,6 +51,11 @@ selection is performed on validation metrics only. The best validation exit
 breaks ties toward the earliest layer. The earliest-within-tolerance rule uses
 the first exit within 5% of the best validation metric, with the direction
 chosen by task type. Test data is reserved for final reporting.
+
+For formal Phase 5 evaluation, each frozen head has a 200-epoch maximum and
+validation-metric early stopping with patience 20. This controls head training
+on the fixed labelled validation split; it is unrelated to, and must not be
+confused with, raw latent-loss pretraining early stopping.
 
 Run the real-data CPU smoke test with:
 

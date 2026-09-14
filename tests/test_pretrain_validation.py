@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -8,10 +9,37 @@ import numpy as np
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
-from phase5_pretrain import _split_pretrain_indices  # noqa: E402
+from phase5_pretrain import FORMAL_EPOCHS, _split_pretrain_indices, _uses_expandable_segments, _validate_run_arguments  # noqa: E402
 
 
 class PretrainValidationSplitTest(unittest.TestCase):
+    @staticmethod
+    def _arguments(**overrides):
+        values = {
+            "method": "p0",
+            "run_kind": "formal",
+            "max_epochs": FORMAL_EPOCHS,
+            "batch_size": 16,
+            "accumulate_grad_batches": 4,
+            "num_workers": 0,
+            "checkpoint_every": 5,
+            "validate_every": 0,
+            "limit_train_batches": 1.0,
+            "limit_val_batches": 1.0,
+            "validation_fraction": 0.1,
+            "validation_seed": 2025,
+            "early_stopping": False,
+            "early_stopping_patience": 20,
+            "early_stopping_min_delta": 1.0e-4,
+            "hierarchy_lambda": None,
+            "include_l8_coarse": False,
+            "device": "cpu",
+            "memory_safe": False,
+            "precision": "32-true",
+        }
+        values.update(overrides)
+        return SimpleNamespace(**values)
+
     def test_split_is_deterministic_disjoint_and_complete(self):
         train_a, validation_a = _split_pretrain_indices(101, 0.1, 2025)
         train_b, validation_b = _split_pretrain_indices(101, 0.1, 2025)
@@ -22,6 +50,28 @@ class PretrainValidationSplitTest(unittest.TestCase):
         self.assertEqual(len(train_a), 90)
         self.assertEqual(set(train_a).isdisjoint(set(validation_a)), True)
         self.assertEqual(set(train_a) | set(validation_a), set(range(101)))
+
+    def test_formal_protocol_requires_the_pinned_horizon_and_no_latent_early_stopping(self):
+        _validate_run_arguments(self._arguments())
+        with self.assertRaisesRegex(ValueError, "max-epochs"):
+            _validate_run_arguments(self._arguments(max_epochs=12))
+        with self.assertRaisesRegex(ValueError, "cannot use latent-loss early stopping"):
+            _validate_run_arguments(self._arguments(early_stopping=True))
+
+    def test_diagnostic_protocol_can_explicitly_enable_latent_early_stopping(self):
+        _validate_run_arguments(
+            self._arguments(
+                run_kind="diagnostic",
+                max_epochs=12,
+                limit_train_batches=1,
+                early_stopping=True,
+            )
+        )
+
+    def test_expandable_allocator_setting_is_detected(self):
+        self.assertTrue(_uses_expandable_segments("expandable_segments:True"))
+        self.assertTrue(_uses_expandable_segments("max_split_size_mb:128, expandable_segments:true"))
+        self.assertFalse(_uses_expandable_segments("max_split_size_mb:128"))
 
 
 if __name__ == "__main__":

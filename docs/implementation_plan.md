@@ -188,23 +188,39 @@ main-result training remains Phase 5 work.
 
 ## Phase 5 — Main experiments
 
-Train B0/P0, B2/P1, and B3/P2 with three pretraining seeds on the RTX 5070 Ti
-host. Train independent frozen context-encoder heads for all core tasks and
-exits. B1 is original LatentWave with the same frozen early-exit heads. Each
+The first Phase 5 pass is a sequential, single-seed pilot on the RTX 5070 Ti:
+complete P0/B1, then P1/B2, then P2/B3. Every method uses seed `0`, the same
+stochastic `multi_block`/`span_time` masking configuration, and a fixed
+240-epoch source horizon. For one method at a time, complete pretraining,
+frozen context-encoder heads for all core tasks/exits, OOD frozen-head transfer
+evaluation, and FLOPs/latency measurement before starting the next method.
+P0 additionally receives a separately reported source-faithful EMA-target L8
+probe; it is a reference check, not part of the fair early-exit table.
+
+Here, “fine-tuning” means training independent heads over a frozen backbone;
+no full-backbone downstream fine-tuning occurs in the primary comparison. Each
 GPU command requires separate explicit approval under
 [`gpu_run_protocol.md`](gpu_run_protocol.md); no seeds, evaluations, or
 ablations are queued automatically.
-Report mean and standard deviation for task performance by exit, selected exit,
+Report pilot point estimates for task performance by exit, selected exit,
 FLOPs, batch-1 latency, and relative compute/latency savings. Use synchronized
-GPU timing with warm-up iterations and fixed hardware. Keep WavesFM contextual
-or deferred unless exact source and checkpoints become available.
+GPU timing with warm-up iterations and fixed hardware. Do not present
+single-seed pilot values as statistically conclusive. After review, repeat the
+unchanged protocol for seeds `1` and `2`, then for additional LatentWave mask
+regimes, and report mean ± standard deviation. Keep WavesFM contextual or
+deferred unless exact source and checkpoints become available.
 
 Implementation protocol: [`phase5_main_experiments.md`](phase5_main_experiments.md).
-Formal Phase 5 runs persist a shared 80/10/10 downstream split manifest and a
-fixed 10% held-out pretraining-cache split. Pretraining logs both train and
-latent validation loss per epoch, uses validation-loss early stopping with a
-240-epoch upper bound, selects exits using downstream validation only, and does
-not run the legacy full-dataset downstream probe during pretraining.
+Formal Phase 5 pretraining uses the complete four-cache input and the pinned
+fixed 240-epoch schedule; it has no raw-latent-loss early stopping or
+pretraining validation split. That loss is non-stationary because both the EMA
+target and stochastic prediction masks evolve. The legacy target-L8
+source-style P0 scikit-learn probe is kept separate from the context-encoder
+early-exit protocol. Formal early-exit runs persist one shared 80/10/10
+downstream split manifest, choose frozen-head epochs and exits on downstream
+validation only, and do not run the legacy full-dataset downstream probe during
+pretraining. P1/P2 use the memory-safe microbatch-4/accumulation-16 profile on
+the RTX 5070 Ti while retaining effective batch size 64.
 
 Review gate: inspect metrics, checkpoints, logs, plots, and failure cases
 before spending GPU time on ablations.
@@ -213,14 +229,20 @@ Acceptance criteria: reproducible P0/P1/P2 tables; fair early-exit comparisons;
 full-depth and early-exit performance; reported pretraining overhead separate
 from inference savings; and claims limited to observed evidence.
 
-## Phase 6 — Ablations and OOD extension
+## Phase 6 — Repetitions, masking studies, and ablations
 
-Only after the main-result review:
+After the single-seed pilot review, but only when each method's primary and OOD
+evaluation packet is complete:
+
+- Repeat the unchanged P0/P1/P2 protocol for seeds `1` and `2`.
+- Repeat the finalized protocol for the other original LatentWave masking
+  regimes.
 
 - Sweep `lambda_H` over `{0.25, 0.5, 1.0, 2.0}`.
 - Test optional coarse L8 supervision only as an ablation.
 - Test alternate region schedules if P2 is promising.
-- Add jamming, interference, and human-activity data as held-out OOD tasks.
+- Extend held-out OOD transfer beyond the pilot jamming, interference, and
+  human-activity tasks only when a new dataset answers a defined question.
 - Treat alternate WiFi CSI and 5G CSI files as separate data-expansion or
   preprocessing ablations.
 - Add dynamic entropy exits only for classification after fixed exits are complete.
@@ -229,9 +251,9 @@ Every ablation must answer a stated research question before GPU allocation.
 
 Implementation protocol: [`phase6_ablations_ood.md`](phase6_ablations_ood.md).
 The Phase 6 framework provides lambda and opt-in L8-coarse P2 ablations,
-held-out jamming/interference/human-activity task registration, and
-classification-only dynamic entropy routing. GPU execution remains deferred
-until the Phase 5 main-result review.
+repetition/masking-study rules, held-out jamming/interference/human-activity
+task registration, and classification-only dynamic entropy routing. GPU
+execution remains approval-gated until the Phase 5 pilot review.
 
 ## Interfaces and experiment definitions
 
@@ -250,9 +272,10 @@ Planned interfaces:
 The primary pretraining set is the four original LatentWave caches. The primary
 downstream set is RF sensing, NR outdoor positioning, and DeepMIMO beam/LoS
 data. Extra files remain deferred until the core comparison is stable. Main
-results use three seeds and report both the full-depth reference and selected
-early exits. Validation determines fixed exits; test data is used only once for
-final reporting.
+The pilot uses seed `0` and the shared stochastic span-time masking regime,
+then the finalized protocol uses three seeds and reports both the full-depth
+reference and selected early exits. Validation determines fixed exits; test
+data is used only once for final reporting.
 
 ## Human-in-the-loop protocol
 

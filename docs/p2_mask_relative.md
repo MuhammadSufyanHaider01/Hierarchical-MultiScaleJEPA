@@ -71,3 +71,9 @@ PYTHONPATH=src .venv/bin/python scripts/p2_smoke.py --device cuda --steps 1
 The P2 unit suite covers hand-computed pooling, canonical `2x14` geometry,
 positional-query averaging, malformed-mask rejection, prediction/target axis
 matching, auxiliary gradients, and the absence of target gradients.
+
+Formal Phase 5 P2 uses the same fixed 240-epoch horizon as P0/P1, without
+raw latent-loss early stopping. Its RTX 5070 Ti profile is FP32, microbatch 4,
+accumulation 16, effective batch 64, and
+`PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts with
+the runner's `--memory-safe` check enabled.

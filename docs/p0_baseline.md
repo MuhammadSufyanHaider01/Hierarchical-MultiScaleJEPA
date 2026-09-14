@@ -9,10 +9,22 @@ early-exit behavior is enabled.
 
 The primary configuration is `configs/p0.yml`. Its paths are relative to the
 repository root and point to the four local pretraining caches plus the three
-downstream files. Under the Version 1 hierarchical evaluation protocol, the
+downstream files. Under the Version 1 hierarchical early-exit protocol, the
 trained `context_encoder` checkpoint namespace is the frozen downstream
 foundation backbone. The EMA `target_encoder` is a pretraining-only,
-stop-gradient branch and is discarded before downstream head training.
+stop-gradient branch for that protocol.
+
+The pinned upstream `src/pretrain.py` has a separate source-style L8 validation
+path: it reads the EMA `target_encoder`, mean pools full-input tokens, and
+runs scikit-learn probes. `scripts/p0_source_probe.py` preserves that path for
+a P0 reproduction probe. Its target-branch metrics are not comparable to the
+context-encoder L2/L4/L6/L8 early-exit results and are reported separately.
+
+Formal Phase 5 P0 runs retain the source configuration's fixed 240-epoch
+schedule over all four pretraining caches. They do not use a held-out latent
+loss or early stopping. The historical latent-early-stopped runs are diagnostic
+only, because their changing EMA target and stochastic mask draw do not form a
+stationary model-selection objective.
 
 ## Checks
 

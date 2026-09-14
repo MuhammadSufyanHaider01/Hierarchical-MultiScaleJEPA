@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Run one reproducible Phase 5 P0, P1, or P2 pretraining job.
 
-The default microbatch/accumulation pair preserves LatentWave's effective batch
-size of 64 while fitting the Version 1 P2 path on the local RTX 5070 Ti.
-Artifacts are written only below the gitignored ``runs/phase5`` directory.
+Formal jobs reproduce the pinned LatentWave 240-epoch optimization horizon and
+use the complete four-cache pretraining set.  Latent-loss early stopping is
+retained only as an explicitly labelled diagnostic because an EMA target and
+stochastic masks make that loss unsuitable for formal model selection.
 """
 
 from __future__ import annotations
@@ -43,6 +44,22 @@ METHOD_CONFIGS = {
     "p1": REPOSITORY_ROOT / "configs/p1.yml",
     "p2": REPOSITORY_ROOT / "configs/p2.yml",
 }
+FORMAL_EPOCHS = 240
+
+
+def _allocator_configuration() -> str | None:
+    """Return the allocator setting passed before this Python process started."""
+
+    return os.environ.get("PYTORCH_ALLOC_CONF") or os.environ.get("PYTORCH_CUDA_ALLOC_CONF")
+
+
+def _uses_expandable_segments(configuration: str | None) -> bool:
+    if not configuration:
+        return False
+    return any(
+        item.strip().lower() == "expandable_segments:true"
+        for item in configuration.split(",")
+    )
 
 
 def _limit(value: str) -> int | float:
@@ -72,9 +89,18 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
     parser.add_argument("--run-name", type=str, default=None, help="Optional result-directory name, for ablations.")
+    parser.add_argument(
+        "--run-kind",
+        choices=("formal", "diagnostic"),
+        default="formal",
+        help=(
+            "formal uses the fixed 240-epoch source schedule; diagnostic permits "
+            "short runs and latent-loss early stopping that cannot be reported as a main result"
+        ),
+    )
     parser.add_argument("--hierarchy-lambda", type=float, default=None, help="Override lambda_H for P1/P2 ablations.")
     parser.add_argument("--include-l8-coarse", action="store_true", help="Enable the opt-in P2 L8 whole-block auxiliary loss.")
-    parser.add_argument("--max-epochs", type=int, default=240)
+    parser.add_argument("--max-epochs", type=int, default=FORMAL_EPOCHS)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--accumulate-grad-batches", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=4)
@@ -93,9 +119,17 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--precision", choices=("32-true", "16-mixed", "bf16-mixed"), default="32-true")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
     parser.add_argument(
+        "--memory-safe",
+        action="store_true",
+        help=(
+            "Require the P1/P2 RTX 5070 Ti profile: batch size 4, accumulation 16, "
+            "FP32 CUDA, effective batch 64, and expandable allocator segments."
+        ),
+    )
+    parser.add_argument(
         "--early-stopping",
         action="store_true",
-        help="Use a fixed held-out latent pretraining validation loss for early stopping.",
+        help="Diagnostic only: stop on held-out latent loss rather than completing the formal schedule.",
     )
     parser.add_argument("--validation-fraction", type=float, default=0.1)
     parser.add_argument("--validation-seed", type=int, default=2025)
@@ -237,8 +271,9 @@ def _run_directory(args: argparse.Namespace) -> Path:
     return args.run_root / name / f"seed_{args.seed:03d}"
 
 
-def main() -> int:
-    args = _arguments()
+def _validate_run_arguments(args: argparse.Namespace) -> None:
+    """Reject combinations that would silently change the formal protocol."""
+
     if min(args.max_epochs, args.batch_size, args.accumulate_grad_batches, args.num_workers + 1, args.checkpoint_every) < 1:
         raise ValueError("epochs, batch size, accumulation, workers, and checkpoint interval must be positive")
     if args.validate_every < 0:
@@ -259,6 +294,39 @@ def main() -> int:
         raise ValueError("include-l8-coarse is only valid for the P2 ablation")
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but is unavailable")
+
+    if args.run_kind == "formal":
+        if args.early_stopping:
+            raise ValueError("formal jobs cannot use latent-loss early stopping; use --run-kind diagnostic")
+        if args.max_epochs != FORMAL_EPOCHS:
+            raise ValueError(f"formal jobs require --max-epochs {FORMAL_EPOCHS}, got {args.max_epochs}")
+        if args.limit_train_batches != 1.0 or args.limit_val_batches != 1.0:
+            raise ValueError("formal jobs require full train and validation batch limits")
+        if args.validate_every:
+            raise ValueError("formal jobs do not run the legacy downstream probe during pretraining")
+    elif args.early_stopping is False and args.validate_every:
+        # The legacy downstream probe is neither a source-style reproducibility
+        # check nor the fixed-exit protocol.  Keep it out of this runner.
+        raise ValueError("legacy downstream probing is disabled; use the dedicated probe or exit runner")
+
+    if args.early_stopping and args.run_kind != "diagnostic":
+        raise ValueError("latent-loss early stopping is diagnostic-only")
+    if args.memory_safe:
+        if args.method not in {"p1", "p2"}:
+            raise ValueError("--memory-safe is only defined for P1/P2 hierarchical jobs")
+        if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
+            raise ValueError("--memory-safe requires --device cuda --batch-size 4 --accumulate-grad-batches 16")
+        if args.precision != "32-true":
+            raise ValueError("--memory-safe requires --precision 32-true")
+        if not _uses_expandable_segments(_allocator_configuration()):
+            raise ValueError(
+                "--memory-safe requires PYTORCH_ALLOC_CONF=expandable_segments:True before Python starts"
+            )
+
+
+def main() -> int:
+    args = _arguments()
+    _validate_run_arguments(args)
 
     run_dir = _run_directory(args)
     if run_dir.exists() and any(run_dir.iterdir()) and args.resume is None:
@@ -301,6 +369,12 @@ def main() -> int:
         "phase": 5,
         "method": args.method,
         "run_name": args.run_name or args.method,
+        "run_kind": args.run_kind,
+        "pretraining_selection": (
+            "fixed_source_horizon_last_checkpoint"
+            if args.run_kind == "formal"
+            else ("diagnostic_latent_validation_early_stopping" if args.early_stopping else "diagnostic_fixed_horizon")
+        ),
         "seed": args.seed,
         "config_path": str(config_path.relative_to(REPOSITORY_ROOT)),
         "microbatch_size": args.batch_size,
@@ -310,6 +384,8 @@ def main() -> int:
         "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
         "max_epochs": args.max_epochs,
         "precision": args.precision,
+        "cuda_allocator_conf": _allocator_configuration(),
+        "memory_safe": args.memory_safe,
         "limit_train_batches": args.limit_train_batches,
         "limit_val_batches": args.limit_val_batches,
         "validate_every": args.validate_every,
@@ -349,22 +425,111 @@ def main() -> int:
         save_last=True,
     )
     class EpochLossPrinter(callbacks.Callback):
-        def on_validation_end(self, trainer, pl_module):
-            if not args.early_stopping:
-                return
-            train_loss = trainer.callback_metrics.get("train_loss")
-            validation_loss = trainer.callback_metrics.get("val_loss")
-            if train_loss is None or validation_loss is None:
-                return
-            train_value = float(train_loss.detach().cpu()) if torch.is_tensor(train_loss) else float(train_loss)
-            validation_value = float(validation_loss.detach().cpu()) if torch.is_tensor(validation_loss) else float(validation_loss)
-            print(
-                f"[epoch {trainer.current_epoch + 1:03d}] "
-                f"train_loss={train_value:.6f} val_loss={validation_value:.6f}",
-                flush=True,
-            )
+        def __init__(self):
+            super().__init__()
+            self._sums: dict[str, float] = {}
+            self._counts: dict[str, int] = {}
 
-    callbacks_list = [checkpoint_callback, callbacks.LearningRateMonitor(logging_interval="step")]
+        @staticmethod
+        def _value(trainer, *keys: str) -> float | None:
+            for key in keys:
+                value = trainer.callback_metrics.get(key)
+                if value is None:
+                    continue
+                return float(value.detach().cpu()) if torch.is_tensor(value) else float(value)
+            return None
+
+        def _add(self, name: str, value: float | None) -> None:
+            if value is None:
+                return
+            self._sums[name] = self._sums.get(name, 0.0) + value
+            self._counts[name] = self._counts.get(name, 0) + 1
+
+        def _mean(self, name: str) -> float | None:
+            count = self._counts.get(name, 0)
+            return self._sums[name] / count if count else None
+
+        def _record_last_batch(self, trainer, pl_module) -> None:
+            # Callback hooks run before Lightning publishes a batch's metrics.
+            # At the next batch start (or at epoch end for the final batch),
+            # callback_metrics therefore contains the previous microbatch's
+            # on-step losses.  Accumulating them here gives a stable terminal
+            # epoch summary without relying on CSV column positions.
+            self._add("train_loss", self._value(trainer, "train_loss_step", "train_loss"))
+            if not pl_module.hierarchy_enabled:
+                return
+            self._add("hierarchy_weight", self._value(trainer, "hierarchy_weight_step", "hierarchy_weight"))
+            anchor_values = []
+            auxiliary_values = {layer: [] for layer in pl_module.auxiliary_layers}
+            for dataset_config in config.data.pretrain_datasets:
+                anchor = self._value(
+                    trainer,
+                    f"train_loss_{dataset_config.name}_anchor_step",
+                    f"train_loss_{dataset_config.name}_anchor",
+                )
+                if anchor is not None:
+                    anchor_values.append(anchor)
+                for layer in pl_module.auxiliary_layers:
+                    auxiliary = self._value(
+                        trainer,
+                        f"train_loss_{dataset_config.name}_L{layer}_step",
+                        f"train_loss_{dataset_config.name}_L{layer}",
+                    )
+                    if auxiliary is not None:
+                        auxiliary_values[layer].append(auxiliary)
+            self._add("anchor_loss", sum(anchor_values) / len(anchor_values) if anchor_values else None)
+            for layer, layer_values in auxiliary_values.items():
+                self._add(f"aux_L{layer}", sum(layer_values) / len(layer_values) if layer_values else None)
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self._sums = {}
+            self._counts = {}
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            if batch_idx:
+                self._record_last_batch(trainer, pl_module)
+
+        def _training_fields(self, trainer, pl_module) -> list[str]:
+            train_loss = self._mean("train_loss")
+            if train_loss is None:
+                train_loss = self._value(trainer, "train_loss_epoch", "train_loss")
+            if train_loss is None:
+                return []
+            fields = [f"train_loss={train_loss:.6f}"]
+            if pl_module.hierarchy_enabled:
+                hierarchy_weight = self._mean("hierarchy_weight")
+                if hierarchy_weight is None:
+                    hierarchy_weight = self._value(trainer, "hierarchy_weight_epoch", "hierarchy_weight")
+                if hierarchy_weight is not None:
+                    fields.append(f"hierarchy_weight={hierarchy_weight:.6f}")
+                anchor_loss = self._mean("anchor_loss")
+                if anchor_loss is not None:
+                    fields.append(f"anchor_loss={anchor_loss:.6f}")
+                for layer in pl_module.auxiliary_layers:
+                    auxiliary_loss = self._mean(f"aux_L{layer}")
+                    if auxiliary_loss is not None:
+                        fields.append(f"aux_L{layer}={auxiliary_loss:.6f}")
+            return fields
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            self._record_last_batch(trainer, pl_module)
+            if args.early_stopping:
+                return
+            fields = self._training_fields(trainer, pl_module)
+            if fields:
+                print(f"[epoch {trainer.current_epoch + 1:03d}] {' '.join(fields)}", flush=True)
+
+        def on_validation_end(self, trainer, pl_module):
+            if not args.early_stopping or trainer.sanity_checking:
+                return
+            fields = self._training_fields(trainer, pl_module)
+            validation_loss = self._value(trainer, "val_loss")
+            if not fields or validation_loss is None:
+                return
+            fields.append(f"val_loss={validation_loss:.6f}")
+            print(f"[epoch {trainer.current_epoch + 1:03d}] {' '.join(fields)}", flush=True)
+
+    callbacks_list = [checkpoint_callback, callbacks.LearningRateMonitor(logging_interval="step"), EpochLossPrinter()]
     best_checkpoint_callback = None
     if args.early_stopping:
         best_checkpoint_callback = callbacks.ModelCheckpoint(
@@ -386,7 +551,6 @@ def main() -> int:
                     check_on_train_epoch_end=False,
                     verbose=True,
                 ),
-                EpochLossPrinter(),
             ]
         )
     trainer = L.Trainer(
@@ -416,6 +580,11 @@ def main() -> int:
         "run_dir": str(run_dir),
         "last_checkpoint": str(Path(config.checkpoint.dir) / "last.ckpt"),
         "best_checkpoint": best_checkpoint_callback.best_model_path if best_checkpoint_callback is not None else None,
+        "checkpoint_for_downstream": (
+            best_checkpoint_callback.best_model_path
+            if best_checkpoint_callback is not None
+            else str(Path(config.checkpoint.dir) / "last.ckpt")
+        ),
         "global_step": global_step,
         "current_epoch": int(trainer.current_epoch),
         "pretraining_overhead": {

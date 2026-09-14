@@ -1,9 +1,12 @@
 # Phase 6: ablations and held-out OOD evaluation
 
-Phase 6 is implemented as a reproducible framework. It does not alter the
-primary P0/P1/P2 definition or consume the active Phase 5 GPU allocation. Run
-an experiment only after reviewing the complete three-seed main result and
-explicitly approving that one command under the
+This document serves two purposes: it defines the OOD frozen-head transfer
+packet required for each completed single-seed Phase 5 pilot method, and it
+defines later repetition/masking/ablation work. OOD transfer does not alter the
+primary P0/P1/P2 definition. Lambda, coarse-L8, dynamic-exit, and alternate
+masking studies remain deferred until the sequential three-method pilot is
+reviewed. Diagnostic early-stopped checkpoints are not eligible. Explicitly
+approve that one command under the
 [`gpu_run_protocol.md`](gpu_run_protocol.md). No ablation or OOD command is
 queued automatically.
 
@@ -38,15 +41,18 @@ The lambda sweep uses P2's canonical target geometry and changes only
 warm-up, original L8 anchor, masks, optimizer, and data.
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
+PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
+  .venv/bin/python scripts/phase5_pretrain.py \
   --method p2 --run-root runs/phase6/ablations \
-  --run-name p2-lambda-0.25 --seed 0 --hierarchy-lambda 0.25 --device cuda
+  --run-name p2-lambda-0.25 --seed 0 --hierarchy-lambda 0.25 \
+  --run-kind formal --batch-size 4 --accumulate-grad-batches 16 \
+  --precision 32-true --device cuda --memory-safe
 ```
 
-Run the same command for the remaining values and three seeds. The original
-P2 is the `lambda_H=1.0` reference, so an independently regenerated lambda-1
-run is optional and must be labelled a reproducibility check rather than a new
-method.
+Run the same command for the remaining values and three seeds only after the
+pilot and its seed/masking repetitions are reviewed. The original P2 is the
+`lambda_H=1.0` reference, so an independently regenerated lambda-1 run is
+optional and must be labelled a reproducibility check rather than a new method.
 
 The optional L8 coarse ablation is explicitly separate from the original L8
 LatentWave anchor. It adds a second, independent L8 region predictor that
@@ -56,9 +62,12 @@ this L8-coarse loss, while the original fine-token L8 anchor remains unchanged.
 It is enabled only by `--include-l8-coarse` on P2:
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
+PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
+  .venv/bin/python scripts/phase5_pretrain.py \
   --method p2 --run-root runs/phase6/ablations \
-  --run-name p2-l8-coarse --seed 0 --include-l8-coarse --device cuda
+  --run-name p2-l8-coarse --seed 0 --include-l8-coarse \
+  --run-kind formal --batch-size 4 --accumulate-grad-batches 16 \
+  --precision 32-true --device cuda --memory-safe
 ```
 
 No alternate region schedule is pre-registered: the plan makes it conditional
@@ -68,25 +77,27 @@ specific failure mode before one is added.
 
 ## OOD frozen-exit protocol
 
-For a completed P0/P1/P2 checkpoint, train the same independent frozen
-context-encoder heads at L2/L4/L6/L8. Validation selects the head epoch and
-fixed exit; test data is read only after selection. OOD classification reports
-macro accuracy. Use a Phase 6 output root so these artifacts remain separate
-from the primary comparison.
+For each completed P0/P1/P2 pilot checkpoint, train the same independent
+frozen context-encoder heads at L2/L4/L6/L8 before moving to the next method.
+Validation selects the head epoch and fixed exit; test data is read only after
+selection. OOD classification reports macro accuracy. This is labelled OOD
+transfer rather than zero-shot evaluation because every OOD head is fit on that
+task's labelled training split. Use a dedicated output root so these artifacts
+remain separate from the primary in-distribution comparison.
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_exits.py \
-  --dataset-suite ood --ood-root .. --run-root runs/phase6/ood \
+  --dataset-suite ood --ood-root .. --run-root runs/phase5_pilot_ood \
   --method p2 --pretrain-seed 0 \
-  --checkpoint runs/phase5/p2/seed_000/checkpoints/last.ckpt --device cuda
+  --checkpoint runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt --device cuda
 
 PYTHONPATH=src .venv/bin/python scripts/phase5_benchmark.py \
-  --dataset-suite ood --ood-root .. --run-root runs/phase6/ood \
+  --dataset-suite ood --ood-root .. --run-root runs/phase5_pilot_ood \
   --method p2 --pretrain-seed 0 \
-  --checkpoint runs/phase5/p2/seed_000/checkpoints/last.ckpt --device cuda
+  --checkpoint runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt --device cuda
 
 PYTHONPATH=src .venv/bin/python scripts/phase5_report.py \
-  --run-root runs/phase6/ood --output-dir runs/phase6/ood \
+  --run-root runs/phase5_pilot_ood --output-dir runs/phase5_pilot_ood \
   --output-prefix phase6_ood --title "Phase 6 OOD summary" \
   --skip-pretraining-overhead
 ```
@@ -103,7 +114,7 @@ using that frozen threshold.
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase6_dynamic_exits.py \
   --method p2 --pretrain-seed 0 \
-  --checkpoint runs/phase5/p2/seed_000/checkpoints/last.ckpt --device cuda
+  --checkpoint runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt --device cuda
 ```
 
 Dynamic routing is not defined for NR positioning. It is not a replacement for

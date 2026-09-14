@@ -57,7 +57,12 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--dataset-suite", choices=("primary", "ood"), default="primary")
     parser.add_argument("--ood-root", type=Path, default=default_ood_root(REPOSITORY_ROOT))
     parser.add_argument("--task", choices=TASKS, action="append")
-    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=200,
+        help="Maximum head-training epochs; validation-based head early stopping may finish sooner.",
+    )
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--limit-train-batches", type=int, default=None, help="Smoke-test limit only; omitted uses all batches.")
@@ -65,6 +70,23 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--limit-test-batches", type=int, default=None, help="Smoke-test limit only; omitted uses all batches.")
     parser.add_argument("--learning-rate", type=float, default=1.0e-3)
     parser.add_argument("--weight-decay", type=float, default=0.05)
+    parser.add_argument(
+        "--head-early-stopping-patience",
+        type=int,
+        default=20,
+        help="Stop an independent frozen head after this many non-improving validation epochs.",
+    )
+    parser.add_argument(
+        "--head-early-stopping-min-delta",
+        type=float,
+        default=0.0,
+        help="Required validation-metric improvement before resetting head early-stopping patience.",
+    )
+    parser.add_argument(
+        "--disable-head-early-stopping",
+        action="store_true",
+        help="Use the full --epochs budget for a diagnostic head run.",
+    )
     parser.add_argument("--tolerance", type=float, default=0.05)
     parser.add_argument("--resume", action="store_true", help="Keep completed task results in exit_metrics.json.")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
@@ -208,6 +230,9 @@ def _train_exit(
     optimizer = torch.optim.AdamW(model.head.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     best_value = -math.inf if spec.higher_is_better else math.inf
     best_epoch = None
+    non_improving_epochs = 0
+    stopped_early = False
+    epochs_completed = 0
     for epoch in range(args.epochs):
         model.train()
         train_loss_sum = 0.0
@@ -246,18 +271,37 @@ def _train_exit(
             f"val_{spec.metric_name}={value:.6f}",
             flush=True,
         )
-        improved = value > best_value if spec.higher_is_better else value < best_value
+        if not math.isfinite(float(value)):
+            raise RuntimeError(f"non-finite validation metric for task {spec.name} at L{exit_layer}: {value}")
+        if spec.higher_is_better:
+            improved = value > best_value + args.head_early_stopping_min_delta
+        else:
+            improved = value < best_value - args.head_early_stopping_min_delta
         if improved:
             best_value = value
             best_epoch = epoch + 1
+            non_improving_epochs = 0
             head_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save({"head": model.head.state_dict(), "epoch": best_epoch, "validation": validation}, head_path)
+        else:
+            non_improving_epochs += 1
+        epochs_completed = epoch + 1
+        if not args.disable_head_early_stopping and non_improving_epochs >= args.head_early_stopping_patience:
+            stopped_early = True
+            print(
+                f"[{spec.name} L{exit_layer}] early_stop after epoch {epochs_completed:03d}; "
+                f"best_epoch={best_epoch:03d} best_val_{spec.metric_name}={best_value:.6f}",
+                flush=True,
+            )
+            break
 
     if best_epoch is None:
         raise RuntimeError(f"no finite validation metric for task {spec.name} at L{exit_layer}")
     checkpoint = torch.load(head_path, map_location=device, weights_only=False)
     return {
         "best_epoch": best_epoch,
+        "epochs_completed": epochs_completed,
+        "stopped_early": stopped_early,
         "validation": checkpoint["validation"],
         "head_path": str(head_path),
     }
@@ -294,6 +338,10 @@ def main() -> int:
         raise ValueError("batch limits must be positive when set")
     if args.tolerance < 0:
         raise ValueError("tolerance must be non-negative")
+    if args.head_early_stopping_patience < 1:
+        raise ValueError("head-early-stopping-patience must be positive")
+    if args.head_early_stopping_min_delta < 0:
+        raise ValueError("head-early-stopping-min-delta must be non-negative")
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but is unavailable")
     device_name = "cuda" if args.device == "auto" and torch.cuda.is_available() else ("cpu" if args.device == "auto" else args.device)
@@ -334,7 +382,13 @@ def main() -> int:
         "ood_root": str(args.ood_root.resolve()) if args.dataset_suite == "ood" else None,
         "split_manifest": str(manifest_path),
         "protocol": {
-            "head_epochs": args.epochs,
+            "head_max_epochs": args.epochs,
+            "head_early_stopping": {
+                "enabled": not args.disable_head_early_stopping,
+                "monitor": "task-specific validation metric",
+                "patience": args.head_early_stopping_patience,
+                "min_delta": args.head_early_stopping_min_delta,
+            },
             "tolerance": args.tolerance,
             "selection_uses": "validation_only",
             "batch_limits": {

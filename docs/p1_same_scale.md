@@ -44,6 +44,13 @@ Training logs include the anchor loss, each auxiliary loss, effective
 hierarchy weight, valid target-token count, target and predictor RMS, auxiliary
 predictor gradient norms, and EMA momentum.
 
+For formal Phase 5 comparison, P1 runs the fixed 240-epoch source horizon with
+no raw latent-loss early stopping. On the RTX 5070 Ti it uses the required
+memory-safe profile: FP32, microbatch 4, accumulation 16, effective batch 64,
+and `PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts.
+This changes only the microbatch partitioning; the effective batch and
+optimizer-step schedule remain aligned with P0.
+
 ## Gradient contract
 
 The target encoder is always under `torch.no_grad()` and receives no gradient.

@@ -27,6 +27,14 @@ head wrappers around that encoder. The pinned checkout remains the reference
 for any regenerated P0 results; Phase 2 must not be presented as a change to
 the original LatentWave baseline.
 
+The pinned `JEPA._get_validation_tokens_reps` reads the EMA `target_encoder`
+and the pinned `src/pretrain.py` applies source-style scikit-learn probes to
+its pooled L8 features. Version 1 deliberately changes only the separate
+early-exit protocol to use the trained `context_encoder` at L2/L4/L6/L8. The
+two evaluations are now exposed separately: `scripts/p0_source_probe.py`
+preserves the pinned target-L8 probe, while `scripts/phase5_exits.py` remains
+the context-encoder early-exit runner. Their metrics must not be combined.
+
 Phase 3 adds same-scale auxiliary predictors only when the separate P1
 configuration enables them. The original P0 configuration keeps the
 hierarchy-disabled path and remains the minimal-deviation reference.
