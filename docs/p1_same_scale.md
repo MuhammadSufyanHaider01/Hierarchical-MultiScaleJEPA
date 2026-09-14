@@ -1,13 +1,15 @@
 # Phase 3: P1 same-scale multi-depth JEPA
 
-P1 adds auxiliary JEPA losses at L2, L4, and L6 while keeping the pinned
+P1/B2 is a controlled ablation that adds auxiliary JEPA losses at L2, L4, and L6 while keeping the pinned
 LatentWave L8 objective as the final-layer anchor. The original LatentWave
 repository at commit
 [`330e9ef5f6eb69e728ba43b3755036cffdd086cd`](https://github.com/AhmedEssam19/latent-wave/tree/330e9ef5f6eb69e728ba43b3755036cffdd086cd)
 remains the P0 reference. P1 is an additive extension and must not be used to
 rewrite regenerated P0 results.
 
-The preferred Version 1 protocol is defined by
+P1/B2 is not one of the three primary approaches in the current pilot. It is
+run only if the primary P0/B1/P2 comparison leaves a specific question about
+same-scale intermediate supervision. The preferred Version 1 protocol is defined by
 [`hierarchical_design_amendment.md`](hierarchical_design_amendment.md). It
 defines P1 as the deep-supervision control for the proposed hierarchical
 multi-scale method, not as a claim of standalone novelty.

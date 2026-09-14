@@ -1,4 +1,4 @@
-# Phase 5: formal P0/P1/P2 experiments
+# Phase 5: formal P0/B1/P2 experiments
 
 Phase 5 compares the pinned LatentWave baseline with the two hierarchical
 extensions on the local NVIDIA GeForce RTX 5070 Ti. Every GPU command remains
@@ -10,7 +10,7 @@ or starts a job.
 
 The earlier `runs/phase5_earlystop*` P0 artifacts and the interrupted P1
 artifacts are retained for diagnostics only. They are not formal baseline or
-proposal results, and no P1/P2 comparison may use them.
+proposal results, and no primary P0/B1/P2 comparison may use them.
 
 - The earlier P0 jobs selected very early checkpoints from a raw latent
   validation loss. Their 10% cache split was fixed, but its prediction masks
@@ -29,7 +29,7 @@ proposal results, and no P1/P2 comparison may use them.
 | Evaluation | Backbone and representation | Split/probe | Purpose |
 |---|---|---|---|
 | Source-style P0 probe | EMA `target_encoder`, full-input L8, mean pooling | Original in-source scikit-learn 80/20 probe | Check whether a P0 checkpoint follows the pinned LatentWave validation path. |
-| Phase 5 early-exit evaluation | Optimized `context_encoder`, full-input L2/L4/L6/L8, frozen mean-pool/LayerNorm/linear heads | Shared persisted 80/10/10 split | Compare B1, P1/B2, and P2/B3 fairly for early exits. |
+| Phase 5 early-exit evaluation | Optimized `context_encoder`, full-input L2/L4/L6/L8, frozen mean-pool/LayerNorm/linear heads | Shared persisted 80/10/10 split | Compare B1 and P2 fairly for early exits; evaluate P1/B2 separately as an ablation. |
 
 The pinned `src/pretrain.py` and its original `JEPA._get_validation_tokens_reps`
 use the target branch for the first row. The Version 1 early-exit design uses
@@ -53,11 +53,11 @@ propagate into the other two methods.
 
 | Pilot order | Method | What changes relative to the pinned source | Representation used in the primary early-exit table |
 |---:|---|---|---|
-| 1 | P0 / B1: original LatentWave | Nothing in pretraining. | `context_encoder` at L2/L4/L6/L8; the separate source-faithful target-L8 reference is also recorded. |
-| 2 | P1 / B2: intermediate same-scale JEPA | Adds L2/L4/L6 masked latent-prediction losses. | `context_encoder` at L2/L4/L6/L8. |
-| 3 | P2 / B3: proposed multi-scale JEPA | Replaces P1's intermediate targets with mask-relative fine-to-coarse targets. | `context_encoder` at L2/L4/L6/L8. |
+| 1 | P0: original LatentWave | Nothing in pretraining. | EMA `target_encoder` at full-depth L8 for the source-faithful reference. |
+| 2 | B1: post-hoc early-exit baseline | Reuses the completed P0 checkpoint; no intermediate pretraining loss. | The same P0 `context_encoder` at L2/L4/L6/L8 with frozen task heads. |
+| 3 | P2: proposed multi-scale JEPA | Separately trains intermediate mask-relative fine-to-coarse losses plus the original L8 anchor. | The P2 `context_encoder` at L2/L4/L6/L8 with frozen task heads. |
 
-All three pilot runs use seed `0` and the same **stochastic** `multi_block`,
+All three pilot tracks use seed `0` and the same **stochastic** `multi_block`,
 `span_time` masking regime from `configs/p0.yml`, `configs/p1.yml`, and
 `configs/p2.yml` (one context mask and six prediction masks, with the existing
 prediction-block scale). “One mask” therefore means one common masking
@@ -65,24 +65,27 @@ prediction-block scale). “One mask” therefore means one common masking
 the only meaningful way to retain the pinned masking behavior while isolating
 the architectural comparison.
 
-After the pilot is reviewed, repeat the unchanged protocol across seeds `1`
-and `2`, then repeat it for the other LatentWave mask regimes. Single-seed
-pilot results are screening evidence only: do not attach error bars or make
-final statistical claims from them.
+P1/B2, which adds same-scale intermediate JEPA losses, is retained as a
+controlled ablation and is not required before the primary P0/B1/P2 pilot.
+After the pilot is reviewed, repeat the unchanged P0/B1/P2 protocol across
+seeds `1` and `2`, then repeat it for the other LatentWave mask regimes.
+Single-seed pilot results are screening evidence only: do not attach error bars
+or make final statistical claims from them.
 
 ## Formal pretraining rules
 
-- Methods and pilot seed: P0/B1, P1/B2, and P2/B3; seed `0`.
+- Distinct pretraining methods and pilot seed: P0 and P2; seed `0`. B1 is
+  derived from P0 after pretraining. P1/B2 is a deferred controlled ablation.
 - Formal jobs run the full four original pretraining caches for exactly 240
   epochs. This is the pinned source configuration, not an upper bound.
 - Formal jobs use FP32, deterministic Lightning execution, one GPU,
   `torch.set_float32_matmul_precision("high")`, the original masking,
   optimizer, LR/weight-decay schedules, EMA branch, and L8 anchor.
 - P0 uses microbatch 16 and gradient accumulation 4. Its effective batch is
-  64. P1/P2 use microbatch 4 and accumulation 16, also effective batch 64;
+  64. P2 uses microbatch 4 and accumulation 16, also effective batch 64;
   this preserves optimizer-step and scheduler timing while fitting the
   hierarchical branches in the RTX 5070 Ti memory budget.
-- P1/P2 formal commands must set
+- P2 formal commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
   `--memory-safe`. The runner verifies batch size 4, accumulation 16, FP32,
   CUDA, and the allocator setting and records it in `experiment.json`.
@@ -95,11 +98,12 @@ final statistical claims from them.
   pretraining. It would touch downstream examples before Phase 5 split-based
   evaluation.
 
-Formal terminal output has one total training-loss line per epoch. P1/P2 lines
+Formal terminal output has one total training-loss line per epoch. P2 lines
 also include hierarchy weight, mean anchor loss, and mean L2/L4/L6 auxiliary
 losses when those epoch metrics are available. A diagnostic latent-validation
 run prints both train and latent validation loss per epoch, but that output is
-diagnostic rather than a selection criterion for formal checkpoints.
+diagnostic rather than a selection criterion for formal checkpoints. P1/B2
+uses the same logging when its ablation is approved.
 
 ## Frozen-head, OOD-transfer, and benchmark protocol
 
@@ -139,15 +143,13 @@ change is:
 2. For the completed P0 checkpoint, run the source-style EMA-target L8 probe,
    primary context-encoder frozen exits, the primary benchmark, OOD frozen
    exits, and an OOD-shape benchmark when an OOD input shape differs. Review
-   the complete P0 packet before starting P1.
-3. Run P1 seed 0 with the memory-safe profile, then the same primary exits,
+   the complete P0/B1 packet before starting P2.
+3. Run P2 seed 0 with the memory-safe profile, then the same primary exits,
    primary benchmark, OOD frozen exits, and any needed OOD-shape benchmark.
-   Review it before starting P2.
-4. Run P2 seed 0 with the memory-safe profile, then the same evaluation and
-   benchmark packet. Review the three-method pilot comparison.
-5. Only then repeat the fixed protocol for seeds 1 and 2 and the remaining
-   mask regimes. Ablations follow only when the repeated comparison identifies
-   a specific question.
+   Review the three-track pilot comparison.
+4. Only then repeat the fixed P0/B1/P2 protocol for seeds 1 and 2 and the
+   remaining mask regimes. Run P1/B2 only when a specific ablation question is
+   approved.
 
 ## Command templates
 
@@ -178,12 +180,12 @@ PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
   --precision 32-true --device cuda
 ```
 
-A formal P1 or P2 seed uses the required memory-safe profile:
+A formal P2 seed uses the required memory-safe profile:
 
 ```bash
 PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   .venv/bin/python scripts/phase5_pretrain.py \
-  --method p1 --seed 0 --run-root runs/phase5_formal \
+  --method p2 --seed 0 --run-root runs/phase5_formal \
   --run-kind formal --batch-size 4 --accumulate-grad-batches 16 \
   --precision 32-true --device cuda --memory-safe
 ```

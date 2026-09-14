@@ -1,9 +1,10 @@
-# Phase 6: ablations and held-out OOD evaluation
+# Phase 6: repetitions, masking studies, and ablations
 
 This document serves two purposes: it defines the OOD frozen-head transfer
-packet required for each completed single-seed Phase 5 pilot method, and it
+packet required for each completed single-seed Phase 5 P0/B1/P2 pilot track, and it
 defines later repetition/masking/ablation work. OOD transfer does not alter the
-primary P0/P1/P2 definition. Lambda, coarse-L8, dynamic-exit, and alternate
+primary P0/B1/P2 definition. P1/B2 is the same-scale control ablation. Lambda,
+coarse-L8, dynamic-exit, and alternate
 masking studies remain deferred until the sequential three-method pilot is
 reviewed. Diagnostic early-stopped checkpoints are not eligible. Explicitly
 approve that one command under the
@@ -77,13 +78,16 @@ specific failure mode before one is added.
 
 ## OOD frozen-exit protocol
 
-For each completed P0/P1/P2 pilot checkpoint, train the same independent
-frozen context-encoder heads at L2/L4/L6/L8 before moving to the next method.
-Validation selects the head epoch and fixed exit; test data is read only after
-selection. OOD classification reports macro accuracy. This is labelled OOD
-transfer rather than zero-shot evaluation because every OOD head is fit on that
-task's labelled training split. Use a dedicated output root so these artifacts
-remain separate from the primary in-distribution comparison.
+For the completed P0 checkpoint, B1 and the original P0 source reference use
+the same checkpoint but remain separate evaluation tracks. For the completed
+P2 checkpoint, train the same independent frozen context-encoder heads at
+L2/L4/L6/L8 before closing the pilot. P1/B2 uses the same OOD packet only if
+its ablation is later approved. Validation selects the head epoch and fixed
+exit; test data is read only after selection. OOD classification reports macro
+accuracy. This is labelled OOD transfer rather than zero-shot evaluation
+because every OOD head is fit on that task's labelled training split. Use a
+dedicated output root so these artifacts remain separate from the primary
+in-distribution comparison.
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_exits.py \

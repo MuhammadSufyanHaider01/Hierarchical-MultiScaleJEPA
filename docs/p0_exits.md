@@ -1,7 +1,8 @@
 # Phase 2: frozen P0 representation exits
 
-Phase 2 adds downstream exits to the pinned LatentWave encoder without
-changing the P0 pretraining computation. The reference implementation is the
+Phase 2 defines B1, the post-hoc early-exit baseline, by adding downstream
+exits to the pinned LatentWave encoder without changing P0 pretraining
+computation. The reference implementation is the
 official LatentWave repository at commit
 [`330e9ef5f6eb69e728ba43b3755036cffdd086cd`](https://github.com/AhmedEssam19/latent-wave/tree/330e9ef5f6eb69e728ba43b3755036cffdd086cd).
 Any regenerated P0 result must use that source path and report this commit;
@@ -23,8 +24,8 @@ output, while the normalized tensor is never fed into later blocks.
 mean pooling over tokens, trainable `LayerNorm`, and a linear task projection.
 The whole context backbone is frozen, including patch embedding, fixed
 positional embeddings, all transformer blocks, and final normalization. Only
-head parameters are optimized. Under the Version 1 hierarchical protocol,
-exits wrap the frozen pretrained `context_encoder.*` checkpoint namespace; the
+head parameters are optimized. B1 exits wrap the frozen pretrained
+`context_encoder.*` namespace from the same P0 checkpoint; the
 EMA target encoder and every JEPA predictor are discarded after pretraining.
 
 `load_context_encoder_checkpoint` explicitly prefers `context_encoder.*` when

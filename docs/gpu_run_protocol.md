@@ -7,7 +7,7 @@ or Phase 6 experiments. Every runner performs one explicitly named job.
 Before launching a requested GPU job, record the following in the experiment
 discussion or run log:
 
-- method and purpose: P0/B1, P1/B2, P2/B3, an OOD frozen-head transfer job,
+- method and purpose: P0, B1 post-hoc exits, P2, P1/B2 ablation, an OOD frozen-head transfer job,
   or a Phase 6 study;
 - seed, configuration, checkpoint or resume source, and exact command;
 - input datasets, expected output directory, and expected GPU work;
@@ -40,11 +40,11 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
 ## Formal-job rules
 
 - Use `--device cuda` explicitly for all approved Phase 5 and Phase 6 jobs.
-- Formal P0/P1/P2 pretraining uses the full four-cache input and the fixed
+- Formal P0/P2 pretraining uses the full four-cache input and the fixed
   240-epoch pinned-source horizon. It does not use latent-loss early stopping.
   `--early-stopping` requires `--run-kind diagnostic` and its artifacts cannot
   be used in the main result table.
-- Formal P1/P2 jobs use microbatch 4, accumulation 16, FP32, and
+- Formal P2 jobs use microbatch 4, accumulation 16, FP32, and
   `PYTORCH_ALLOC_CONF=expandable_segments:True` with `--memory-safe`. The
   runner verifies and records this profile before allocating GPU memory.
 - Do not reuse a nonempty pretraining directory without the matching
@@ -57,11 +57,12 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   `runs/phase5/p0/seed_000/checkpoints/last.ckpt` is diagnostic-only and is
   not resumed into a formal result. It may be used only by an explicitly
   approved source-style target-L8 probe.
-- The first official comparison is sequential and uses seed `0` plus the
-  shared stochastic `multi_block`/`span_time` masking configuration. Complete
-  each method's primary exits, OOD frozen-head transfer, and benchmark packet
-  before approving the next method's pretraining. Seeds `1`/`2` and additional
-  masking regimes are follow-up work after reviewing that pilot.
+- The first official comparison is sequential P0 → derived B1 → P2 and uses
+  seed `0` plus the shared stochastic `multi_block`/`span_time` masking
+  configuration. Complete P0's source reference, B1's exits, and P2's
+  primary/OOD/benchmark packet before approving the next distinct pretraining
+  job. P1/B2 is a later ablation. Seeds `1`/`2` and additional masking regimes
+  are follow-up work after reviewing that pilot.
 
 See [`phase5_main_experiments.md`](phase5_main_experiments.md) and
 [`phase6_ablations_ood.md`](phase6_ablations_ood.md) for the per-job command

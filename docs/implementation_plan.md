@@ -24,10 +24,12 @@ and final-layer loss as the baseline. The EMA target encoder supplies
 stop-gradient pretraining targets; the trained context encoder is the retained
 downstream foundation backbone.
 
-The corrected extension has two variants:
+The corrected extension has two trainable variants plus a post-hoc early-exit
+track:
 
 - P1 adds same-scale auxiliary JEPA losses at L2, L4, and L6 using the
-  corresponding EMA target features at the original fine mask resolution.
+  corresponding EMA target features at the original fine mask resolution. It
+  is retained as a controlled ablation, not one of the three primary methods.
 - P2 uses mask-aligned fine-to-coarse target regions. The same physical
   prediction-mask area remains hidden at every context depth; only the target
   scale changes. For the canonical `4x4` example, L2 has 16 fine targets, L4
@@ -60,8 +62,8 @@ intermediate wireless representations more early-exit-ready.
 |---|---|---|
 | B0 | Original LatentWave | Full-depth pretraining reference. |
 | B1 | Original LatentWave + frozen early-exit heads | Required post-hoc early-exit baseline. |
-| B2 | Multi-depth same-scale JEPA (P1) | Isolates deep supervision. |
-| B3 | Hierarchical Multi-Scale JEPA (P2) | Tests fine-to-coarse target aggregation beyond B2. |
+| B2 | Multi-depth same-scale JEPA (P1) | Controlled ablation isolating intermediate supervision. |
+| B3 | Hierarchical Multi-Scale JEPA (P2) | Primary proposed method; tests fine-to-coarse target aggregation. |
 | B4 | WavesFM | Contextual/deferred unless comparable source, checkpoints, and protocol are available. |
 | B5 | V-JEPA-style deep supervision | Optional only if materially distinct from B2. |
 
@@ -188,14 +190,14 @@ main-result training remains Phase 5 work.
 
 ## Phase 5 — Main experiments
 
-The first Phase 5 pass is a sequential, single-seed pilot on the RTX 5070 Ti:
-complete P0/B1, then P1/B2, then P2/B3. Every method uses seed `0`, the same
-stochastic `multi_block`/`span_time` masking configuration, and a fixed
-240-epoch source horizon. For one method at a time, complete pretraining,
-frozen context-encoder heads for all core tasks/exits, OOD frozen-head transfer
-evaluation, and FLOPs/latency measurement before starting the next method.
-P0 additionally receives a separately reported source-faithful EMA-target L8
-probe; it is a reference check, not part of the fair early-exit table.
+The primary Phase 5 comparison has three evaluation tracks but only two
+distinct pretraining jobs. P0 is the original LatentWave pretraining, B1 is
+the post-hoc early-exit evaluation of that same P0 checkpoint, and P2 is the
+separately pretrained proposed method. The first pass is sequential and uses
+seed `0` with the shared stochastic `multi_block`/`span_time` masking regime.
+Complete P0, its derived B1 heads and evaluations, then P2 and its evaluations
+before moving to repetitions. P1 is not a primary method; it is a later
+same-scale intermediate-supervision ablation.
 
 Here, “fine-tuning” means training independent heads over a frozen backbone;
 no full-backbone downstream fine-tuning occurs in the primary comparison. Each
@@ -206,26 +208,28 @@ Report pilot point estimates for task performance by exit, selected exit,
 FLOPs, batch-1 latency, and relative compute/latency savings. Use synchronized
 GPU timing with warm-up iterations and fixed hardware. Do not present
 single-seed pilot values as statistically conclusive. After review, repeat the
-unchanged protocol for seeds `1` and `2`, then for additional LatentWave mask
-regimes, and report mean ± standard deviation. Keep WavesFM contextual or
-deferred unless exact source and checkpoints become available.
+unchanged P0/B1/P2 protocol for seeds `1` and `2`, then for additional
+LatentWave mask regimes, and report mean ± standard deviation. Run P1/B2 only
+as a reviewed ablation. Keep WavesFM contextual or deferred unless exact source
+and checkpoints become available.
 
 Implementation protocol: [`phase5_main_experiments.md`](phase5_main_experiments.md).
 Formal Phase 5 pretraining uses the complete four-cache input and the pinned
-fixed 240-epoch schedule; it has no raw-latent-loss early stopping or
+fixed 240-epoch schedule for P0 and P2; it has no raw-latent-loss early stopping or
 pretraining validation split. That loss is non-stationary because both the EMA
 target and stochastic prediction masks evolve. The legacy target-L8
 source-style P0 scikit-learn probe is kept separate from the context-encoder
 early-exit protocol. Formal early-exit runs persist one shared 80/10/10
 downstream split manifest, choose frozen-head epochs and exits on downstream
 validation only, and do not run the legacy full-dataset downstream probe during
-pretraining. P1/P2 use the memory-safe microbatch-4/accumulation-16 profile on
-the RTX 5070 Ti while retaining effective batch size 64.
+pretraining. P2 uses the memory-safe microbatch-4/accumulation-16 profile on
+the RTX 5070 Ti while retaining effective batch size 64; P1 uses it only if its
+ablation is later approved.
 
 Review gate: inspect metrics, checkpoints, logs, plots, and failure cases
 before spending GPU time on ablations.
 
-Acceptance criteria: reproducible P0/P1/P2 tables; fair early-exit comparisons;
+Acceptance criteria: reproducible P0/B1/P2 tables; fair early-exit comparisons;
 full-depth and early-exit performance; reported pretraining overhead separate
 from inference savings; and claims limited to observed evidence.
 
@@ -234,7 +238,7 @@ from inference savings; and claims limited to observed evidence.
 After the single-seed pilot review, but only when each method's primary and OOD
 evaluation packet is complete:
 
-- Repeat the unchanged P0/P1/P2 protocol for seeds `1` and `2`.
+- Repeat the unchanged P0/B1/P2 protocol for seeds `1` and `2`.
 - Repeat the finalized protocol for the other original LatentWave masking
   regimes.
 
@@ -272,10 +276,11 @@ Planned interfaces:
 The primary pretraining set is the four original LatentWave caches. The primary
 downstream set is RF sensing, NR outdoor positioning, and DeepMIMO beam/LoS
 data. Extra files remain deferred until the core comparison is stable. Main
-The pilot uses seed `0` and the shared stochastic span-time masking regime,
-then the finalized protocol uses three seeds and reports both the full-depth
-reference and selected early exits. Validation determines fixed exits; test
-data is used only once for final reporting.
+The pilot uses seed `0` and the shared stochastic span-time masking regime.
+The finalized P0/B1/P2 protocol uses three seeds and reports the original P0
+full-depth reference, B1 selected early exits, and P2 full-depth/early-exit
+results. Validation determines fixed exits; test data is used only once for
+final reporting. P1/B2 is reported separately as an ablation.
 
 ## Human-in-the-loop protocol
 

@@ -116,14 +116,15 @@ only through the selected context-encoder exit; later blocks are skipped.
 | ID | Method | Purpose |
 |---|---|---|
 | B0 | Original LatentWave | Full-depth self-supervised baseline. |
-| B1 | Original LatentWave + frozen early-exit heads | Required direct early-exit baseline. |
-| B2 | Multi-depth same-scale JEPA | Isolates deep supervision. |
-| B3 | Hierarchical Multi-Scale JEPA | Tests fine-to-coarse target aggregation beyond B2. |
+| B1 | Original LatentWave + frozen early-exit heads | Post-hoc early-exit baseline derived from the P0 checkpoint. |
+| B2 | Multi-depth same-scale JEPA | Controlled ablation isolating deep supervision. |
+| B3 | Hierarchical Multi-Scale JEPA | Primary proposed method; tests fine-to-coarse target aggregation. |
 | B4 | WavesFM | Contextual/deferred unless source, checkpoints, and protocol are comparable. |
 | B5 | V-JEPA-style deep supervision | Optional only if it materially differs from B2. |
 
 The central question is whether B3 reaches near-full downstream performance at
-an earlier frozen context-encoder depth than B1 and B2. Report pretraining
+an earlier frozen context-encoder depth than B1. B2 is a separate control for
+same-scale deep supervision. Report pretraining
 compute/memory overhead separately from inference FLOP and latency reduction.
 Use fixed validation-selected exits as the primary deployment policy; dynamic
 entropy exits remain classification-only secondary evaluation.
