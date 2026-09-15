@@ -37,6 +37,7 @@ from collators import get_collator  # noqa: E402
 from configs import init_jepa_config  # noqa: E402
 from datasets import DeepMIMO, ImageDataset, PretrainCache  # noqa: E402
 from evaluation import evaluate_class, evaluate_pos  # noqa: E402
+from masking_profiles import PROFILE_NAMES, apply_mask_profile  # noqa: E402
 from models import JEPA  # noqa: E402
 
 
@@ -90,6 +91,12 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
     parser.add_argument("--run-name", type=str, default=None, help="Optional result-directory name, for ablations.")
+    parser.add_argument(
+        "--mask-profile",
+        choices=PROFILE_NAMES,
+        default=None,
+        help="Apply one registered masking-study profile and record its checksum in run metadata.",
+    )
     parser.add_argument(
         "--run-kind",
         choices=("formal", "diagnostic"),
@@ -339,6 +346,7 @@ def main() -> int:
 
     config_path = METHOD_CONFIGS[args.method]
     config = init_jepa_config(str(config_path))
+    mask_profile = apply_mask_profile(config, args.mask_profile) if args.mask_profile else None
     config.seed = args.seed
     config.data.batch_size = args.batch_size
     config.data.num_workers = args.num_workers
@@ -397,9 +405,11 @@ def main() -> int:
         "validation_seed": args.validation_seed if args.early_stopping else None,
         "early_stopping_patience": args.early_stopping_patience if args.early_stopping else None,
         "early_stopping_min_delta": args.early_stopping_min_delta if args.early_stopping else None,
+        "mask_profile": mask_profile,
     }
     metadata = build_checkpoint_metadata(config, seed=args.seed, config_path=config_path)
     metadata["phase5"] = runtime
+    metadata["mask_profile"] = mask_profile
     (run_dir / "experiment.json").write_text(json.dumps({"metadata": metadata, "runtime": runtime}, indent=2))
 
     if args.dry_run:

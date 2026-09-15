@@ -99,6 +99,12 @@ implicitly. Each GPU command remains separately approval-gated.
 
 ## Configuration implementation before the first new job
 
+The runner now supports the registered `--mask-profile` argument. The four
+profile files live under `configs/masking_study/`; the selected profile is
+validated, merged only into the mask section, and recorded with its SHA-256
+checksum in `experiment.json` and checkpoint metadata. All four profiles have
+passed CPU dry-run validation and the mandatory CUDA/data preflight.
+
 The current pretraining runner selects `configs/p0.yml`, `configs/p1.yml`, or
 `configs/p2.yml` internally. Before region, time, or random formal jobs, add a
 mask-profile interface that makes the mask change explicit and records it in

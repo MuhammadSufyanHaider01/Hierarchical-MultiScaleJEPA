@@ -1,0 +1,6 @@
+name: frequency_n6
+masks:
+  type: multi_block
+  multi_block:
+    aspect_ratio_type: span_time
+    num_pred_masks: 6

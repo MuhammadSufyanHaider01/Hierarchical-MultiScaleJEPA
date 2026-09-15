@@ -1,0 +1,5 @@
+name: random_75
+masks:
+  type: random
+  random:
+    ratios: [0.75, 0.75]

@@ -1,0 +1,6 @@
+name: region_n6
+masks:
+  type: multi_block
+  multi_block:
+    aspect_ratio_type: random
+    num_pred_masks: 6
