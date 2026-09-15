@@ -230,6 +230,21 @@ PYTHONPATH=src .venv/bin/python scripts/phase5_report.py \
   --run-root runs/phase5_formal --output-dir runs/phase5_formal
 ```
 
+For the completed single-seed pilot, use the dedicated primary packet
+generator. It writes all-approach figures using the descriptive names
+`Original LatentWave`, `LatentWave with Post-hoc Frozen Early Exits`, and
+`Proposed Hierarchical Multi-Scale JEPA`, while keeping the source-faithful
+full-depth reference visibly distinct from the comparable frozen-exit
+protocol. It also writes submission-oriented Markdown/CSV tables plus 300-DPI
+PNG and vector PDF figures under `reports/phase5_primary/`:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/phase5_primary_report.py \
+  --run-root runs/phase5_formal \
+  --source-root runs/phase5_pilot \
+  --output-dir reports/phase5_primary
+```
+
 All HDF5 inputs and artifacts beneath `runs/` remain untracked. Formal
 metadata records configuration, source revision, environment, GPU, effective
 batch size, allocator configuration, and checkpoint selection rule.

@@ -1,0 +1,47 @@
+{
+  "excluded": [
+    "diagnostic early-stopped runs",
+    "same-scale auxiliary JEPA control ablation",
+    "OOD",
+    "seeds 1 and 2",
+    "alternate masking regimes"
+  ],
+  "figures": [
+    "all_methods_downstream_performance.png",
+    "all_methods_downstream_performance.pdf",
+    "all_methods_selected_performance.png",
+    "all_methods_selected_performance.pdf",
+    "all_methods_inference_cost.png",
+    "all_methods_inference_cost.pdf",
+    "early_exit_performance.png",
+    "early_exit_performance.pdf",
+    "selected_exit_performance.png",
+    "selected_exit_performance.pdf",
+    "inference_efficiency.png",
+    "inference_efficiency.pdf",
+    "b0_source_reference.png",
+    "b0_source_reference.pdf"
+  ],
+  "git_revision": "5e8d8cbfc32e469f94a87022791307f642d11ef8",
+  "included_inputs": {
+    "b0_source_probe": [
+      "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot/p0_source_probe.json",
+      "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot/p0_source_probe_los.json"
+    ],
+    "b1_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/benchmarks.json",
+    "b1_metrics": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/downstream/exit_metrics.json",
+    "p2_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/benchmarks.json",
+    "p2_metrics": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/downstream/exit_metrics.json"
+  },
+  "masking": "multi_block/span_time",
+  "methods": [
+    "Original LatentWave",
+    "LatentWave with Post-hoc Frozen Early Exits",
+    "Proposed Hierarchical Multi-Scale JEPA"
+  ],
+  "output_dir": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/reports/phase5_primary",
+  "report": "phase5_primary_single_seed",
+  "run_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal",
+  "seed": 0,
+  "source_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot"
+}

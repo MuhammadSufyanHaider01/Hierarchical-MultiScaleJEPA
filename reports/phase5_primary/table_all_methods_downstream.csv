@@ -1,0 +1,13 @@
+method,method_label,task,exit_layer,selection,metric,value,protocol
+b0,Original LatentWave,rfs,8,full-depth source reference,rfs_pca,0.7499994866996257,"EMA target encoder, source-style 80/20 probe"
+b1,LatentWave with Post-hoc Frozen Early Exits,rfs,8,earliest within 5% of validation best,macro_accuracy,0.6826119422912598,"frozen context encoder, shared 80/10/10 split"
+p2,Proposed Hierarchical Multi-Scale JEPA,rfs,6,earliest within 5% of validation best,macro_accuracy,0.7408782839775085,"frozen context encoder, shared 80/10/10 split"
+b0,Original LatentWave,nrpos-outdoor,8,full-depth source reference,pos_error,2.679534912109375,"EMA target encoder, source-style 80/20 probe"
+b1,LatentWave with Post-hoc Frozen Early Exits,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,3.204002618789673,"frozen context encoder, shared 80/10/10 split"
+p2,Proposed Hierarchical Multi-Scale JEPA,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,2.8129425048828125,"frozen context encoder, shared 80/10/10 split"
+b0,Original LatentWave,deepmimo-beam,8,full-depth source reference,beam_pca,0.5017718345240961,"EMA target encoder, source-style 80/20 probe"
+b1,LatentWave with Post-hoc Frozen Early Exits,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.3922688364982605,"frozen context encoder, shared 80/10/10 split"
+p2,Proposed Hierarchical Multi-Scale JEPA,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.44691866636276245,"frozen context encoder, shared 80/10/10 split"
+b0,Original LatentWave,deepmimo-los,8,full-depth source reference,los_pca,0.9292413258428266,"EMA target encoder, source-style 80/20 probe"
+b1,LatentWave with Post-hoc Frozen Early Exits,deepmimo-los,2,earliest within 5% of validation best,macro_accuracy,0.9273146986961365,"frozen context encoder, shared 80/10/10 split"
+p2,Proposed Hierarchical Multi-Scale JEPA,deepmimo-los,2,earliest within 5% of validation best,macro_accuracy,0.9269695281982422,"frozen context encoder, shared 80/10/10 split"

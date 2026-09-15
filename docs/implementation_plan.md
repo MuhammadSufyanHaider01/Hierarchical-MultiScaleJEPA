@@ -233,16 +233,30 @@ Acceptance criteria: reproducible P0/B1/P2 tables; fair early-exit comparisons;
 full-depth and early-exit performance; reported pretraining overhead separate
 from inference savings; and claims limited to observed evidence.
 
-## Phase 6 — Deferred repetitions, masking studies, and ablations
+## Phase 6 — Four-regime masking comparison
 
-Phase 6 is explicitly deferred for the current paper-comparable pilot. No
-Phase 6 GPU job, additional masking run, or OOD evaluation is required before
-completing the three-method primary comparison. If later approved, these
-studies remain separate from the primary table:
+The next active study repeats the three-approach comparison under four
+masking regimes: frequency (`N_m=6`, the current condition), region
+(`N_m=6`), time (`N_m=6`), and random masking at a fixed 75% ratio. The
+implementation and approval sequence is authoritative in
+[`masking_comparison_plan.md`](masking_comparison_plan.md).
 
-- Repeat the unchanged P0/B1/P2 protocol for seeds `1` and `2`.
-- Repeat the finalized protocol for the other original LatentWave masking
-  regimes.
+The complete matrix contains four Original LatentWave pretraining jobs and
+four Proposed Hierarchical Multi-Scale JEPA pretraining jobs. LatentWave with
+Post-hoc Frozen Early Exits is derived from each matching Original LatentWave
+checkpoint and therefore adds no distinct pretraining job. Each condition is
+completed and reviewed independently before the next condition begins.
+
+The current frequency artifacts may be reused only after metadata confirms
+that they exactly match the registered frequency profile. Region, time, and
+random profiles require fresh run directories. No GPU job is launched
+automatically.
+
+After the four requested profiles are reviewed, these studies remain
+deferred and separately approved:
+
+- Repeat the unchanged masking matrix for seeds `1` and `2`.
+- Sweep structured `N_m` over `{2, 3, 4, 5, 6}`.
 
 - Sweep `lambda_H` over `{0.25, 0.5, 1.0, 2.0}`.
 - Test optional coarse L8 supervision only as an ablation.

@@ -6,6 +6,7 @@ wandb/
 runs/
 scratch/
 figures/
+reports/phase5_primary/.matplotlib/
 *.ckpt
 *.pth
 *.pt
