@@ -35,8 +35,8 @@ from phase6 import (  # noqa: E402
 )
 
 
-PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
-TASKS = PRIMARY_TASKS + OOD_TASKS
+PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
+TASKS = tuple(dict.fromkeys(PRIMARY_TASKS + OOD_TASKS))
 EXIT_LAYERS = (2, 4, 6, 8)
 
 
@@ -117,7 +117,6 @@ def _loader(dataset, *, batch_size: int, shuffle: bool, num_workers: int, seed: 
 def _class_weights(spec: TaskSpec, device: torch.device) -> torch.Tensor | None:
     attr = {
         "deepmimo-beam": "class_weights_beam_16",
-        "deepmimo-los": "class_weights_los",
     }.get(spec.name)
     if attr is None:
         return None
@@ -356,7 +355,7 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     if args.dataset_suite == "primary":
         allowed_tasks = PRIMARY_TASKS
-        manifest_path = args.run_root / f"splits_seed_{args.split_seed}.json"
+        manifest_path = args.run_root / f"splits_seed_{args.split_seed}_primary_v2.json"
         manifest = load_or_create_split_manifest(manifest_path, REPOSITORY_ROOT, seed=args.split_seed)
         build_dataset = lambda task: build_task_dataset(task, REPOSITORY_ROOT)
         make_subsets = task_subsets

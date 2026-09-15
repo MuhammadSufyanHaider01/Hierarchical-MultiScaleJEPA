@@ -11,6 +11,12 @@ and RTX 5070 Ti timing procedure.
 The request lists four regimes, so this is a four-regime study rather than a
 three-regime study.
 
+Each condition is evaluated on the revised four-task primary suite: RF signal
+classification, 5G NR positioning, DeepMIMO beam prediction, and EfficientFi
+WiFi human activity recognition. The local HAS cache is `../has.h5`; it is not
+copied into or tracked by Git. DeepMIMO LoS/NLoS is retained only as a legacy
+result and is excluded from new masking-study tables.
+
 The research question is:
 
 > Does the proposed hierarchical latent supervision improve intermediate

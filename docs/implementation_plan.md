@@ -126,8 +126,8 @@ Scope:
   linear task layer.
 - Freeze the entire context backbone, including patch embedding and
   normalization.
-- Evaluate RF classification, NR positioning, beam prediction, and LoS/NLoS
-  classification.
+- Evaluate RF classification, NR positioning, beam prediction, and EfficientFi
+  WiFi human activity recognition.
 - Implement fixed validation-based selection and earliest-within-tolerance
   selection without using test data.
 
@@ -136,6 +136,23 @@ and selection logic.
 
 Acceptance criteria: L2/L4/L6/L8 execute correctly; only heads update; exit
 results are reproducible; and test data is excluded from selection.
+
+### Revised primary downstream task suite
+
+The primary comparison uses the following four tasks for every masking regime
+and approach:
+
+| Task | Local cache | Target | Primary metric |
+|---|---|---|---|
+| RF signal classification | `data/downstream/rfs.h5` | 20 classes | Macro accuracy |
+| 5G NR positioning | `data/downstream/nrpos-outdoor.h5` | 3-D position | Mean distance error |
+| Beam prediction | `data/downstream/deepmimo.h5` | 16 beams | Macro accuracy |
+| EfficientFi WiFi human activity recognition | `../has.h5` | 6 activities | Macro accuracy |
+
+The HAS task is CSI-based and contains temporal activity signatures. It uses
+the same frozen L2/L4/L6/L8 heads and the project-wide version-2 stratified
+80/10/10 split manifest. DeepMIMO LoS/NLoS is excluded from new primary runs;
+previous LoS/NLoS metrics remain historical only.
 
 ## Phase 3 — P1 same-scale multi-depth JEPA
 
@@ -261,8 +278,9 @@ deferred and separately approved:
 - Sweep `lambda_H` over `{0.25, 0.5, 1.0, 2.0}`.
 - Test optional coarse L8 supervision only as an ablation.
 - Test alternate region schedules if P2 is promising.
-- Extend held-out OOD transfer beyond the pilot jamming, interference, and
-  human-activity tasks only when a new dataset answers a defined question.
+- Extend held-out OOD transfer beyond the pilot jamming and interference tasks
+  only when a new dataset answers a defined question. EfficientFi human
+  activity recognition is now part of the primary suite.
 - Treat alternate WiFi CSI and 5G CSI files as separate data-expansion or
   preprocessing ablations.
 - Add dynamic entropy exits only for classification after fixed exits are complete.
@@ -271,8 +289,8 @@ Every ablation must answer a stated research question before GPU allocation.
 
 Implementation protocol: [`phase6_ablations_ood.md`](phase6_ablations_ood.md).
 The Phase 6 framework provides lambda and opt-in L8-coarse P2 ablations,
-repetition/masking-study rules, held-out jamming/interference/human-activity
-task registration, and classification-only dynamic entropy routing. GPU
+repetition/masking-study rules, held-out jamming/interference task
+registration, and classification-only dynamic entropy routing. GPU
 execution remains approval-gated until the Phase 5 pilot review.
 
 ## Interfaces and experiment definitions
@@ -290,8 +308,11 @@ Planned interfaces:
   manifest, environment, and hardware.
 
 The primary pretraining set is the four original LatentWave caches. The primary
-downstream set is RF sensing, NR outdoor positioning, and DeepMIMO beam/LoS
-data. Extra files remain deferred until the core comparison is stable. Main
+downstream set is RF sensing, NR outdoor positioning, DeepMIMO beam prediction,
+and EfficientFi WiFi human activity recognition (`../has.h5`). DeepMIMO
+LoS/NLoS is retained only as a historical/legacy evaluation and is no longer a
+primary task. Extra files remain deferred until the core comparison is stable.
+Main
 The pilot uses seed `0` and the shared stochastic span-time masking regime.
 The finalized P0/B1/P2 protocol uses three seeds and reports the original P0
 full-depth reference, B1 selected early exits, and P2 full-depth/early-exit
@@ -317,6 +338,7 @@ For every phase:
   the GPU runtime is ready.
 - The EMA target encoder is the full-input, stop-gradient pretraining branch;
   the context encoder is the primary downstream backbone.
-- The four original pretraining caches and three original downstream files
-  define the primary experiment.
+- The four original pretraining caches and four primary downstream task files
+  define the primary experiment; the HAS cache remains one directory above the
+  repository and is not committed.
 - Large HDF5 files remain local and ignored by Git.

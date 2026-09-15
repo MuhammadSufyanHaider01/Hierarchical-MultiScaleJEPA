@@ -10,15 +10,15 @@ none is queued automatically.
 
 ## Registered OOD tasks
 
-The local parent directory contains three held-out classification datasets. They
+The local parent directory contains two held-out classification datasets. They
 are not added to pretraining and no HDF5 file is copied into or tracked by this
-repository.
+repository. EfficientFi HAS is no longer listed here because it has been
+promoted to the primary downstream task suite.
 
 | Task | Source file | Sample key | Label key | Classes |
 |---|---|---|---|---:|
 | Jamming | `jamming.h5` | `normalized_spectrograms` | `labels` | 6 |
 | Interference | `interference.h5` | `cls_spectrograms` | `cls_labels` | 2 |
-| Human activity | `has.h5` | `csi` | `label` | 6 |
 
 The audit confirms that the available tensors are finite `[N,C,H,W]` float32
 inputs with integer labels. Interference source labels `{1,2}` are remapped in

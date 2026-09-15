@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the seven primary local HDF5 files without modifying them."""
+"""Audit the eight primary local HDF5 files without modifying them."""
 
 from __future__ import annotations
 
@@ -35,7 +35,10 @@ EXPECTED = {
     "data/downstream/deepmimo.h5": {
         "sample": ((14840, 2, 32, 32), "float32"),
         "label_beam_16": ((14840,), "int64"),
-        "label_los": ((14840,), "int64"),
+    },
+    "../has.h5": {
+        "csi": ((1200, 3, 224, 224), "float32"),
+        "label": ((1200,), "int64"),
     },
 }
 

@@ -1,4 +1,9 @@
-# Phase 5 primary single-seed pilot packet
+# Phase 5 primary single-seed pilot packet (legacy task set)
+
+> This artifact packet was generated before EfficientFi human activity
+> recognition replaced DeepMIMO LoS/NLoS in the primary task suite. Its LoS/NLoS
+> rows and figures are historical and must not be used for the revised masking
+> comparison. Regenerate this packet after the HAS evaluations complete.
 
 This directory contains the submission-oriented result tables and figures for
 the completed single-seed pilot. It is an aggregation of recorded

@@ -17,7 +17,13 @@ The HDF5 files in this directory are local dataset artifacts and are intentional
 |---|---|---|---|
 | `downstream/rfs.h5` | `image`, `label` | `(3624, 1, 224, 224)` | RF signal classification |
 | `downstream/nrpos-outdoor.h5` | `features`, `label` | `(11628, 4, 224, 224)` | 5G NR positioning |
-| `downstream/deepmimo.h5` | `sample`, `label_beam_16`, `label_los` | `(14840, 2, 32, 32)` | Beam prediction and LoS/NLoS classification |
+| `downstream/deepmimo.h5` | `sample`, `label_beam_16` | `(14840, 2, 32, 32)` | Beam prediction |
+| `../has.h5` | `csi`, `label` | `(1200, 3, 224, 224)` | EfficientFi human activity recognition |
+
+`has.h5` is the local EfficientFi Human Activity Sensing cache. It remains
+outside the repository, is ignored by Git, and is loaded from the parent data
+directory by the primary evaluation registry. The primary study no longer
+uses the DeepMIMO LoS/NLoS label.
 
 The original source files remain one directory above this repository. The copied files are intended to be referenced through configuration, not committed to the remote repository.
 

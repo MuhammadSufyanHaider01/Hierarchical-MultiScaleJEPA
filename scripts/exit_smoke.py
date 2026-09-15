@@ -41,15 +41,15 @@ def _dataset(config, task: str):
         )
     if task == "deepmimo-beam":
         return DeepMIMO(_path(config.data.beam_path), n_beams=16), 16, True
-    if task == "deepmimo-los":
-        return DeepMIMO(_path(config.data.beam_path), label_key="label_los"), 2, True
+    if task == "human-activity":
+        return ImageDataset(REPOSITORY_ROOT.parent / "has.h5", sample_key="csi", label_key="label"), 6, True
     raise ValueError(f"unknown task: {task}")
 
 
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/p0.yml")
-    parser.add_argument("--task", choices=("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los"), default="rfs")
+    parser.add_argument("--task", choices=("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity"), default="rfs")
     parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--steps", type=int, default=1)

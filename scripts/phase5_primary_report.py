@@ -20,7 +20,7 @@ from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXIT_LAYERS = (2, 4, 6, 8)
-TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
+TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
 METHODS = ("b1", "p2")
 METHOD_LABELS = {
     "b0": "Original LatentWave",
@@ -41,19 +41,19 @@ TASK_LABELS = {
     "rfs": "RF sensing",
     "nrpos-outdoor": "NR positioning",
     "deepmimo-beam": "DeepMIMO beam",
-    "deepmimo-los": "DeepMIMO LoS/NLoS",
+    "human-activity": "EfficientFi human activity",
 }
 TASK_METRICS = {
     "rfs": ("macro_accuracy", "Macro accuracy", True),
     "nrpos-outdoor": ("mean_distance_error", "Mean distance error (m)", False),
     "deepmimo-beam": ("macro_accuracy", "Macro accuracy", True),
-    "deepmimo-los": ("macro_accuracy", "Macro accuracy", True),
+    "human-activity": ("macro_accuracy", "Macro accuracy", True),
 }
 SOURCE_METRICS = {
     "rfs": ("rfs_pca", "Balanced accuracy (source probe)", True),
     "nrpos-outdoor": ("pos_error", "Mean distance error (m)", False),
     "deepmimo-beam": ("beam_pca", "Balanced accuracy (source probe)", True),
-    "deepmimo-los": ("los_pca", "Balanced accuracy (source probe)", True),
+    "human-activity": ("has_pca", "Balanced accuracy (source probe)", True),
 }
 
 
@@ -115,8 +115,10 @@ def _git_revision() -> str:
 
 
 def _load_source_reference(source_root: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    paths = [source_root / "p0_source_probe.json", source_root / "p0_source_probe_los.json"]
-    records = [_read(path) for path in paths]
+    paths = [source_root / "p0_source_probe.json", source_root / "p0_source_probe_has.json"]
+    records = [_read(path) for path in paths if path.is_file()]
+    if not records:
+        raise FileNotFoundError(paths[0])
     tasks: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for record in records:
         if record.get("protocol", {}).get("name") != "pinned_latentwave_source_style_l8_probe":
@@ -125,6 +127,10 @@ def _load_source_reference(source_root: Path) -> tuple[dict[str, Any], list[dict
             if task in tasks:
                 raise ValueError(f"duplicate source-probe task: {task}")
             if task not in TASKS:
+                if task == "deepmimo-los":
+                    # Ignore the legacy task if an older source probe was
+                    # reused while assembling the revised report packet.
+                    continue
                 raise ValueError(f"unexpected source-probe task: {task}")
             tasks[task] = value
     missing = [task for task in TASKS if task not in tasks]
@@ -989,7 +995,7 @@ def main() -> int:
         "seed": 0,
         "masking": "multi_block/span_time",
         "included_inputs": {
-            "b0_source_probe": [str(source_root / "p0_source_probe.json"), str(source_root / "p0_source_probe_los.json")],
+            "b0_source_probe": [str(source_root / "p0_source_probe.json"), str(source_root / "p0_source_probe_has.json")],
             "b1_metrics": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_benchmark": str(run_root / "p0/seed_000/benchmarks.json"),
             "p2_metrics": str(run_root / "p2/seed_000/downstream/exit_metrics.json"),

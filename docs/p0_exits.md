@@ -47,7 +47,8 @@ than a frozen-exit evaluation.
 ## Tasks and selection
 
 The configured Phase 2 tasks are RF classification, NR outdoor positioning,
-DeepMIMO 16-beam prediction, and DeepMIMO LoS/NLoS classification. Exit
+DeepMIMO 16-beam prediction, and EfficientFi WiFi human activity recognition.
+Exit
 selection is performed on validation metrics only. The best validation exit
 breaks ties toward the earliest layer. The earliest-within-tolerance rule uses
 the first exit within 5% of the best validation metric, with the direction

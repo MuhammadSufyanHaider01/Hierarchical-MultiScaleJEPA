@@ -30,8 +30,8 @@ from phase5 import build_task_dataset  # noqa: E402
 from phase6 import OOD_TASKS, build_ood_task_dataset, default_ood_root  # noqa: E402
 
 
-PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
-TASKS = PRIMARY_TASKS + OOD_TASKS
+PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
+TASKS = tuple(dict.fromkeys(PRIMARY_TASKS + OOD_TASKS))
 EXIT_LAYERS = (2, 4, 6, 8)
 
 

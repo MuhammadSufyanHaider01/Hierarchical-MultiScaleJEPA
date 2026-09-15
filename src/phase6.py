@@ -17,7 +17,7 @@ from phase5 import TaskSpec, split_indices
 
 OOD_SPLIT_SCHEMA_VERSION = 1
 OOD_SPLIT_FRACTIONS = {"train": 0.80, "validation": 0.10, "test": 0.10}
-OOD_TASKS = ("jamming", "interference", "human-activity")
+OOD_TASKS = ("jamming", "interference")
 
 _OOD_FILES = {
     "jamming": {
@@ -29,11 +29,6 @@ _OOD_FILES = {
         "filename": "interference.h5",
         "sample_key": "cls_spectrograms",
         "label_key": "cls_labels",
-    },
-    "human-activity": {
-        "filename": "has.h5",
-        "sample_key": "csi",
-        "label_key": "label",
     },
 }
 

@@ -14,8 +14,17 @@ from torch.utils.data import Dataset, Subset
 from datasets import DeepMIMO, ImageDataset
 
 
-SPLIT_SCHEMA_VERSION = 1
+SPLIT_SCHEMA_VERSION = 2
 SPLIT_FRACTIONS = {"train": 0.80, "validation": 0.10, "test": 0.10}
+
+
+def _path_record(path: Path, root: Path) -> str:
+    """Use a repository-relative path when possible, otherwise preserve it."""
+
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
 
 
 @dataclass(frozen=True)
@@ -75,14 +84,17 @@ def build_task_dataset(task: str, repository_root: Path) -> tuple[Dataset, TaskS
             metric_name="macro_accuracy",
             sample_shape=dataset.sample_shape,
         )
-    if task == "deepmimo-los":
-        path = root / "data/downstream/deepmimo.h5"
-        dataset = DeepMIMO(path, label_key="label_los")
+    if task == "human-activity":
+        # HAS is kept alongside the repository, like the other local datasets
+        # that were not copied into Git. It is now a primary task rather than
+        # a Phase 6 OOD task.
+        path = root.parent / "has.h5"
+        dataset = ImageDataset(path, sample_key="csi", label_key="label")
         return dataset, TaskSpec(
             name=task,
-            path=str(path.relative_to(root)),
+            path=_path_record(path, root),
             target_type="classification",
-            num_outputs=2,
+            num_outputs=6,
             higher_is_better=True,
             metric_name="macro_accuracy",
             sample_shape=dataset.sample_shape,
@@ -153,7 +165,7 @@ def _labels(dataset: Dataset) -> list[int] | None:
 
 def create_split_manifest(repository_root: Path, *, seed: int) -> dict[str, object]:
     tasks: dict[str, object] = {}
-    for task in ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los"):
+    for task in ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity"):
         dataset, spec = build_task_dataset(task, repository_root)
         split = split_indices(len(dataset), seed=seed, labels=_labels(dataset))
         tasks[task] = {

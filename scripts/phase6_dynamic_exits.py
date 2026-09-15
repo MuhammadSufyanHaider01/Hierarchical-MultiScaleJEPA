@@ -27,8 +27,8 @@ from phase6 import (  # noqa: E402
 )
 
 
-PRIMARY_CLASSIFICATION_TASKS = ("rfs", "deepmimo-beam", "deepmimo-los")
-ALL_TASKS = PRIMARY_CLASSIFICATION_TASKS + OOD_TASKS
+PRIMARY_CLASSIFICATION_TASKS = ("rfs", "deepmimo-beam", "human-activity")
+ALL_TASKS = tuple(dict.fromkeys(PRIMARY_CLASSIFICATION_TASKS + OOD_TASKS))
 EXIT_LAYERS = (2, 4, 6, 8)
 
 
@@ -115,7 +115,7 @@ def main() -> int:
     if args.dataset_suite == "primary":
         allowed_tasks = PRIMARY_CLASSIFICATION_TASKS
         manifest = load_or_create_split_manifest(
-            args.run_root / f"splits_seed_{args.split_seed}.json", REPOSITORY_ROOT, seed=args.split_seed
+            args.run_root / f"splits_seed_{args.split_seed}_primary_v2.json", REPOSITORY_ROOT, seed=args.split_seed
         )
         build_dataset = lambda task: build_task_dataset(task, REPOSITORY_ROOT)
         make_subsets = task_subsets
