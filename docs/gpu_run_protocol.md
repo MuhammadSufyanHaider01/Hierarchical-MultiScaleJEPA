@@ -60,10 +60,11 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   approved source-style target-L8 probe.
 - The first official comparison is sequential P0 → derived B1 → P2 and uses
   seed `0` plus the shared stochastic `multi_block`/`span_time` masking
-  configuration. Complete P0's source reference, B1's exits, and P2's
-  primary/OOD/benchmark packet before approving the next distinct pretraining
-  job. P1/B2 is a later ablation. Seeds `1`/`2` and additional masking regimes
-  are follow-up work after reviewing that pilot.
+  configuration. Complete P0's source reference, B1's exits, and the primary
+  benchmark packet before approving the next distinct pretraining job. OOD
+  transfer is deferred and is not a gate for the paper-comparable pilot.
+  P1/B2 is a later ablation. Seeds `1`/`2` and additional masking regimes are
+  follow-up work after reviewing that pilot.
 
 See [`phase5_main_experiments.md`](phase5_main_experiments.md) and
 [`phase6_ablations_ood.md`](phase6_ablations_ood.md) for the per-job command

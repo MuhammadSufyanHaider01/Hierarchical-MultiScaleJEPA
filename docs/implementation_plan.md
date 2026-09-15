@@ -233,10 +233,12 @@ Acceptance criteria: reproducible P0/B1/P2 tables; fair early-exit comparisons;
 full-depth and early-exit performance; reported pretraining overhead separate
 from inference savings; and claims limited to observed evidence.
 
-## Phase 6 — Repetitions, masking studies, and ablations
+## Phase 6 — Deferred repetitions, masking studies, and ablations
 
-After the single-seed pilot review, but only when each method's primary and OOD
-evaluation packet is complete:
+Phase 6 is explicitly deferred for the current paper-comparable pilot. No
+Phase 6 GPU job, additional masking run, or OOD evaluation is required before
+completing the three-method primary comparison. If later approved, these
+studies remain separate from the primary table:
 
 - Repeat the unchanged P0/B1/P2 protocol for seeds `1` and `2`.
 - Repeat the finalized protocol for the other original LatentWave masking

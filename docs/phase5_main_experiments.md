@@ -49,9 +49,9 @@ evaluation functions rather than the Phase 5 exit heads.
 
 The first comparison is an end-to-end, single-seed pilot. It is deliberately
 sequential: finish and review one method's pretraining, frozen-head evaluation,
-OOD transfer evaluation, and benchmark before allocating GPU time to the next
-method. This makes an implementation or protocol failure visible before it can
-propagate into the other two methods.
+and primary benchmark before allocating GPU time to the next method. OOD
+transfer and Phase 6 ablations are deferred and are not gates for this
+paper-comparable pilot.
 
 | Pilot order | Method | What changes relative to the pinned source | Representation used in the primary early-exit table |
 |---:|---|---|---|
@@ -124,17 +124,17 @@ validation split and metric are stationary. Test data is read only after all
 four validation-selected heads and both fixed-exit policies are chosen.
 
 “Fine-tuning” in this pilot means fitting these frozen linear exit heads only;
-the pretrained backbone is never updated. For every completed method, first
-evaluate the primary downstream suite, then fit the same frozen heads on each
-OOD task's own labelled train/validation split and test it once. That is an
-OOD transfer evaluation, not zero-shot inference: the OOD datasets have
-different label spaces.
+the pretrained backbone is never updated. The primary paper-comparable packet
+uses only the four original downstream tasks. OOD transfer uses separately
+registered labelled datasets and remains a deferred supplementary study; its
+partial diagnostic artifacts are excluded from all current comparisons.
 
 Report each method's L2/L4/L6/L8 test performance, L8 full-depth reference,
 best validation-selected exit, earliest exit within 5% of the best validation
-metric, FLOPs, batch-1 latency, and relative compute/latency savings. Record
-the primary downstream and OOD-transfer results separately. The pretraining
-overhead table remains separate from deployment savings.
+metric, FLOPs, batch-1 latency, and relative compute/latency savings. OOD
+transfer, if later approved, is reported separately and never mixed into the
+paper-comparable table. The pretraining overhead table remains separate from
+deployment savings.
 
 ## Approved-job sequence
 
@@ -147,12 +147,10 @@ change is:
    The historical P0 checkpoint may receive its own source-style probe, but
    remains diagnostic and cannot replace the pilot checkpoint.
 2. For the completed P0 checkpoint, run the source-style EMA-target L8 probe,
-   primary context-encoder frozen exits, the primary benchmark, OOD frozen
-   exits, and an OOD-shape benchmark when an OOD input shape differs. Review
-   the complete P0/B1 packet before starting P2.
+   primary context-encoder frozen exits, and the primary benchmark. Review the
+   complete P0/B1 paper-comparable packet before starting P2.
 3. Run P2 seed 0 for the fixed 60-epoch horizon with the memory-safe profile,
-   then the same primary exits, primary benchmark, OOD frozen exits, and any
-   needed OOD-shape benchmark.
+   then the same primary exits and primary benchmark.
    Review the three-track pilot comparison.
 4. Only then repeat the fixed P0/B1/P2 protocol for seeds 1 and 2 and the
    remaining mask regimes. Run P1/B2 only when a specific ablation question is
@@ -208,8 +206,9 @@ PYTHONPATH=src .venv/bin/python scripts/phase5_exits.py \
   --epochs 200 --head-early-stopping-patience 20 --device cuda
 ```
 
-Run the OOD frozen-head packet before advancing to the next method. It uses
-the OOD task's own persisted labelled split and must be separately approved:
+The following OOD frozen-head command is deferred and is not part of the
+active paper-comparable sequence. It is retained only as a separately
+approvable supplementary study:
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/phase5_exits.py \

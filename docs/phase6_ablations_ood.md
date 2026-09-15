@@ -1,15 +1,12 @@
-# Phase 6: repetitions, masking studies, and ablations
+# Phase 6: deferred repetitions, masking studies, and ablations
 
-This document serves two purposes: it defines the OOD frozen-head transfer
-packet required for each completed single-seed Phase 5 P0/B1/P2 pilot track, and it
-defines later repetition/masking/ablation work. OOD transfer does not alter the
-primary P0/B1/P2 definition. P1/B2 is the same-scale control ablation. Lambda,
-coarse-L8, dynamic-exit, and alternate
-masking studies remain deferred until the sequential three-method pilot is
-reviewed. Diagnostic early-stopped checkpoints are not eligible. Explicitly
-approve that one command under the
-[`gpu_run_protocol.md`](gpu_run_protocol.md). No ablation or OOD command is
-queued automatically.
+This document records optional future OOD, repetition, masking, and ablation
+work. These jobs are explicitly deferred and are not required for the current
+paper-comparable P0/B1/P2 pilot. OOD transfer does not alter the primary
+P0/B1/P2 definition. P1/B2 is the same-scale control ablation. Diagnostic
+early-stopped checkpoints are not eligible. Any later OOD or ablation command
+requires separate approval under [`gpu_run_protocol.md`](gpu_run_protocol.md);
+none is queued automatically.
 
 ## Registered OOD tasks
 
