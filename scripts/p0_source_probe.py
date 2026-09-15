@@ -28,7 +28,7 @@ from evaluation import evaluate_class, evaluate_pos  # noqa: E402
 from models import Encoder, load_target_encoder_checkpoint  # noqa: E402
 
 
-SOURCE_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam")
+SOURCE_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
 
 
 def _arguments() -> argparse.Namespace:
@@ -83,6 +83,8 @@ def _task_dataset(task: str, config):
             ),
             "beam_pca",
         )
+    if task == "deepmimo-los":
+        return DeepMIMO(_repository_path(config.data.beam_path), label_key="label_los"), "los_pca"
     raise ValueError(f"unsupported source-style task: {task}")
 
 
