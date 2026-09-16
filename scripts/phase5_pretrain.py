@@ -168,8 +168,8 @@ def _arguments() -> argparse.Namespace:
         "--performance-safe",
         action="store_true",
         help=(
-            "Use the bounded RTX 5070 Ti performance profile: BF16, microbatch 8, "
-            "accumulation 8, 12 workers, prefetch 4, and logging every 25 steps."
+            "Use the bounded RTX 5070 Ti performance profile: BF16, microbatch 16, "
+            "accumulation 4, 12 workers, prefetch 4, and logging every 25 steps."
         ),
     )
     parser.add_argument(
@@ -416,10 +416,10 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.performance_safe:
         if args.method not in {"p1", "p2"}:
             raise ValueError("--performance-safe is only defined for P1/P2 hierarchical jobs")
-        if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
+        if args.device != "cuda" or args.batch_size != 16 or args.accumulate_grad_batches != 4:
             raise ValueError(
-                "--performance-safe requires --device cuda --batch-size 8 "
-                "--accumulate-grad-batches 8"
+                "--performance-safe requires --device cuda --batch-size 16 "
+                "--accumulate-grad-batches 4"
             )
         if args.precision != "bf16-mixed":
             raise ValueError("--performance-safe requires --precision bf16-mixed")

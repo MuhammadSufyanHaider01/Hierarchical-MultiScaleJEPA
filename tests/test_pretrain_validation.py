@@ -117,8 +117,8 @@ class PretrainValidationSplitTest(unittest.TestCase):
     def test_performance_profile_requires_bf16_and_bounded_loader_settings(self):
         arguments = self._arguments(
             method="p2",
-            batch_size=8,
-            accumulate_grad_batches=8,
+            batch_size=16,
+            accumulate_grad_batches=4,
             num_workers=12,
             prefetch_factor=4,
             log_every_n_steps=25,
@@ -146,8 +146,8 @@ class PretrainValidationSplitTest(unittest.TestCase):
                 _validate_run_arguments(
                     self._arguments(
                         method="p2",
-                        batch_size=8,
-                        accumulate_grad_batches=8,
+                        batch_size=16,
+                        accumulate_grad_batches=4,
                         num_workers=8,
                         prefetch_factor=4,
                         log_every_n_steps=25,

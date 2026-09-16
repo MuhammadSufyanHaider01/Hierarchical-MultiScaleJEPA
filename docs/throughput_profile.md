@@ -7,8 +7,8 @@ changes to an existing run:
 
 | Setting | Memory-safe | FP32 throughput | BF16 performance |
 |---|---:|---:|---:|
-| Per-device microbatch | 4 | 8 | 8 |
-| Gradient accumulation | 16 | 8 | 8 |
+| Per-device microbatch | 4 | 8 | 16 |
+| Gradient accumulation | 16 | 8 | 4 |
 | Effective batch size | 64 | 64 | 64 |
 | Data-loader workers | 4 | 8 | 12 |
 | Prefetch factor | 2 | 2 | 4 |
@@ -16,8 +16,8 @@ changes to an existing run:
 | Precision | FP32 | FP32 | BF16 mixed |
 | CUDA allocator | expandable segments | expandable segments | expandable segments |
 
-Both speed profiles reduce serialized microbatches per optimizer step from 16
-to 8. `--throughput-safe` validates the FP32 configuration, and
+The FP32 profile reduces serialized microbatches per optimizer step from 16 to
+8; the BF16 profile reduces it from 16 to 4. `--throughput-safe` validates the FP32 configuration, and
 `--performance-safe` validates the BF16 configuration, including loader and
 logger bounds, before model allocation. They are mutually exclusive with
 `--memory-safe` and currently apply to P1/P2 only.
@@ -60,8 +60,8 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   .venv/bin/python scripts/phase5_pretrain.py \
   --method p2 --seed 0 --run-root runs/masking_study/region_n6/performance \
   --run-name proposed_hierarchical --mask-profile region_n6 \
-  --run-kind formal --max-epochs 60 --batch-size 8 \
-  --accumulate-grad-batches 8 --num-workers 12 --prefetch-factor 4 \
+  --run-kind formal --max-epochs 60 --batch-size 16 \
+  --accumulate-grad-batches 4 --num-workers 12 --prefetch-factor 4 \
   --log-every-n-steps 25 --precision bf16-mixed --device cuda \
   --performance-safe
 ```
