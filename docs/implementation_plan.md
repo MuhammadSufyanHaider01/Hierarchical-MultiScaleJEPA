@@ -269,6 +269,12 @@ that they exactly match the registered frequency profile. Region, time, and
 random profiles require fresh run directories. No GPU job is launched
 automatically.
 
+Keep each masking condition's manuscript-facing outputs in its own report
+directory: `reports/masking_study/frequency_n6/`,
+`reports/masking_study/region_n6/`, `reports/masking_study/time_n6/`, or
+`reports/masking_study/random_75/`. The corresponding checkpoints and live
+logs remain under `runs/masking_study/<mask-profile>/`.
+
 After the four requested profiles are reviewed, these studies remain
 deferred and separately approved:
 

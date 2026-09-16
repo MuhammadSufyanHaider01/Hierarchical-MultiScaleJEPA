@@ -146,10 +146,19 @@ runs/masking_study/
   region_n6/
   time_n6/
   random_75/
+
+reports/masking_study/
+  frequency_n6/               # per-mask tables, figures, and manifest
+  region_n6/
+  time_n6/
+  random_75/
 ```
 
 The exact directory names may follow the runner's existing method layout, but
 the mask profile must be unambiguous in every path and metadata record.
+All manuscript-facing artifacts are written to the matching
+`reports/masking_study/<mask-profile>/` directory; raw checkpoints and logs
+remain under `runs/masking_study/<mask-profile>/`.
 
 ## Evaluation and reporting protocol
 
