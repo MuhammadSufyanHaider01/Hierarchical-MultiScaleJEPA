@@ -17,7 +17,7 @@ import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PROFILE_DIRECTORY = REPOSITORY_ROOT / "configs" / "masking_study"
-PROFILE_NAMES = ("frequency_n6", "region_n6", "time_n6", "random_75")
+PROFILE_NAMES = ("frequency_n6", "region_n6", "time_n6", "random_75", "adaptive_frequency_n6")
 
 
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
@@ -57,6 +57,22 @@ def _validate_profile(name: str, profile: dict[str, Any]) -> None:
         ratios = masks.get("random", {}).get("ratios")
         if ratios != [0.75, 0.75]:
             raise ValueError("random_75 must use the fixed ratios [0.75, 0.75]")
+    elif name == "adaptive_frequency_n6":
+        if masks.get("type") != "variation_aware_multi_block":
+            raise ValueError(
+                "adaptive_frequency_n6 must use masks.type='variation_aware_multi_block'"
+            )
+        adaptive = masks.get("variation_aware_multi_block", {})
+        if adaptive.get("aspect_ratio_type") != "span_time":
+            raise ValueError("adaptive_frequency_n6 must use aspect_ratio_type='span_time'")
+        if adaptive.get("num_pred_masks") != 6:
+            raise ValueError("adaptive_frequency_n6 must use num_pred_masks=6")
+        if adaptive.get("alpha") != 0.5:
+            raise ValueError("adaptive_frequency_n6 must use alpha=0.5")
+        if adaptive.get("exploration_eta") != 0.25:
+            raise ValueError("adaptive_frequency_n6 must use exploration_eta=0.25")
+        if adaptive.get("epsilon") != 1.0e-6:
+            raise ValueError("adaptive_frequency_n6 must use epsilon=1e-6")
     else:
         raise ValueError(f"unregistered mask profile: {name!r}")
 

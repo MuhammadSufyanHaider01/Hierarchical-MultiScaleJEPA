@@ -67,6 +67,20 @@ class MultiBlockMaskConfig(BaseSettings):
     pred_mask_scale: list[float]
 
 
+class VariationAwareMultiBlockMaskConfig(BaseSettings):
+    allow_overlap: bool
+    aspect_ratio_type: Literal["span_time"]
+    aspect_ratio: list[float]
+    enc_mask_scale: list[float]
+    min_keep: int
+    num_enc_masks: int
+    num_pred_masks: int = Field(gt=0)
+    pred_mask_scale: list[float]
+    alpha: float = Field(default=0.5, ge=0.0, le=1.0)
+    exploration_eta: float = Field(default=0.25, ge=0.0, le=1.0)
+    epsilon: float = Field(default=1.0e-6, gt=0.0)
+
+
 class RandomMaskConfig(BaseSettings):
     ratios: list[float]
 
@@ -75,6 +89,7 @@ class MasksConfig(BaseSettings):
     type: str
     multi_block: MultiBlockMaskConfig
     random: RandomMaskConfig
+    variation_aware_multi_block: VariationAwareMultiBlockMaskConfig | None = None
 
 
 class TwoViewsTransformsConfig(BaseSettings):

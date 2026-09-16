@@ -1,0 +1,15 @@
+name: adaptive_frequency_n6
+masks:
+  type: variation_aware_multi_block
+  variation_aware_multi_block:
+    allow_overlap: false
+    aspect_ratio_type: span_time
+    aspect_ratio: [0.75, 1.5]
+    enc_mask_scale: [1.0, 1.0]
+    min_keep: 10
+    num_enc_masks: 1
+    num_pred_masks: 6
+    pred_mask_scale: [0.15, 0.2]
+    alpha: 0.5
+    exploration_eta: 0.25
+    epsilon: 1.0e-6

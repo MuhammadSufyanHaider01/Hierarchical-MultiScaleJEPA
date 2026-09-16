@@ -358,6 +358,22 @@ def main() -> int:
     config.checkpoint.dir = str(run_dir / "checkpoints")
     config.checkpoint.every_n_epochs = args.checkpoint_every
 
+    adaptive_masking = None
+    if config.masks.type == "variation_aware_multi_block":
+        adaptive_config = config.masks.variation_aware_multi_block
+        if adaptive_config is None:
+            raise ValueError("variation_aware_multi_block requires its configuration block")
+        adaptive_masking = {
+            "input_axes": {"height": "frequency", "width": "time"},
+            "score_channels": "all_pretraining_cache_channels_before_channel_subsampling",
+            "alpha": adaptive_config.alpha,
+            "exploration_eta": adaptive_config.exploration_eta,
+            "epsilon": adaptive_config.epsilon,
+            "num_prediction_masks": adaptive_config.num_pred_masks,
+            "aspect_ratio_type": adaptive_config.aspect_ratio_type,
+            "prediction_mask_scale": list(adaptive_config.pred_mask_scale),
+        }
+
     validation_dataset_names = None
     validation_manifest = None
     if args.early_stopping:
@@ -406,6 +422,7 @@ def main() -> int:
         "early_stopping_patience": args.early_stopping_patience if args.early_stopping else None,
         "early_stopping_min_delta": args.early_stopping_min_delta if args.early_stopping else None,
         "mask_profile": mask_profile,
+        "adaptive_masking": adaptive_masking,
     }
     metadata = build_checkpoint_metadata(config, seed=args.seed, config_path=config_path)
     metadata["phase5"] = runtime
