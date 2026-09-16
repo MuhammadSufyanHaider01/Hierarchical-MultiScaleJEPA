@@ -1,24 +1,26 @@
-# Hierarchical pretraining throughput profile
+# Hierarchical pretraining execution profiles
 
-The active P2 job uses the conservative memory-safe profile (microbatch 4,
-gradient accumulation 16, FP32, four workers). The following profile is an
-explicit speed experiment for future approved runs; it does not rewrite the
-formal reproducibility profile or alter the active process:
+The conservative profile uses microbatch 4, gradient accumulation 16, FP32,
+and four workers. The profiles below retain effective batch 64 and the same
+optimizer-step schedule. They are explicit configurations, never silent
+changes to an existing run:
 
-| Setting | Memory-safe profile | Throughput profile |
-|---|---:|---:|
-| Per-device microbatch | 4 | 8 |
-| Gradient accumulation | 16 | 8 |
-| Effective batch size | 64 | 64 |
-| Data-loader workers | 4 | 8 (initial test) |
-| Precision | FP32 | FP32 |
-| CUDA allocator | expandable segments | expandable segments |
+| Setting | Memory-safe | FP32 throughput | BF16 performance |
+|---|---:|---:|---:|
+| Per-device microbatch | 4 | 8 | 8 |
+| Gradient accumulation | 16 | 8 | 8 |
+| Effective batch size | 64 | 64 | 64 |
+| Data-loader workers | 4 | 8 | 12 |
+| Prefetch factor | 2 | 2 | 4 |
+| Logger interval | 1 step | 1 step | 25 steps |
+| Precision | FP32 | FP32 | BF16 mixed |
+| CUDA allocator | expandable segments | expandable segments | expandable segments |
 
-The throughput profile therefore preserves the effective batch size and the
-optimizer-step schedule while reducing the number of serialized microbatches
-per optimizer step from 16 to 8. `--throughput-safe` validates these settings
-before the trainer allocates the model. It is mutually exclusive with
-`--memory-safe` and is currently intended for P1/P2 jobs.
+Both speed profiles reduce serialized microbatches per optimizer step from 16
+to 8. `--throughput-safe` validates the FP32 configuration, and
+`--performance-safe` validates the BF16 configuration, including loader and
+logger bounds, before model allocation. They are mutually exclusive with
+`--memory-safe` and currently apply to P1/P2 only.
 
 ## HDF5 worker check
 
@@ -30,7 +32,7 @@ storage-I/O, and GPU-utilization regressions. Reduce workers only in a
 separately labelled contention diagnostic; do not silently change the
 throughput profile.
 
-The initial approved-command template is:
+The FP32 throughput command is:
 
 ```bash
 PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
@@ -43,24 +45,28 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
 ```
 
 This is a new run directory and must receive its own per-run GPU approval.
-The existing `retry_odd_geometry` run is never modified or resumed with a
-different microbatch profile.
+No existing run is resumed with a different microbatch or precision profile.
 
-## Separate mixed-precision speed variant
+## BF16 performance profile
 
-Mixed precision is not part of the matched FP32 throughput profile and must
-not be used for the primary comparison without a protocol amendment. The
-runner already supports a separately labelled diagnostic variant, for example:
+The RTX 5070 Ti BF16 profile reduces activation memory and logger overhead
+while retaining the same effective batch size. It is explicitly recorded in
+`experiment.json`; it is not source-faithful FP32 reproduction. Before using
+it in a final P0/P2 comparison, rerun every compared pretraining method under
+the same precision profile.
 
 ```bash
 PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   .venv/bin/python scripts/phase5_pretrain.py \
-  --method p2 --seed 0 --run-root runs/diagnostics/p2_mixed_precision \
-  --run-name fp16_throughput --mask-profile region_n6 \
-  --run-kind diagnostic --max-epochs 1 --batch-size 8 \
-  --accumulate-grad-batches 8 --num-workers 8 \
-  --precision 16-mixed --device cuda
+  --method p2 --seed 0 --run-root runs/masking_study/region_n6/performance \
+  --run-name proposed_hierarchical --mask-profile region_n6 \
+  --run-kind formal --max-epochs 60 --batch-size 8 \
+  --accumulate-grad-batches 8 --num-workers 12 --prefetch-factor 4 \
+  --log-every-n-steps 25 --precision bf16-mixed --device cuda \
+  --performance-safe
 ```
 
-Its checkpoint and timing are diagnostic only. It is not combined with the
-FP32 formal result, and it requires a separate approval.
+`torch.compile` is intentionally not included: variable mask geometry can
+trigger recompilation and raise both latency and memory use. Evaluate it only
+as an isolated diagnostic after this bounded profile has a stable epoch-time
+measurement.

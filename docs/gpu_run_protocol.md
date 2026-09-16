@@ -54,8 +54,13 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
 - The throughput profile's eight-worker setting is an initial HDF5 contention
   test. The pretraining cache opens one read-only HDF5 handle lazily per
   worker, so the first run must be monitored for I/O and file-descriptor
-  pressure. Mixed precision is a separate diagnostic speed variant, not part
-  of the FP32 primary result.
+  pressure. The BF16 profile below is a separate, explicitly recorded
+  performance variant rather than a replacement for source-faithful FP32.
+- `--performance-safe` is the bounded BF16 speed profile: microbatch 8,
+  accumulation 8, twelve workers, prefetch factor 4, and logger interval 25.
+  It preserves effective batch 64 but is not source-faithful FP32. Record it
+  in every compared method's metadata; do not compare a BF16-trained method
+  to an FP32-trained method as a final precision-controlled claim.
 - Do not reuse a nonempty pretraining directory without the matching
   `--resume path/to/last.ckpt` argument.
 - Use `phase5_exits.py --resume` only to continue the same interrupted

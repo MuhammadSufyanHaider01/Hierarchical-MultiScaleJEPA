@@ -96,6 +96,11 @@ or make final statistical claims from them.
   with the primary `--memory-safe` profile. The HDF5 loader opens read-only
   handles lazily per worker; the first eight-worker run must be checked for
   I/O contention before it is used for a larger study.
+- The bounded performance profile uses BF16 mixed precision, microbatch 8,
+  accumulation 8, twelve workers, prefetch factor 4, and logger interval 25.
+  It is selected with `--performance-safe`, preserves effective batch 64, and
+  reduces activation memory. It is a documented precision variant, so final
+  P0/P2 comparisons must use the same profile for every trained method.
 - P2 formal commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
   `--memory-safe`. The runner verifies batch size 4, accumulation 16, FP32,
@@ -227,8 +232,9 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   --precision 32-true --device cuda --throughput-safe
 ```
 
-The optional mixed-precision command is documented separately in
-[`throughput_profile.md`](throughput_profile.md) and is diagnostic only.
+The bounded BF16 performance command is documented separately in
+[`throughput_profile.md`](throughput_profile.md). It is a precision-controlled
+variant and must be matched across compared methods in a final table.
 
 For a completed formal P0 checkpoint, the source-style probe and the early
 exit evaluation are separate approved jobs. The latter has context heads and

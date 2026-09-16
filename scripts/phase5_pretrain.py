@@ -11,6 +11,10 @@ The explicit ``--throughput-safe`` profile is a separate FP32 speed variant
 for hierarchical jobs: microbatch 8, accumulation 8, effective batch 64, and
 at least eight data-loader workers. It is intentionally distinct from the
 conservative ``--memory-safe`` profile.
+
+The explicit ``--performance-safe`` profile adds BF16 mixed precision, bounded
+prefetching, and reduced logger traffic. It is recorded as a precision variant
+and must be matched across methods for a final comparison.
 """
 
 from __future__ import annotations
@@ -117,6 +121,18 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--accumulate-grad-batches", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument(
+        "--prefetch-factor",
+        type=int,
+        default=2,
+        help="Batches queued in each worker when num-workers is positive.",
+    )
+    parser.add_argument(
+        "--log-every-n-steps",
+        type=int,
+        default=1,
+        help="Lightning logger interval; epoch summaries remain printed independently.",
+    )
     parser.add_argument("--checkpoint-every", type=int, default=5)
     parser.add_argument(
         "--validate-every",
@@ -149,6 +165,14 @@ def _arguments() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--performance-safe",
+        action="store_true",
+        help=(
+            "Use the bounded RTX 5070 Ti performance profile: BF16, microbatch 8, "
+            "accumulation 8, 12 workers, prefetch 4, and logging every 25 steps."
+        ),
+    )
+    parser.add_argument(
         "--early-stopping",
         action="store_true",
         help="Diagnostic only: stop on held-out latent loss rather than completing the formal schedule.",
@@ -171,7 +195,20 @@ def _seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def _build_pretrain_loader(config):
+def _loader_options(config, *, prefetch_factor: int) -> dict:
+    """Return worker settings without passing prefetching to a zero-worker loader."""
+
+    options = {
+        "num_workers": config.data.num_workers,
+        "pin_memory": config.data.pin_mem,
+        "persistent_workers": config.data.num_workers > 0,
+    }
+    if config.data.num_workers > 0:
+        options["prefetch_factor"] = prefetch_factor
+    return options
+
+
+def _build_pretrain_loader(config, *, prefetch_factor: int):
     collator = get_collator(config.masks.type)(
         input_size=config.encoder.img_size,
         patch_size=config.encoder.patch_size,
@@ -184,10 +221,8 @@ def _build_pretrain_loader(config):
             dataset,
             batch_size=config.data.batch_size,
             sampler=RandomSampler(dataset),
-            num_workers=config.data.num_workers,
-            pin_memory=config.data.pin_mem,
             collate_fn=collator,
-            persistent_workers=config.data.num_workers > 0,
+            **_loader_options(config, prefetch_factor=prefetch_factor),
         )
     loader = CombinedLoader(dataloaders, mode="max_size_cycle")
     iter(loader)
@@ -209,6 +244,7 @@ def _build_pretrain_loaders_with_validation(
     validation_fraction: float,
     validation_seed: int,
     manifest_path: Path,
+    prefetch_factor: int,
 ):
     """Build disjoint cache loaders and persist their deterministic split manifest."""
     train_collator = get_collator(config.masks.type)(
@@ -235,10 +271,8 @@ def _build_pretrain_loaders_with_validation(
             train_dataset,
             batch_size=config.data.batch_size,
             sampler=RandomSampler(train_dataset),
-            num_workers=config.data.num_workers,
-            pin_memory=config.data.pin_mem,
             collate_fn=train_collator,
-            persistent_workers=config.data.num_workers > 0,
+            **_loader_options(config, prefetch_factor=prefetch_factor),
         )
         validation_collator = get_collator(config.masks.type)(
             input_size=config.encoder.img_size,
@@ -296,8 +330,19 @@ def _run_directory(args: argparse.Namespace) -> Path:
 def _validate_run_arguments(args: argparse.Namespace) -> None:
     """Reject combinations that would silently change the formal protocol."""
 
-    if min(args.max_epochs, args.batch_size, args.accumulate_grad_batches, args.num_workers + 1, args.checkpoint_every) < 1:
-        raise ValueError("epochs, batch size, accumulation, workers, and checkpoint interval must be positive")
+    if min(
+        args.max_epochs,
+        args.batch_size,
+        args.accumulate_grad_batches,
+        args.num_workers + 1,
+        args.prefetch_factor,
+        args.log_every_n_steps,
+        args.checkpoint_every,
+    ) < 1:
+        raise ValueError(
+            "epochs, batch size, accumulation, workers, prefetch factor, logging interval, "
+            "and checkpoint interval must be positive"
+        )
     if args.validate_every < 0:
         raise ValueError("validate-every must be non-negative")
     if not 0.0 < args.validation_fraction < 1.0:
@@ -334,8 +379,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.early_stopping and args.run_kind != "diagnostic":
         raise ValueError("latent-loss early stopping is diagnostic-only")
     if args.memory_safe:
-        if args.throughput_safe:
-            raise ValueError("--memory-safe and --throughput-safe are mutually exclusive")
+        if args.throughput_safe or args.performance_safe:
+            raise ValueError("--memory-safe cannot be combined with another execution profile")
         if args.method not in {"p1", "p2"}:
             raise ValueError("--memory-safe is only defined for P1/P2 hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
@@ -347,6 +392,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
                 "--memory-safe requires PYTORCH_ALLOC_CONF=expandable_segments:True before Python starts"
             )
     if args.throughput_safe:
+        if args.performance_safe:
+            raise ValueError("--throughput-safe and --performance-safe are mutually exclusive")
         if args.method not in {"p1", "p2"}:
             raise ValueError("--throughput-safe is only defined for P1/P2 hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
@@ -365,6 +412,27 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             raise ValueError(
                 "--throughput-safe requires at least 8 data-loader workers; "
                 "reduce workers only in a separately documented contention test"
+            )
+    if args.performance_safe:
+        if args.method not in {"p1", "p2"}:
+            raise ValueError("--performance-safe is only defined for P1/P2 hierarchical jobs")
+        if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
+            raise ValueError(
+                "--performance-safe requires --device cuda --batch-size 8 "
+                "--accumulate-grad-batches 8"
+            )
+        if args.precision != "bf16-mixed":
+            raise ValueError("--performance-safe requires --precision bf16-mixed")
+        if args.num_workers != 12 or args.prefetch_factor != 4:
+            raise ValueError("--performance-safe requires --num-workers 12 --prefetch-factor 4")
+        if args.log_every_n_steps != 25:
+            raise ValueError("--performance-safe requires --log-every-n-steps 25")
+        if not torch.cuda.is_bf16_supported():
+            raise RuntimeError("--performance-safe requires CUDA BF16 support")
+        if not _uses_expandable_segments(_allocator_configuration()):
+            raise ValueError(
+                "--performance-safe requires PYTORCH_ALLOC_CONF=expandable_segments:True "
+                "before Python starts"
             )
 
 
@@ -403,10 +471,11 @@ def main() -> int:
                 validation_fraction=args.validation_fraction,
                 validation_seed=args.validation_seed,
                 manifest_path=run_dir / "pretrain_split.json",
+                prefetch_factor=args.prefetch_factor,
             )
         )
     else:
-        train_loader = _build_pretrain_loader(config)
+        train_loader = _build_pretrain_loader(config, prefetch_factor=args.prefetch_factor)
         validation_loaders = None
     microbatches_per_epoch = _limited_length(len(train_loader), args.limit_train_batches)
     optimizer_steps_per_epoch = math.ceil(microbatches_per_epoch / args.accumulate_grad_batches)
@@ -432,7 +501,10 @@ def main() -> int:
         "cuda_allocator_conf": _allocator_configuration(),
         "memory_safe": args.memory_safe,
         "throughput_safe": args.throughput_safe,
+        "performance_safe": args.performance_safe,
         "data_loader_workers": args.num_workers,
+        "data_loader_prefetch_factor": args.prefetch_factor,
+        "log_every_n_steps": args.log_every_n_steps,
         "limit_train_batches": args.limit_train_batches,
         "limit_val_batches": args.limit_val_batches,
         "validate_every": args.validate_every,
@@ -610,7 +682,7 @@ def main() -> int:
         callbacks=callbacks_list,
         logger=CSVLogger(save_dir=str(run_dir), name="logs"),
         default_root_dir=str(run_dir),
-        log_every_n_steps=1,
+        log_every_n_steps=args.log_every_n_steps,
         check_val_every_n_epoch=args.validate_every or 1,
         limit_train_batches=args.limit_train_batches,
         limit_val_batches=args.limit_val_batches,

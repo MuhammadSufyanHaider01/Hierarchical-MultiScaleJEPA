@@ -23,6 +23,8 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "batch_size": 16,
             "accumulate_grad_batches": 4,
             "num_workers": 0,
+            "prefetch_factor": 2,
+            "log_every_n_steps": 1,
             "checkpoint_every": 5,
             "validate_every": 0,
             "limit_train_batches": 1.0,
@@ -37,6 +39,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "device": "cpu",
             "memory_safe": False,
             "throughput_safe": False,
+            "performance_safe": False,
             "precision": "32-true",
         }
         values.update(overrides)
@@ -108,6 +111,49 @@ class PretrainValidationSplitTest(unittest.TestCase):
                         num_workers=4,
                         throughput_safe=True,
                         device="cuda",
+                    )
+                )
+
+    def test_performance_profile_requires_bf16_and_bounded_loader_settings(self):
+        arguments = self._arguments(
+            method="p2",
+            batch_size=8,
+            accumulate_grad_batches=8,
+            num_workers=12,
+            prefetch_factor=4,
+            log_every_n_steps=25,
+            performance_safe=True,
+            device="cuda",
+            precision="bf16-mixed",
+        )
+        with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch(
+            "phase5_pretrain.torch.cuda.is_bf16_supported", return_value=True
+        ), patch.dict(
+            "phase5_pretrain.os.environ",
+            {"PYTORCH_ALLOC_CONF": "expandable_segments:True"},
+            clear=False,
+        ):
+            _validate_run_arguments(arguments)
+
+        with self.assertRaisesRegex(ValueError, "requires --num-workers 12 --prefetch-factor 4"):
+            with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch(
+                "phase5_pretrain.torch.cuda.is_bf16_supported", return_value=True
+            ), patch.dict(
+                "phase5_pretrain.os.environ",
+                {"PYTORCH_ALLOC_CONF": "expandable_segments:True"},
+                clear=False,
+            ):
+                _validate_run_arguments(
+                    self._arguments(
+                        method="p2",
+                        batch_size=8,
+                        accumulate_grad_batches=8,
+                        num_workers=8,
+                        prefetch_factor=4,
+                        log_every_n_steps=25,
+                        performance_safe=True,
+                        device="cuda",
+                        precision="bf16-mixed",
                     )
                 )
 
