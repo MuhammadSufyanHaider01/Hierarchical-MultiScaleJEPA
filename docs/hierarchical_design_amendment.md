@@ -46,9 +46,11 @@ For a contiguous `4 x 4` masked region, the canonical Version 1 example is:
 
 For other rectangular masks, the implementation derives regions from each
 sample's actual prediction-mask coordinates. The canonical L4 rule is local
-`2 x 2` pooling when both dimensions are divisible by two; the canonical L6
-rule pools a valid complete masked block into one region. Unsupported geometry
-must fail loudly rather than silently use global/adaptive pooling.
+`2 x 2` pooling when both dimensions are divisible by two; otherwise it uses
+contiguous balanced quadrants with explicit per-region valid member counts.
+The canonical L6 rule pools a valid complete masked block into one region.
+Unsupported non-rectangular geometry must fail loudly rather than silently use
+global/adaptive pooling.
 
 ## P1 and P2 objectives
 

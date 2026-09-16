@@ -19,21 +19,25 @@ The default uses `lambda_H=1.0` with a 12-epoch linear warm-up.
 
 P2 derives every target region from each actual prediction mask; it does not
 use a global target grid or adaptive pooling. The accepted P2 mask is a
-contiguous, complete rectangular block whose height and width are both even.
-Every member of every pooled region is asserted to be in that prediction mask.
+contiguous, complete rectangular block of any positive geometry. Every member
+of every pooled region is asserted to be in that prediction mask.
 
 For a prediction block of height `H` and width `W`:
 
 | Auxiliary depth | Region definition | Vectors per channel |
 |---|---|---:|
 | L2 | one fine patch per region | `H * W` |
-| L4 | non-overlapping local `2x2` regions | `(H / 2) * (W / 2)` |
+| L4 | non-overlapping local `2x2` regions when possible; otherwise contiguous balanced quadrants with explicit valid sizes | mask-dependent |
 | L6 | one whole-block region | `1` |
 
-The real-data P2 configuration uses the existing span-time `2x14` block on
-the `14x14` token grid, giving 28, 7, and 1 target vectors at L2, L4, and L6.
-A `4x4` block gives 16, 4, and 1. Non-rectangular, duplicate, out-of-range,
-or odd-sided masks fail loudly rather than silently changing the experiment.
+The real-data frequency and time configurations use span-time/frequency
+blocks whose canonical even geometry gives the expected `2x14` behavior:
+28, 7, and 1 target vectors at L2, L4, and L6. A `4x4` block gives 16, 4,
+and 1. Region masks may have odd dimensions such as `7x5`; L4 then uses
+contiguous balanced quadrants and pads only the fine-patch axis, recording
+the valid member count for each region. Non-rectangular, duplicate, or
+out-of-range masks still fail loudly rather than silently changing the
+experiment.
 
 ## Target and predictor contracts
 
@@ -69,8 +73,9 @@ PYTHONPATH=src .venv/bin/python scripts/p2_smoke.py --device cuda --steps 1
 ```
 
 The P2 unit suite covers hand-computed pooling, canonical `2x14` geometry,
-positional-query averaging, malformed-mask rejection, prediction/target axis
-matching, auxiliary gradients, and the absence of target gradients.
+odd mask geometry and padded-region pooling, positional-query averaging,
+malformed-mask rejection, prediction/target axis matching, auxiliary
+gradients, and the absence of target gradients.
 
 Phase 5 pilot P2 uses the same fixed 60-epoch horizon as P0, without raw
 latent-loss early stopping. Its RTX 5070 Ti profile is FP32, microbatch 4,

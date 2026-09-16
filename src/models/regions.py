@@ -18,20 +18,28 @@ class MaskRelativeRegionLayout:
 
     Every tensor in ``region_indices`` has explicit
     ``[prediction_mask, batch, region, fine_patch]`` axes. L2 regions contain
-    one fine patch, L4 regions contain four local patches, and L6 contains the
-    complete rectangular prediction block.
+    one fine patch, L4 regions contain local contiguous regions, and L6
+    contains the complete rectangular prediction block. Regions with unequal
+    sizes are padded and described by ``region_sizes``.
     """
 
     grid_size: int
     batch_size: int
     mask_count: int
     region_indices: Mapping[int, torch.Tensor]
+    region_sizes: Mapping[int, torch.Tensor]
 
     def for_layer(self, layer: int) -> torch.Tensor:
         try:
             return self.region_indices[int(layer)]
         except KeyError as error:
             raise ValueError(f"no P2 region layout is available for L{layer}") from error
+
+    def sizes_for_layer(self, layer: int) -> torch.Tensor:
+        try:
+            return self.region_sizes[int(layer)]
+        except KeyError as error:
+            raise ValueError(f"no P2 region sizes are available for L{layer}") from error
 
 
 def _as_mask_list(masks_pred: torch.Tensor | Sequence[torch.Tensor]) -> list[torch.Tensor]:
@@ -88,6 +96,71 @@ def _rectangular_mask_indices(mask: torch.Tensor, grid_size: int, *, description
     return expected.reshape(height, width)
 
 
+def _local_regions(block: torch.Tensor) -> list[torch.Tensor]:
+    """Partition one masked rectangle into contiguous L4 regions.
+
+    The canonical even-by-even case retains exact non-overlapping ``2x2``
+    regions. For odd dimensions, split each axis into at most two contiguous
+    balanced bands. The resulting quadrant regions may have different sizes,
+    which are padded by ``_pack_regions`` and weighted correctly during target
+    pooling and positional averaging.
+    """
+
+    height, width = block.shape
+    if height % 2 == 0 and width % 2 == 0:
+        return [
+            region.reshape(-1)
+            for region in block.reshape(height // 2, 2, width // 2, 2)
+            .permute(0, 2, 1, 3)
+            .reshape(-1, 4)
+        ]
+
+    row_bands = [(0, height)] if height < 2 else [(0, (height + 1) // 2), ((height + 1) // 2, height)]
+    col_bands = [(0, width)] if width < 2 else [(0, (width + 1) // 2), ((width + 1) // 2, width)]
+    return [block[row_start:row_end, col_start:col_end].reshape(-1)
+            for row_start, row_end in row_bands
+            for col_start, col_end in col_bands]
+
+
+def _pack_regions(regions_by_mask: list[list[list[torch.Tensor]]], *, description: str) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pad variable-size regions while retaining explicit membership counts."""
+
+    if not regions_by_mask or not regions_by_mask[0]:
+        raise ValueError(f"{description} cannot be empty")
+    region_count = len(regions_by_mask[0][0])
+    if region_count < 1:
+        raise ValueError(f"{description} must contain at least one region")
+    max_members = max(
+        int(region.numel())
+        for regions_by_batch in regions_by_mask
+        for regions in regions_by_batch
+        for region in regions
+    )
+    mask_count = len(regions_by_mask)
+    batch_size = len(regions_by_mask[0])
+    packed = torch.zeros(
+        (mask_count, batch_size, region_count, max_members),
+        dtype=torch.long,
+        device=regions_by_mask[0][0][0].device,
+    )
+    sizes = torch.zeros((mask_count, batch_size, region_count), dtype=torch.long, device=packed.device)
+    for mask_index, regions_by_batch in enumerate(regions_by_mask):
+        if len(regions_by_batch) != batch_size:
+            raise ValueError(f"{description} has inconsistent batch dimensions")
+        for batch_index, regions in enumerate(regions_by_batch):
+            if len(regions) != region_count:
+                raise ValueError(
+                    f"{description} has inconsistent region counts: expected {region_count}, got {len(regions)}"
+                )
+            for region_index, region in enumerate(regions):
+                region = region.reshape(-1).to(dtype=torch.long)
+                if region.numel() == 0:
+                    raise ValueError(f"{description} contains an empty region")
+                packed[mask_index, batch_index, region_index, : region.numel()] = region
+                sizes[mask_index, batch_index, region_index] = region.numel()
+    return packed, sizes
+
+
 def build_mask_relative_region_layout(
     masks_pred: torch.Tensor | Sequence[torch.Tensor],
     *,
@@ -95,9 +168,11 @@ def build_mask_relative_region_layout(
 ) -> MaskRelativeRegionLayout:
     """Derive P2 regions from the actual, fully masked prediction blocks.
 
-    P2 supports contiguous rectangular blocks whose height and width are both
-    divisible by two. This permits exact local L4 ``2x2`` regions and an L6
-    whole-block region without global or adaptive pooling assumptions.
+    P2 supports contiguous rectangular blocks of any positive geometry. Even
+    blocks use exact local L4 ``2x2`` regions. Odd blocks use contiguous,
+    balanced quadrant regions with explicit per-region sizes, while L6 always
+    uses the complete masked block. No global or adaptive pooling assumption
+    is used.
     """
 
     if grid_size < 2:
@@ -128,44 +203,43 @@ def build_mask_relative_region_layout(
                 grid_size,
                 description=f"prediction mask {mask_index}, sample {batch_index}",
             )
-            height, width = block.shape
-            if height % 2 or width % 2:
-                raise ValueError(
-                    f"prediction mask {mask_index}, sample {batch_index} has geometry "
-                    f"{height}x{width}; P2 L4 requires both dimensions divisible by two"
-                )
-
-            fine_regions = block.reshape(-1, 1)
-            local_regions = (
-                block.reshape(height // 2, 2, width // 2, 2)
-                .permute(0, 2, 1, 3)
-                .reshape(-1, 4)
-            )
-            coarse_region = block.reshape(1, -1)
+            fine_regions = [patch.reshape(-1) for patch in block.reshape(-1, 1)]
+            local_regions = _local_regions(block)
+            coarse_region = [block.reshape(-1)]
 
             # The construction is intentionally defensive: every target token
             # must be one of this sample's prediction-mask tokens.
             masked_tokens = torch.sort(sample_mask.to(dtype=torch.long)).values
             for regions in (fine_regions, local_regions, coarse_region):
-                if not torch.isin(regions.reshape(-1), masked_tokens).all():
-                    raise AssertionError("P2 target region contains a visible patch")
+                for region in regions:
+                    if not torch.isin(region, masked_tokens).all():
+                        raise AssertionError("P2 target region contains a visible patch")
 
             fine_by_batch.append(fine_regions)
             local_by_batch.append(local_regions)
             coarse_by_batch.append(coarse_region)
 
-        fine_by_mask.append(torch.stack(fine_by_batch))
-        local_by_mask.append(torch.stack(local_by_batch))
-        coarse_by_mask.append(torch.stack(coarse_by_batch))
+        fine_by_mask.append(fine_by_batch)
+        local_by_mask.append(local_by_batch)
+        coarse_by_mask.append(coarse_by_batch)
+
+    fine_indices, fine_sizes = _pack_regions(fine_by_mask, description="L2 regions")
+    local_indices, local_sizes = _pack_regions(local_by_mask, description="L4 regions")
+    coarse_indices, coarse_sizes = _pack_regions(coarse_by_mask, description="L6 regions")
 
     return MaskRelativeRegionLayout(
         grid_size=grid_size,
         batch_size=batch_size,
         mask_count=len(masks),
         region_indices={
-            2: torch.stack(fine_by_mask),
-            4: torch.stack(local_by_mask),
-            6: torch.stack(coarse_by_mask),
+            2: fine_indices,
+            4: local_indices,
+            6: coarse_indices,
+        },
+        region_sizes={
+            2: fine_sizes,
+            4: local_sizes,
+            6: coarse_sizes,
         },
     )
 
@@ -202,9 +276,14 @@ def gather_target_regions(
         )
 
     region_indices = layout.for_layer(layer).to(device=target_tokens.device, dtype=torch.long)
+    region_sizes = layout.sizes_for_layer(layer).to(device=target_tokens.device, dtype=torch.long)
     mask_count, layout_batch_size, regions, fine_patches = region_indices.shape
     if layout_batch_size != batch_size:
         raise ValueError("region layout batch axis does not match target tokens")
+    if tuple(region_sizes.shape) != (mask_count, batch_size, regions):
+        raise ValueError("region size axes do not match region indices")
+    if torch.any(region_sizes < 1) or torch.any(region_sizes > fine_patches):
+        raise ValueError("region sizes must be within the padded fine-patch axis")
 
     target_grid = target_tokens.reshape(batch_size, channels, patches_per_channel, embedding_dim)
     expanded_target = target_grid.unsqueeze(0).unsqueeze(3).expand(
@@ -241,5 +320,10 @@ def pool_target_regions(
         layout=layout,
         layer=layer,
     )
-    pooled = gathered.mean(dim=-2)
+    fine_patches = gathered.size(-2)
+    region_sizes = layout.sizes_for_layer(layer).to(device=gathered.device, dtype=torch.long)
+    valid_members = torch.arange(fine_patches, device=gathered.device).reshape(1, 1, 1, 1, -1, 1)
+    valid_members = valid_members < region_sizes.unsqueeze(2).unsqueeze(-1).unsqueeze(-1)
+    pooled = (gathered * valid_members.to(dtype=gathered.dtype)).sum(dim=-2)
+    pooled = pooled / region_sizes.unsqueeze(2).unsqueeze(-1).to(dtype=gathered.dtype)
     return F.layer_norm(pooled, (pooled.size(-1),))

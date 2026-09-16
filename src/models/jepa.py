@@ -216,6 +216,7 @@ class JEPA(ValidationModule):
                     C,
                     masks_enc,
                     p2_layout.for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
+                    p2_layout.sizes_for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
                 )
                 for layer in self.auxiliary_layers
             }

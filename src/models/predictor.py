@@ -129,8 +129,8 @@ class Predictor(nn.Module):
 
         return x
 
-    def _region_positional_embeddings(self, region_indices):
-        """Average fine positional embeddings into one embedding per region."""
+    def _region_positional_embeddings(self, region_indices, region_sizes=None):
+        """Average valid fine positional embeddings into one embedding per region."""
         if region_indices.ndim != 4:
             raise ValueError(
                 "region indices must have shape [M, B, R, K], "
@@ -139,16 +139,27 @@ class Predictor(nn.Module):
         if torch.any(region_indices < 0) or torch.any(region_indices >= self.pos_embed.size(2)):
             raise ValueError("region indices are outside the predictor positional-embedding grid")
         region_indices = region_indices.to(device=self.pos_embed.device, dtype=torch.long)
-        return self.pos_embed[0, 0][region_indices].mean(dim=3)
+        positions = self.pos_embed[0, 0][region_indices]
+        if region_sizes is None:
+            return positions.mean(dim=3)
+        if region_sizes.ndim != 3 or tuple(region_sizes.shape) != tuple(region_indices.shape[:3]):
+            raise ValueError("region sizes must have shape [M, B, R] matching region indices")
+        region_sizes = region_sizes.to(device=positions.device, dtype=torch.long)
+        if torch.any(region_sizes < 1) or torch.any(region_sizes > region_indices.size(-1)):
+            raise ValueError("region sizes must be within the padded fine-patch axis")
+        valid_members = torch.arange(region_indices.size(-1), device=positions.device).reshape(1, 1, 1, -1)
+        valid_members = valid_members < region_sizes.unsqueeze(-1)
+        positions = (positions * valid_members.unsqueeze(-1).to(dtype=positions.dtype)).sum(dim=3)
+        return positions / region_sizes.unsqueeze(-1).to(dtype=positions.dtype)
 
-    def forward_regions(self, x, channels, masks_enc, region_indices):
+    def forward_regions(self, x, channels, masks_enc, region_indices, region_sizes=None):
         """Predict one latent vector per mask-relative P2 target region.
 
         ``region_indices`` has explicit
         ``[prediction_mask, batch, region, fine_patch]`` axes. Context tokens
         follow the pinned P0 path; only the prediction queries differ, using a
         learned mask token plus the mean positional embedding of each region's
-        member fine patches.
+        valid member fine patches.
         """
 
         if masks_enc is None:
@@ -181,7 +192,7 @@ class Predictor(nn.Module):
         x = x.reshape(x.size(0), -1, x.shape[-1])
         context_tokens = x.size(1)
 
-        region_pos_embed = self._region_positional_embeddings(region_indices).to(device=x.device)
+        region_pos_embed = self._region_positional_embeddings(region_indices, region_sizes).to(device=x.device)
         region_pos_embed = region_pos_embed.unsqueeze(1).unsqueeze(3).expand(
             mask_count,
             num_context_masks,

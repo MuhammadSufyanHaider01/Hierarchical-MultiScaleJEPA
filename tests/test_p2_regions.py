@@ -78,13 +78,25 @@ class MaskRelativeRegionsTest(unittest.TestCase):
         for layer in (2, 4, 6):
             self.assertTrue(torch.isin(layout.for_layer(layer), mask).all())
 
-    def test_malformed_or_unsupported_masks_fail_loudly(self):
+    def test_odd_geometry_uses_padded_regions_and_valid_member_counts(self):
+        rows = torch.arange(7, dtype=torch.long)[:, None]
+        cols = torch.arange(5, dtype=torch.long)[None, :]
+        mask = (rows * 8 + cols).reshape(1, -1)
+        layout = build_mask_relative_region_layout(mask, grid_size=8)
+
+        self.assertEqual(tuple(layout.for_layer(4).shape), (1, 1, 4, 12))
+        self.assertEqual(layout.sizes_for_layer(4).tolist(), [[[12, 8, 9, 6]]])
+        for layer in (2, 4, 6):
+            regions = layout.for_layer(layer)
+            sizes = layout.sizes_for_layer(layer)
+            for region_index, size in enumerate(sizes[0, 0].tolist()):
+                self.assertTrue(torch.isin(regions[0, 0, region_index, :size], mask).all())
+
+    def test_malformed_masks_fail_loudly(self):
         with self.assertRaisesRegex(ValueError, "complete rectangular"):
             build_mask_relative_region_layout([torch.tensor([[0, 1, 2, 4]])], grid_size=4)
         with self.assertRaisesRegex(ValueError, "duplicate"):
             build_mask_relative_region_layout([torch.tensor([[0, 1, 4, 4]])], grid_size=4)
-        with self.assertRaisesRegex(ValueError, "divisible by two"):
-            build_mask_relative_region_layout([torch.tensor([[0, 1, 4, 5, 8, 9]])], grid_size=4)
 
     def test_region_query_uses_mean_fine_position(self):
         predictor = Predictor(
@@ -141,6 +153,31 @@ class P2HierarchyTest(unittest.TestCase):
         self.assertTrue(all(parameter.grad is None for parameter in self.model.target_encoder.parameters()))
         for predictor in self.model.aux_predictors.values():
             self.assertTrue(any(parameter.grad is not None for parameter in predictor.parameters()))
+
+    def test_p2_odd_mask_geometry_matches_prediction_and_target_axes(self):
+        prediction = torch.tensor([0, 1, 4, 5, 8, 9], dtype=torch.long)
+        visible = torch.tensor([2, 3, 6, 7, 10, 11, 12, 13, 14, 15], dtype=torch.long)
+        masks_enc = [visible.repeat(2, 1)]
+        masks_pred = [prediction.repeat(2, 1)]
+        layout = build_mask_relative_region_layout(masks_pred, grid_size=4)
+
+        self.assertEqual(layout.sizes_for_layer(4).tolist(), [[[2, 2, 1, 1], [2, 2, 1, 1]]])
+        _, _, _, predictions, targets = self.model(
+            self.x,
+            masks_enc,
+            masks_pred,
+            return_hierarchy=True,
+        )
+        expected_shapes = {
+            2: (1, 1, 2, 1, 6, 16),
+            4: (1, 1, 2, 1, 4, 16),
+            6: (1, 1, 2, 1, 1, 16),
+        }
+        for layer, shape in expected_shapes.items():
+            self.assertEqual(tuple(predictions[layer].shape), shape)
+            self.assertEqual(tuple(targets[layer].shape), shape)
+            self.assertTrue(torch.isfinite(predictions[layer]).all())
+            self.assertTrue(torch.isfinite(targets[layer]).all())
 
     def test_p2_target_taps_still_run_the_full_ema_encoder(self):
         full_depth_calls = []
