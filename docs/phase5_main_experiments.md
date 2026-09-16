@@ -89,6 +89,13 @@ or make final statistical claims from them.
   64. P2 uses microbatch 4 and accumulation 16, also effective batch 64;
   this preserves optimizer-step and scheduler timing while fitting the
   hierarchical branches in the RTX 5070 Ti memory budget.
+- A separate throughput experiment is available for hierarchical jobs:
+  microbatch 8, accumulation 8, eight data-loader workers, and FP32 preserve
+  effective batch 64 while halving serialized microbatches per optimizer step.
+  It is selected explicitly with `--throughput-safe` and is not interchangeable
+  with the primary `--memory-safe` profile. The HDF5 loader opens read-only
+  handles lazily per worker; the first eight-worker run must be checked for
+  I/O contention before it is used for a larger study.
 - P2 formal commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
   `--memory-safe`. The runner verifies batch size 4, accumulation 16, FP32,
@@ -205,6 +212,23 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   --run-kind formal --batch-size 4 --accumulate-grad-batches 16 \
   --precision 32-true --device cuda --memory-safe
 ```
+
+For an explicitly approved speed experiment, use the separate throughput
+profile. It writes to a fresh directory and remains FP32 so that any speed
+change is not confounded with mixed precision:
+
+```bash
+PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
+  .venv/bin/python scripts/phase5_pretrain.py \
+  --method p2 --seed 0 --run-root runs/masking_study/region_n6/throughput \
+  --run-name proposed_hierarchical --mask-profile region_n6 \
+  --run-kind formal --max-epochs 60 --batch-size 8 \
+  --accumulate-grad-batches 8 --num-workers 8 --checkpoint-every 5 \
+  --precision 32-true --device cuda --throughput-safe
+```
+
+The optional mixed-precision command is documented separately in
+[`throughput_profile.md`](throughput_profile.md) and is diagnostic only.
 
 For a completed formal P0 checkpoint, the source-style probe and the early
 exit evaluation are separate approved jobs. The latter has context heads and

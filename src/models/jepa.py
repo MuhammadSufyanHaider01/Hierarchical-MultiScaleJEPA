@@ -160,17 +160,35 @@ class JEPA(ValidationModule):
         latent_mask_pred = self.predictor(context_emb, C, masks_enc, masks_pred)
 
         with torch.no_grad():
-            target_out = self.target_encoder(x)
+            if hierarchy_requested:
+                # A hierarchy needs the final target representation and
+                # intermediate target taps.  Request all of them from one
+                # full-depth EMA pass.  The L8 output is normalized here to
+                # preserve the original target_encoder(x) result; raw
+                # intermediate taps are retained for P2 region pooling.
+                target_depth = len(self.target_encoder.blocks)
+                target_layers = tuple(sorted(set(self.auxiliary_layers + (target_depth,))))
+                target_outputs = self.target_encoder(
+                    x,
+                    return_layers=target_layers,
+                    normalize_exits=False,
+                )
+                target_out = self.target_encoder.norm(target_outputs[target_depth])
+            else:
+                target_outputs = None
+                target_out = self.target_encoder(x)
             latent_mask_target = self._target_for_prediction_masks(
                 target_out, C, masks_enc, masks_pred
             )
             auxiliary_targets = {}
             if hierarchy_requested:
                 if self.hierarchy_mode == "same_scale":
-                    target_outputs = self.target_encoder(x, return_layers=self.auxiliary_layers)
                     auxiliary_targets = {
                         layer: self._target_for_prediction_masks(
-                            target_outputs[layer], C, masks_enc, masks_pred
+                            self.target_encoder.norm(target_outputs[layer]),
+                            C,
+                            masks_enc,
+                            masks_pred,
                         )
                         for layer in self.auxiliary_layers
                     }
@@ -178,11 +196,6 @@ class JEPA(ValidationModule):
                     p2_layout = build_mask_relative_region_layout(
                         masks_pred,
                         grid_size=int(self.num_patches ** 0.5),
-                    )
-                    target_outputs = self.target_encoder(
-                        x,
-                        return_layers=self.auxiliary_layers,
-                        normalize_exits=False,
                     )
                     num_context_masks = len(masks_enc) if isinstance(masks_enc, list) else 1
                     auxiliary_targets = {

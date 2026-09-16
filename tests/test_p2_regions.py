@@ -189,9 +189,20 @@ class P2HierarchyTest(unittest.TestCase):
         finally:
             handle.remove()
 
-        # One full target pass builds the unchanged P0 anchor; the second pass
-        # exposes L2/L4/L6 raw taps and must still execute through L8.
-        self.assertEqual(len(full_depth_calls), 2)
+        # One full target pass exposes the unchanged L8 anchor and the raw
+        # L2/L4/L6 taps.  The target branch must still execute through L8.
+        self.assertEqual(len(full_depth_calls), 1)
+
+    def test_combined_target_pass_preserves_the_l8_target(self):
+        with torch.no_grad():
+            standalone = self.model.target_encoder(self.x)
+            raw_outputs = self.model.target_encoder(
+                self.x,
+                return_layers=(2, 4, 6, 8),
+                normalize_exits=False,
+            )
+            combined = self.model.target_encoder.norm(raw_outputs[8])
+        torch.testing.assert_close(combined, standalone)
 
     def test_optional_l8_coarse_ablation_uses_full_block_regions(self):
         config = tiny_p2_config()

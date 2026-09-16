@@ -6,6 +6,11 @@ four-cache pretraining set. The pinned LatentWave 240-epoch source schedule is
 retained as a separate optional reproduction protocol. Latent-loss early stopping is
 retained only as an explicitly labelled diagnostic because an EMA target and
 stochastic masks make that loss unsuitable for formal model selection.
+
+The explicit ``--throughput-safe`` profile is a separate FP32 speed variant
+for hierarchical jobs: microbatch 8, accumulation 8, effective batch 64, and
+at least eight data-loader workers. It is intentionally distinct from the
+conservative ``--memory-safe`` profile.
 """
 
 from __future__ import annotations
@@ -132,6 +137,15 @@ def _arguments() -> argparse.Namespace:
         help=(
             "Require the P1/P2 RTX 5070 Ti profile: batch size 4, accumulation 16, "
             "FP32 CUDA, effective batch 64, and expandable allocator segments."
+        ),
+    )
+    parser.add_argument(
+        "--throughput-safe",
+        action="store_true",
+        help=(
+            "Use the separately documented throughput profile: CUDA FP32, "
+            "microbatch 8, accumulation 8, effective batch 64, and "
+            "expandable allocator segments."
         ),
     )
     parser.add_argument(
@@ -320,6 +334,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.early_stopping and args.run_kind != "diagnostic":
         raise ValueError("latent-loss early stopping is diagnostic-only")
     if args.memory_safe:
+        if args.throughput_safe:
+            raise ValueError("--memory-safe and --throughput-safe are mutually exclusive")
         if args.method not in {"p1", "p2"}:
             raise ValueError("--memory-safe is only defined for P1/P2 hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
@@ -329,6 +345,26 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
         if not _uses_expandable_segments(_allocator_configuration()):
             raise ValueError(
                 "--memory-safe requires PYTORCH_ALLOC_CONF=expandable_segments:True before Python starts"
+            )
+    if args.throughput_safe:
+        if args.method not in {"p1", "p2"}:
+            raise ValueError("--throughput-safe is only defined for P1/P2 hierarchical jobs")
+        if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
+            raise ValueError(
+                "--throughput-safe requires --device cuda --batch-size 8 "
+                "--accumulate-grad-batches 8"
+            )
+        if args.precision != "32-true":
+            raise ValueError("--throughput-safe requires --precision 32-true")
+        if not _uses_expandable_segments(_allocator_configuration()):
+            raise ValueError(
+                "--throughput-safe requires PYTORCH_ALLOC_CONF=expandable_segments:True "
+                "before Python starts"
+            )
+        if args.num_workers < 8:
+            raise ValueError(
+                "--throughput-safe requires at least 8 data-loader workers; "
+                "reduce workers only in a separately documented contention test"
             )
 
 
@@ -395,6 +431,8 @@ def main() -> int:
         "precision": args.precision,
         "cuda_allocator_conf": _allocator_configuration(),
         "memory_safe": args.memory_safe,
+        "throughput_safe": args.throughput_safe,
+        "data_loader_workers": args.num_workers,
         "limit_train_batches": args.limit_train_batches,
         "limit_val_batches": args.limit_val_batches,
         "validate_every": args.validate_every,

@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+from unittest.mock import patch
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "include_l8_coarse": False,
             "device": "cpu",
             "memory_safe": False,
+            "throughput_safe": False,
             "precision": "32-true",
         }
         values.update(overrides)
@@ -75,6 +77,39 @@ class PretrainValidationSplitTest(unittest.TestCase):
         self.assertTrue(_uses_expandable_segments("expandable_segments:True"))
         self.assertTrue(_uses_expandable_segments("max_split_size_mb:128, expandable_segments:true"))
         self.assertFalse(_uses_expandable_segments("max_split_size_mb:128"))
+
+    def test_throughput_profile_requires_matched_batch_and_workers(self):
+        arguments = self._arguments(
+            method="p2",
+            batch_size=8,
+            accumulate_grad_batches=8,
+            num_workers=8,
+            throughput_safe=True,
+            device="cuda",
+        )
+        with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch.dict(
+            "phase5_pretrain.os.environ",
+            {"PYTORCH_ALLOC_CONF": "expandable_segments:True"},
+            clear=False,
+        ):
+            _validate_run_arguments(arguments)
+
+        with self.assertRaisesRegex(ValueError, "at least 8 data-loader workers"):
+            with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch.dict(
+                "phase5_pretrain.os.environ",
+                {"PYTORCH_ALLOC_CONF": "expandable_segments:True"},
+                clear=False,
+            ):
+                _validate_run_arguments(
+                    self._arguments(
+                        method="p2",
+                        batch_size=8,
+                        accumulate_grad_batches=8,
+                        num_workers=4,
+                        throughput_safe=True,
+                        device="cuda",
+                    )
+                )
 
 
 if __name__ == "__main__":

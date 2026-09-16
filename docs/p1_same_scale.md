@@ -48,11 +48,12 @@ predictor gradient norms, and EMA momentum.
 
 If the P1/B2 ablation is approved, it uses the same fixed 60-epoch pilot horizon
 with no raw latent-loss early stopping. The source-faithful 240-epoch schedule
-remains a separate reproduction option. On the RTX 5070 Ti it uses the required
-memory-safe profile: FP32, microbatch 4, accumulation 16, effective batch 64,
-and `PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts.
-This changes only the microbatch partitioning; the effective batch and
-optimizer-step schedule remain aligned with P0.
+remains a separate reproduction option. Its default RTX 5070 Ti profile is
+FP32, microbatch 4, accumulation 16, effective batch 64, and
+`PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts. A
+separate `--throughput-safe` experiment may use microbatch 8, accumulation 8,
+and at least eight workers; see [`throughput_profile.md`](throughput_profile.md).
+Neither profile changes the effective batch or optimizer-step schedule.
 
 ## Gradient contract
 

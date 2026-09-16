@@ -45,9 +45,17 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   240-epoch source schedule remains a separate optional reproduction.
   `--early-stopping` requires `--run-kind diagnostic` and its artifacts cannot
   be used in the main result table.
-- Formal P2 jobs use microbatch 4, accumulation 16, FP32, and
-  `PYTORCH_ALLOC_CONF=expandable_segments:True` with `--memory-safe`. The
-  runner verifies and records this profile before allocating GPU memory.
+- Formal P2 jobs in the primary pilot use microbatch 4, accumulation 16,
+  FP32, and `PYTORCH_ALLOC_CONF=expandable_segments:True` with
+  `--memory-safe`. The runner verifies and records this profile before
+  allocating GPU memory. A separately approved `--throughput-safe` profile
+  tests microbatch 8, accumulation 8, effective batch 64, and at least eight
+  workers in FP32; it must not be substituted silently into an existing run.
+- The throughput profile's eight-worker setting is an initial HDF5 contention
+  test. The pretraining cache opens one read-only HDF5 handle lazily per
+  worker, so the first run must be monitored for I/O and file-descriptor
+  pressure. Mixed precision is a separate diagnostic speed variant, not part
+  of the FP32 primary result.
 - Do not reuse a nonempty pretraining directory without the matching
   `--resume path/to/last.ckpt` argument.
 - Use `phase5_exits.py --resume` only to continue the same interrupted
