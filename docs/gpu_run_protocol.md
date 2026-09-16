@@ -57,8 +57,11 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   pressure. The BF16 profile below is a separate, explicitly recorded
   performance variant rather than a replacement for source-faithful FP32.
 - `--performance-safe` is the bounded BF16 speed profile: microbatch 16,
-  accumulation 4, twelve workers, prefetch factor 4, and logger interval 25.
-  It preserves effective batch 64 but is not source-faithful FP32. Record it
+  accumulation 4, twelve workers, prefetch factor 4, epoch-only training
+  telemetry, and PyTorch fused scaled-dot-product attention. It preserves
+  effective batch 64 but is not source-faithful FP32. Fused attention computes
+  the same attention operation, with only small precision-level differences.
+  Record it
   in every compared method's metadata; do not compare a BF16-trained method
   to an FP32-trained method as a final precision-controlled claim.
 - Do not reuse a nonempty pretraining directory without the matching

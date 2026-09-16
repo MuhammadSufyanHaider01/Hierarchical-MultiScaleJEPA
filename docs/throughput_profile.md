@@ -12,14 +12,15 @@ changes to an existing run:
 | Effective batch size | 64 | 64 | 64 |
 | Data-loader workers | 4 | 8 | 12 |
 | Prefetch factor | 2 | 2 | 4 |
-| Logger interval | 1 step | 1 step | 25 steps |
+| Training telemetry | Per step + epoch | Per step + epoch | Epoch only |
 | Precision | FP32 | FP32 | BF16 mixed |
+| Attention | Pinned math | Pinned math | PyTorch fused SDPA |
 | CUDA allocator | expandable segments | expandable segments | expandable segments |
 
 The FP32 profile reduces serialized microbatches per optimizer step from 16 to
 8; the BF16 profile reduces it from 16 to 4. `--throughput-safe` validates the FP32 configuration, and
-`--performance-safe` validates the BF16 configuration, including loader and
-logger bounds, before model allocation. They are mutually exclusive with
+`--performance-safe` validates the BF16/fused configuration, including loader
+and epoch-metric bounds, before model allocation. They are mutually exclusive with
 `--memory-safe` and currently apply to P1/P2 only.
 
 ## HDF5 worker check
@@ -49,11 +50,15 @@ No existing run is resumed with a different microbatch or precision profile.
 
 ## BF16 performance profile
 
-The RTX 5070 Ti BF16 profile reduces activation memory and logger overhead
-while retaining the same effective batch size. It is explicitly recorded in
-`experiment.json`; it is not source-faithful FP32 reproduction. Before using
-it in a final P0/P2 comparison, rerun every compared pretraining method under
-the same precision profile.
+The RTX 5070 Ti BF16 profile uses PyTorch scaled-dot-product attention, which
+can select a fused Flash Attention kernel, and avoids per-step telemetry while
+retaining the same effective batch size. It is explicitly recorded in
+`experiment.json`; it is not source-faithful FP32 reproduction. The operation
+is still standard scaled dot-product attention: its only expected difference
+is small floating-point variation. Unit tests compare it to the pinned math
+path and it falls back to math whenever an attention map is requested. Before
+using it in a final P0/P2 comparison, rerun every compared pretraining method
+under the same precision profile.
 
 ```bash
 PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
@@ -62,8 +67,8 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   --run-name proposed_hierarchical --mask-profile region_n6 \
   --run-kind formal --max-epochs 60 --batch-size 16 \
   --accumulate-grad-batches 4 --num-workers 12 --prefetch-factor 4 \
-  --log-every-n-steps 25 --precision bf16-mixed --device cuda \
-  --performance-safe
+  --log-every-n-steps 1 --epoch-metrics-only --attention-backend fused \
+  --precision bf16-mixed --device cuda --performance-safe
 ```
 
 `torch.compile` is intentionally not included: variable mask geometry can

@@ -12,8 +12,8 @@ for hierarchical jobs: microbatch 8, accumulation 8, effective batch 64, and
 at least eight data-loader workers. It is intentionally distinct from the
 conservative ``--memory-safe`` profile.
 
-The explicit ``--performance-safe`` profile adds BF16 mixed precision, bounded
-prefetching, and reduced logger traffic. It is recorded as a precision variant
+The explicit ``--performance-safe`` profile adds BF16 mixed precision, fused
+attention, bounded prefetching, and epoch-only telemetry. It is recorded as a precision variant
 and must be matched across methods for a final comparison.
 """
 
@@ -48,6 +48,7 @@ from datasets import DeepMIMO, ImageDataset, PretrainCache  # noqa: E402
 from evaluation import evaluate_class, evaluate_pos  # noqa: E402
 from masking_profiles import PROFILE_NAMES, apply_mask_profile  # noqa: E402
 from models import JEPA  # noqa: E402
+from models.components import set_attention_backend  # noqa: E402
 
 
 METHOD_CONFIGS = {
@@ -133,6 +134,23 @@ def _arguments() -> argparse.Namespace:
         default=1,
         help="Lightning logger interval; epoch summaries remain printed independently.",
     )
+    parser.add_argument(
+        "--epoch-metrics-only",
+        action="store_true",
+        help=(
+            "Aggregate training telemetry by epoch without emitting per-step CSV/logger records. "
+            "Terminal summaries remain one line per epoch."
+        ),
+    )
+    parser.add_argument(
+        "--attention-backend",
+        choices=("math", "fused"),
+        default="math",
+        help=(
+            "Attention implementation: math preserves the pinned path; fused uses PyTorch "
+            "scaled-dot-product attention when attention maps are not requested."
+        ),
+    )
     parser.add_argument("--checkpoint-every", type=int, default=5)
     parser.add_argument(
         "--validate-every",
@@ -169,7 +187,7 @@ def _arguments() -> argparse.Namespace:
         action="store_true",
         help=(
             "Use the bounded RTX 5070 Ti performance profile: BF16, microbatch 16, "
-            "accumulation 4, 12 workers, prefetch 4, and logging every 25 steps."
+            "accumulation 4, fused attention, 12 workers, prefetch 4, and epoch-only metrics."
         ),
     )
     parser.add_argument(
@@ -425,8 +443,10 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             raise ValueError("--performance-safe requires --precision bf16-mixed")
         if args.num_workers != 12 or args.prefetch_factor != 4:
             raise ValueError("--performance-safe requires --num-workers 12 --prefetch-factor 4")
-        if args.log_every_n_steps != 25:
-            raise ValueError("--performance-safe requires --log-every-n-steps 25")
+        if not args.epoch_metrics_only:
+            raise ValueError("--performance-safe requires --epoch-metrics-only")
+        if args.attention_backend != "fused":
+            raise ValueError("--performance-safe requires --attention-backend fused")
         if not torch.cuda.is_bf16_supported():
             raise RuntimeError("--performance-safe requires CUDA BF16 support")
         if not _uses_expandable_segments(_allocator_configuration()):
@@ -498,6 +518,8 @@ def main() -> int:
         "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
         "max_epochs": args.max_epochs,
         "precision": args.precision,
+        "attention_backend": args.attention_backend,
+        "epoch_metrics_only": args.epoch_metrics_only,
         "cuda_allocator_conf": _allocator_configuration(),
         "memory_safe": args.memory_safe,
         "throughput_safe": args.throughput_safe,
@@ -534,6 +556,8 @@ def main() -> int:
         eval_fns=[evaluate_class, evaluate_pos, evaluate_class],
         metrics=["rfs_pca", "pos_error", "beam_pca"],
     )
+    model.configure_training_metrics(epoch_only=args.epoch_metrics_only)
+    set_attention_backend(model, args.attention_backend)
     model.checkpoint_metadata = metadata
     if args.early_stopping:
         model.enable_pretrain_validation(validation_dataset_names)
@@ -607,6 +631,8 @@ def main() -> int:
             self._counts = {}
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            if pl_module.epoch_metrics_only:
+                return
             if batch_idx:
                 self._record_last_batch(trainer, pl_module)
 
@@ -624,16 +650,41 @@ def main() -> int:
                 if hierarchy_weight is not None:
                     fields.append(f"hierarchy_weight={hierarchy_weight:.6f}")
                 anchor_loss = self._mean("anchor_loss")
+                if anchor_loss is None:
+                    anchor_values = [
+                        self._value(
+                            trainer,
+                            f"train_loss_{dataset_config.name}_anchor_epoch",
+                            f"train_loss_{dataset_config.name}_anchor",
+                        )
+                        for dataset_config in config.data.pretrain_datasets
+                    ]
+                    anchor_values = [value for value in anchor_values if value is not None]
+                    anchor_loss = sum(anchor_values) / len(anchor_values) if anchor_values else None
                 if anchor_loss is not None:
                     fields.append(f"anchor_loss={anchor_loss:.6f}")
                 for layer in pl_module.auxiliary_layers:
                     auxiliary_loss = self._mean(f"aux_L{layer}")
+                    if auxiliary_loss is None:
+                        auxiliary_values = [
+                            self._value(
+                                trainer,
+                                f"train_loss_{dataset_config.name}_L{layer}_epoch",
+                                f"train_loss_{dataset_config.name}_L{layer}",
+                            )
+                            for dataset_config in config.data.pretrain_datasets
+                        ]
+                        auxiliary_values = [value for value in auxiliary_values if value is not None]
+                        auxiliary_loss = (
+                            sum(auxiliary_values) / len(auxiliary_values) if auxiliary_values else None
+                        )
                     if auxiliary_loss is not None:
                         fields.append(f"aux_L{layer}={auxiliary_loss:.6f}")
             return fields
 
         def on_train_epoch_end(self, trainer, pl_module):
-            self._record_last_batch(trainer, pl_module)
+            if not pl_module.epoch_metrics_only:
+                self._record_last_batch(trainer, pl_module)
             if args.early_stopping:
                 return
             fields = self._training_fields(trainer, pl_module)

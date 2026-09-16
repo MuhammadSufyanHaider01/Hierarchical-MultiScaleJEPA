@@ -97,9 +97,10 @@ or make final statistical claims from them.
   handles lazily per worker; the first eight-worker run must be checked for
   I/O contention before it is used for a larger study.
 - The bounded performance profile uses BF16 mixed precision, microbatch 16,
-  accumulation 4, twelve workers, prefetch factor 4, and logger interval 25.
-  It is selected with `--performance-safe`, preserves effective batch 64, and
-  reduces activation memory. It is a documented precision variant, so final
+  accumulation 4, twelve workers, prefetch factor 4, epoch-only telemetry,
+  and fused scaled-dot-product attention. It is selected with
+  `--performance-safe`, preserves effective batch 64, and reduces activation
+  memory. It is a documented precision variant, so final
   P0/P2 comparisons must use the same profile for every trained method.
 - P2 formal commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass

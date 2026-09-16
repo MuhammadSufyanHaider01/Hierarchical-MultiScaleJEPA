@@ -1,6 +1,7 @@
 import torch
 
 import torch.nn as nn
+import torch.nn.functional as F
 
 from functools import partial
 
@@ -25,7 +26,25 @@ class MLP(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
+    """Multi-head self-attention with an opt-in fused CUDA implementation.
+
+    ``math`` is the pinned LatentWave implementation.  ``fused`` delegates
+    the same scaled-dot-product operation to PyTorch, which can dispatch to
+    Flash Attention on supported CUDA hardware.  Attention-map requests
+    always use ``math`` because the fused API intentionally does not return
+    the probability matrix.
+    """
+
+    def __init__(
+        self,
+        dim,
+        num_heads=8,
+        qkv_bias=False,
+        qk_scale=None,
+        attn_drop=0.,
+        proj_drop=0.,
+        backend="math",
+    ):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -35,20 +54,46 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
+        self.set_backend(backend)
 
-    def forward(self, x):
+    def set_backend(self, backend: str) -> None:
+        if backend not in {"math", "fused"}:
+            raise ValueError(f"unsupported attention backend: {backend!r}")
+        self.backend = backend
+
+    def forward(self, x, return_attention=False):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
+        if self.backend == "fused" and not return_attention:
+            dropout_p = self.attn_drop.p if self.training else 0.0
+            x = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                dropout_p=dropout_p,
+                is_causal=False,
+                scale=self.scale,
+            )
+            attn = None
+        else:
+            attn = (q @ k.transpose(-2, -1)) * self.scale
+            attn = attn.softmax(dim=-1)
+            attn = self.attn_drop(attn)
+            x = attn @ v
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x, attn
+
+
+def set_attention_backend(module: nn.Module, backend: str) -> None:
+    """Apply an attention backend to every LatentWave attention block."""
+    for child in module.modules():
+        if isinstance(child, Attention):
+            child.set_backend(backend)
 
 
 def drop_path(x, drop_prob: float = 0., training: bool = False):
@@ -105,7 +150,7 @@ class Block(nn.Module):
         self.mlp = MLP(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
     def forward(self, x, return_attention=False):
-        y, attn = self.attn(self.norm1(x))
+        y, attn = self.attn(self.norm1(x), return_attention=return_attention)
         if return_attention:
             return attn
         x = x + self.drop_path(y)

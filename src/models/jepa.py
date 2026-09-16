@@ -71,6 +71,23 @@ class JEPA(ValidationModule):
         self.pretrain_validation_names = None
         self._validation_loss_sums = {}
         self._validation_loss_counts = {}
+        # Formal high-throughput runs keep loss aggregation at epoch granularity.
+        # The default preserves the original per-step telemetry behavior.
+        self.epoch_metrics_only = False
+
+    def configure_training_metrics(self, *, epoch_only: bool = False) -> None:
+        """Choose per-step telemetry (default) or inexpensive epoch summaries."""
+        self.epoch_metrics_only = bool(epoch_only)
+
+    def _log_training_metric(self, name, value, *, on_epoch=True) -> None:
+        """Log training telemetry without materializing per-step logger records."""
+        self.log(
+            name,
+            value,
+            on_step=not self.epoch_metrics_only,
+            on_epoch=on_epoch or self.epoch_metrics_only,
+            logger=True,
+        )
 
     def enable_pretrain_validation(self, dataset_names):
         """Enable held-out latent-loss validation for a list of cache loaders."""
@@ -289,39 +306,48 @@ class JEPA(ValidationModule):
         validation_loss = sum(dataset_losses.values()) / len(dataset_losses)
         self.log("val_loss", validation_loss, on_epoch=True, prog_bar=True, logger=True)
 
-    def training_step(self, batches, _):
+    def training_step(self, batches, batch_idx):
         losses = []
         mask_percentages = []
         latent_reps = []
+        collect_rep_diagnostics = not self.epoch_metrics_only or batch_idx == 0
         for batch_name, batch in batches.items():
-            loss, mask_percentage, rep = self.training_step_per_patch(batch_name, batch)
+            loss, mask_percentage, rep = self.training_step_per_patch(
+                batch_name,
+                batch,
+                collect_rep_diagnostics=collect_rep_diagnostics,
+            )
             losses.append(loss)
             mask_percentages.append(mask_percentage)
-            latent_reps.append(rep)
+            if rep is not None:
+                latent_reps.append(rep)
 
         total_loss = torch.stack(losses).mean()
-        self.log('train_loss', total_loss, on_step=True, on_epoch=True, logger=True)
+        self._log_training_metric('train_loss', total_loss)
 
-        self.log(f"mask_percentage", np.mean(mask_percentages), on_step=True, on_epoch=True, logger=True)
+        self._log_training_metric(f"mask_percentage", np.mean(mask_percentages))
     
-        latent_reps = torch.cat(latent_reps, dim=0)
-        effective_rank = get_effective_rank(latent_reps)
-        self.log(f"effective_rank", effective_rank, on_step=True, on_epoch=True, logger=True)
+        if latent_reps:
+            # In epoch-only mode these expensive representation diagnostics are
+            # sampled from the first batch.  Losses remain true epoch means.
+            latent_reps = torch.cat(latent_reps, dim=0)
+            effective_rank = get_effective_rank(latent_reps)
+            self._log_training_metric(f"effective_rank", effective_rank)
 
-        with torch.no_grad():
-            per_dim_std = latent_reps.std(dim=0)
-            mean_std = per_dim_std.mean().item()
-            self.log(f"mean_std", mean_std, on_step=True, on_epoch=True, logger=True)
+            with torch.no_grad():
+                per_dim_std = latent_reps.std(dim=0)
+                mean_std = per_dim_std.mean().item()
+                self._log_training_metric(f"mean_std", mean_std)
 
         return total_loss
         
-    def training_step_per_patch(self, name, batch):
+    def training_step_per_patch(self, name, batch, *, collect_rep_diagnostics=True):
         x, masks_enc, masks_pred = batch
         C_max = x.size(1)
         if C_max > 1:
             C_prime = torch.randint(2, C_max + 1, (1,)).item()
             x = sample_channel_subsets(x, C_prime)
-            self.log(f"num_channels_{name}", C_prime, on_step=True, on_epoch=True, logger=True)
+            self._log_training_metric(f"num_channels_{name}", C_prime)
 
         if self.hierarchy_enabled:
             (
@@ -338,48 +364,36 @@ class JEPA(ValidationModule):
         loss = anchor_loss
         if self.hierarchy_enabled:
             hierarchy_weight = self.hierarchy_weight()
-            self.log("hierarchy_weight", hierarchy_weight, on_step=True, on_epoch=True, logger=True)
-            self.log(f"train_loss_{name}_anchor", anchor_loss, on_step=True, on_epoch=True, logger=True)
+            self._log_training_metric("hierarchy_weight", hierarchy_weight)
+            self._log_training_metric(f"train_loss_{name}_anchor", anchor_loss)
             auxiliary_losses = {}
             for layer in self.auxiliary_layers:
                 auxiliary_prediction = auxiliary_predictions[layer]
                 auxiliary_target = auxiliary_targets[layer]
                 auxiliary_loss = self.loss(auxiliary_prediction, auxiliary_target)
                 auxiliary_losses[layer] = auxiliary_loss
-                self.log(
+                self._log_training_metric(
                     f"train_loss_{name}_L{layer}",
                     auxiliary_loss,
-                    on_step=True,
-                    on_epoch=True,
-                    logger=True,
                 )
-                self.log(
+                self._log_training_metric(
                     f"valid_target_count_L{layer}",
                     float(self._target_vector_count(auxiliary_target)),
-                    on_step=True,
-                    on_epoch=True,
-                    logger=True,
                 )
-                self.log(
+                self._log_training_metric(
                     f"target_rms_L{layer}",
                     self._rms(auxiliary_target),
-                    on_step=True,
-                    on_epoch=True,
-                    logger=True,
                 )
-                self.log(
+                self._log_training_metric(
                     f"predictor_rms_L{layer}",
                     self._rms(auxiliary_prediction),
-                    on_step=True,
-                    on_epoch=True,
-                    logger=True,
                 )
             loss = self._hierarchy_total_loss(anchor_loss, auxiliary_losses, hierarchy_weight)
-        self.log(f'train_loss_{name}', loss, on_step=True, on_epoch=True, logger=True)
+        self._log_training_metric(f'train_loss_{name}', loss)
 
         mask_percentage = 1 - len(masks_enc[0][0]) / self.num_patches
 
-        latent_rep = target_out.mean(dim=1).detach()
+        latent_rep = target_out.mean(dim=1).detach() if collect_rep_diagnostics else None
         
         return loss, mask_percentage, latent_rep
 
@@ -397,23 +411,22 @@ class JEPA(ValidationModule):
     def on_after_backward(self):
         if not self.hierarchy_enabled:
             return
+        if self.epoch_metrics_only and self.trainer.fit_loop._should_accumulate():
+            return
         for layer, predictor in self.aux_predictors.items():
             gradients = [parameter.grad.detach().square().sum() for parameter in predictor.parameters() if parameter.grad is not None]
             if gradients:
                 gradient_norm = torch.stack(gradients).sum().sqrt()
             else:
                 gradient_norm = torch.tensor(0.0, device=self.device)
-            self.log(
+            self._log_training_metric(
                 f"predictor_grad_norm_L{layer}",
                 gradient_norm,
-                on_step=True,
-                on_epoch=False,
-                logger=True,
             )
     
     def on_train_batch_start(self, batch, batch_idx):
         wd = self.optimizers().param_groups[0]['weight_decay']
-        self.log('weight_decay', wd, on_step=True, on_epoch=False, logger=True) 
+        self._log_training_metric('weight_decay', wd, on_epoch=False)
     
     def on_train_batch_end(self, outputs, batch, batch_idx):
         # The pinned path has one optimizer update per batch. Phase 5 uses
@@ -427,7 +440,7 @@ class JEPA(ValidationModule):
             m = self.ema_start + (self.global_step - 1) * (self.ema_end - self.ema_start) / self.total_steps
             self.update_target_encoder(m)
             
-        self.log("ema_momentum", m, on_step=True, on_epoch=False, logger=True)
+        self._log_training_metric("ema_momentum", m, on_epoch=False)
 
     @torch.no_grad()
     def update_target_encoder(self, momentum: float) -> None:
