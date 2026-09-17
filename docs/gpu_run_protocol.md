@@ -64,6 +64,9 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   Record it
   in every compared method's metadata; do not compare a BF16-trained method
   to an FP32-trained method as a final precision-controlled claim.
+- Future pretraining commands print a durable `[progress epoch ...]` terminal
+  line every 25 completed microbatches, followed by the epoch-loss line. This
+  progress output is terminal-only and does not add per-step CSV metrics.
 - Do not reuse a nonempty pretraining directory without the matching
   `--resume path/to/last.ckpt` argument.
 - Use `phase5_exits.py --resume` only to continue the same interrupted

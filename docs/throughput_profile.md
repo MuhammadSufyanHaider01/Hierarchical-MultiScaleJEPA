@@ -12,7 +12,8 @@ changes to an existing run:
 | Effective batch size | 64 | 64 | 64 |
 | Data-loader workers | 4 | 8 | 12 |
 | Prefetch factor | 2 | 2 | 4 |
-| Training telemetry | Per step + epoch | Per step + epoch | Epoch only |
+| Terminal progress | Progress bar | Progress bar | Every 25 batches + epoch loss |
+| Training telemetry | Per step + epoch | Per step + epoch | Epoch-only CSV metrics |
 | Precision | FP32 | FP32 | BF16 mixed |
 | Attention | Pinned math | Pinned math | PyTorch fused SDPA |
 | CUDA allocator | expandable segments | expandable segments | expandable segments |
@@ -67,7 +68,8 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   --run-name proposed_hierarchical --mask-profile region_n6 \
   --run-kind formal --max-epochs 60 --batch-size 16 \
   --accumulate-grad-batches 4 --num-workers 12 --prefetch-factor 4 \
-  --log-every-n-steps 1 --epoch-metrics-only --attention-backend fused \
+  --log-every-n-steps 1 --epoch-metrics-only --progress-every-n-batches 25 \
+  --attention-backend fused \
   --precision bf16-mixed --device cuda --performance-safe
 ```
 

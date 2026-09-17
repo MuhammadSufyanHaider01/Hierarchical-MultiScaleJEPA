@@ -25,6 +25,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "num_workers": 0,
             "prefetch_factor": 2,
             "log_every_n_steps": 1,
+            "progress_every_n_batches": 25,
             "epoch_metrics_only": False,
             "attention_backend": "math",
             "checkpoint_every": 5,
@@ -82,6 +83,10 @@ class PretrainValidationSplitTest(unittest.TestCase):
         self.assertTrue(_uses_expandable_segments("expandable_segments:True"))
         self.assertTrue(_uses_expandable_segments("max_split_size_mb:128, expandable_segments:true"))
         self.assertFalse(_uses_expandable_segments("max_split_size_mb:128"))
+
+    def test_progress_interval_must_be_positive(self):
+        with self.assertRaisesRegex(ValueError, "progress interval"):
+            _validate_run_arguments(self._arguments(progress_every_n_batches=0))
 
     def test_throughput_profile_requires_matched_batch_and_workers(self):
         arguments = self._arguments(

@@ -143,6 +143,15 @@ def _arguments() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--progress-every-n-batches",
+        type=int,
+        default=25,
+        help=(
+            "Print the exact completed-batch count to the terminal at this interval. "
+            "This does not create per-step CSV metrics."
+        ),
+    )
+    parser.add_argument(
         "--attention-backend",
         choices=("math", "fused"),
         default="math",
@@ -355,10 +364,11 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
         args.num_workers + 1,
         args.prefetch_factor,
         args.log_every_n_steps,
+        args.progress_every_n_batches,
         args.checkpoint_every,
     ) < 1:
         raise ValueError(
-            "epochs, batch size, accumulation, workers, prefetch factor, logging interval, "
+            "epochs, batch size, accumulation, workers, prefetch factor, logging interval, progress interval, "
             "and checkpoint interval must be positive"
         )
     if args.validate_every < 0:
@@ -527,6 +537,7 @@ def main() -> int:
         "data_loader_workers": args.num_workers,
         "data_loader_prefetch_factor": args.prefetch_factor,
         "log_every_n_steps": args.log_every_n_steps,
+        "progress_every_n_batches": args.progress_every_n_batches,
         "limit_train_batches": args.limit_train_batches,
         "limit_val_batches": args.limit_val_batches,
         "validate_every": args.validate_every,
@@ -569,6 +580,25 @@ def main() -> int:
         save_top_k=-1,
         save_last=True,
     )
+    class BatchProgressPrinter(callbacks.Callback):
+        """Emit a durable terminal progress line without per-step metric logging."""
+
+        def __init__(self, total_batches: int, interval: int):
+            super().__init__()
+            self.total_batches = int(total_batches)
+            self.interval = int(interval)
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            completed = int(batch_idx) + 1
+            if completed % self.interval and completed != self.total_batches:
+                return
+            print(
+                f"[progress epoch {trainer.current_epoch + 1:03d}] "
+                f"batches={completed:03d}/{self.total_batches:03d} "
+                f"optimizer_step={trainer.global_step}",
+                flush=True,
+            )
+
     class EpochLossPrinter(callbacks.Callback):
         def __init__(self):
             super().__init__()
@@ -701,7 +731,12 @@ def main() -> int:
             fields.append(f"val_loss={validation_loss:.6f}")
             print(f"[epoch {trainer.current_epoch + 1:03d}] {' '.join(fields)}", flush=True)
 
-    callbacks_list = [checkpoint_callback, callbacks.LearningRateMonitor(logging_interval="step"), EpochLossPrinter()]
+    callbacks_list = [
+        checkpoint_callback,
+        callbacks.LearningRateMonitor(logging_interval="step"),
+        BatchProgressPrinter(microbatches_per_epoch, args.progress_every_n_batches),
+        EpochLossPrinter(),
+    ]
     best_checkpoint_callback = None
     if args.early_stopping:
         best_checkpoint_callback = callbacks.ModelCheckpoint(
