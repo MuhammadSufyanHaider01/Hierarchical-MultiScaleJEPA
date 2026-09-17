@@ -89,6 +89,14 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument("--tolerance", type=float, default=0.05)
     parser.add_argument("--resume", action="store_true", help="Keep completed task results in exit_metrics.json.")
+    parser.add_argument(
+        "--selection-only",
+        action="store_true",
+        help=(
+            "Train frozen heads and select exits using validation only. Do not construct, read, "
+            "or report the test split; use this for checkpoint-selection probes."
+        ),
+    )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
     return parser.parse_args()
 
@@ -390,6 +398,7 @@ def main() -> int:
             },
             "tolerance": args.tolerance,
             "selection_uses": "validation_only",
+            "test_evaluation": not args.selection_only,
             "batch_limits": {
                 "train": args.limit_train_batches,
                 "validation": args.limit_validation_batches,
@@ -416,8 +425,16 @@ def main() -> int:
                                seed=head_seed + task_index, pin_memory=device.type == "cuda")
         validation_loader = _loader(subsets["validation"], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                                     seed=head_seed, pin_memory=device.type == "cuda")
-        test_loader = _loader(subsets["test"], batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
-                              seed=head_seed, pin_memory=device.type == "cuda")
+        test_loader = None
+        if not args.selection_only:
+            test_loader = _loader(
+                subsets["test"],
+                batch_size=args.batch_size,
+                shuffle=False,
+                num_workers=args.num_workers,
+                seed=head_seed,
+                pin_memory=device.type == "cuda",
+            )
         encoder = _new_encoder(config, checkpoint, device)
         heads_root = run_dir / "heads" / task_name
         exit_results = {}
@@ -444,26 +461,29 @@ def main() -> int:
             higher_is_better=spec.higher_is_better,
             tolerance=args.tolerance,
         )
-        # Exit selection is complete before this loop touches the test split.
-        for exit_layer in EXIT_LAYERS:
-            exit_results[str(exit_layer)]["test"] = _evaluate_saved_head(
-                encoder,
-                exit_layer=exit_layer,
-                spec=spec,
-                head_path=Path(exit_results[str(exit_layer)]["head_path"]),
-                test_loader=test_loader,
-                device=device,
-                limit_batches=args.limit_test_batches,
-            )
-        all_results["tasks"][task_name] = {
+        task_result = {
             "spec": asdict(spec),
             "split_counts": split_record["counts"],
             "exits": exit_results,
             "selected_exit_best_validation": selected_best,
             "selected_exit_earliest_within_tolerance": selected_tolerance,
-            "selected_test_best_validation": exit_results[str(selected_best)]["test"],
-            "selected_test_earliest_within_tolerance": exit_results[str(selected_tolerance)]["test"],
         }
+        if not args.selection_only:
+            # Exit selection is complete before this loop touches the test split.
+            assert test_loader is not None
+            for exit_layer in EXIT_LAYERS:
+                exit_results[str(exit_layer)]["test"] = _evaluate_saved_head(
+                    encoder,
+                    exit_layer=exit_layer,
+                    spec=spec,
+                    head_path=Path(exit_results[str(exit_layer)]["head_path"]),
+                    test_loader=test_loader,
+                    device=device,
+                    limit_batches=args.limit_test_batches,
+                )
+            task_result["selected_test_best_validation"] = exit_results[str(selected_best)]["test"]
+            task_result["selected_test_earliest_within_tolerance"] = exit_results[str(selected_tolerance)]["test"]
+        all_results["tasks"][task_name] = task_result
         output.write_text(json.dumps(all_results, indent=2, sort_keys=True))
         if device.type == "cuda":
             torch.cuda.empty_cache()
