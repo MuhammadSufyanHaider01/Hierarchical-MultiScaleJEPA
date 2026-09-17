@@ -1,5 +1,6 @@
 {
   "excluded": [
+    "EMA-teacher source-style probe (archived provenance only)",
     "diagnostic early-stopped runs",
     "same-scale auxiliary JEPA control ablation",
     "OOD",
@@ -19,15 +20,12 @@
     "selected_exit_performance.pdf",
     "inference_efficiency.png",
     "inference_efficiency.pdf",
-    "b0_source_reference.png",
-    "b0_source_reference.pdf"
+    "b0_context_l8_reference.png",
+    "b0_context_l8_reference.pdf"
   ],
-  "git_revision": "5e8d8cbfc32e469f94a87022791307f642d11ef8",
+  "git_revision": "f703ddc352a16649fa9f6c68e255454a13ce182f",
   "included_inputs": {
-    "b0_source_probe": [
-      "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot/p0_source_probe.json",
-      "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot/p0_source_probe_los.json"
-    ],
+    "b0_context_l8": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/downstream/exit_metrics.json",
     "b1_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/benchmarks.json",
     "b1_metrics": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/downstream/exit_metrics.json",
     "p2_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/benchmarks.json",
@@ -39,9 +37,10 @@
     "LatentWave with Post-hoc Frozen Early Exits",
     "Proposed Hierarchical Multi-Scale JEPA"
   ],
-  "output_dir": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/reports/phase5_primary",
+  "output_dir": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/reports/phase5_primary",
   "report": "phase5_primary_single_seed",
   "run_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal",
   "seed": 0,
-  "source_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_pilot"
+  "source_root": null,
+  "task_suite": "historical: rfs, nrpos-outdoor, deepmimo-beam, deepmimo-los"
 }

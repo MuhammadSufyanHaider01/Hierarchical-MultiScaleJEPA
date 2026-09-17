@@ -1,49 +1,51 @@
-# Phase 5 primary single-seed pilot packet (legacy task set)
-
-> This artifact packet was generated before EfficientFi human activity
-> recognition replaced DeepMIMO LoS/NLoS in the primary task suite. Its LoS/NLoS
-> rows and figures are historical and must not be used for the revised masking
-> comparison. Regenerate this packet after the HAS evaluations complete.
+# Phase 5 primary single-seed pilot packet
 
 This directory contains the submission-oriented result tables and figures for
 the completed single-seed pilot. It is an aggregation of recorded
 artifacts, not a statistical claim. The report was generated from repository
-revision `5e8d8cbfc32e469f94a87022791307f642d11ef8`.
+revision `f703ddc352a16649fa9f6c68e255454a13ce182f`.
 
 ## Scope and comparability
 
 | Approach | Pretraining | Downstream representation | Role |
 |---|---|---|---|
-| Original LatentWave | Original LatentWave training | EMA target encoder, full-input L8 | Source-faithful full-depth reference |
+| Original LatentWave | Original LatentWave training | Frozen context encoder, full-input L8 | Full-depth baseline |
 | LatentWave with Post-hoc Frozen Early Exits | Reuses the Original LatentWave checkpoint | Frozen context encoder at L2/L4/L6/L8 | Early-exit baseline |
 | Proposed Hierarchical Multi-Scale JEPA | Separately pretrained hierarchical JEPA | Frozen context encoder at L2/L4/L6/L8 | Proposed method |
 
-The Original LatentWave reference uses the pinned source-style 80/20
-scikit-learn probe. The two exit approaches use independent frozen heads, a
-shared persisted 80/10/10 split, and validation-only exit selection. The
-single-figure all-approach plots show this protocol distinction explicitly;
-the Original LatentWave point is a full-depth source reference, not a claim
-that its metric was obtained with the frozen-head split.
+All rows use independent frozen task heads, the same persisted 80/10/10
+split, and validation-only head/exit selection. Original LatentWave is the
+P0 context encoder evaluated at L8; the post-hoc early-exit baseline reuses
+that exact P0 checkpoint at L2/L4/L6/L8. Therefore the three approaches are
+directly comparable for this single-seed packet.
 
 All values are single-seed pilot point estimates.
 
+## Task-suite note
+
+This is the completed historical multi-block (`span_time`) pilot, so its
+fourth task is DeepMIMO LoS/NLoS. It does not replace the revised masking
+study, where EfficientFi human activity recognition (HAS) replaces LoS/NLoS.
+The methodological correction in this packet is limited to making the three
+historical rows use the same context-encoder frozen-head protocol.
+
 ## All-approach headline downstream comparison
 
-The deployment rows use the full-depth Original LatentWave reference and the
+The deployment rows use full-depth L8 Original LatentWave and the
 earliest exit within 5% of validation-best for the two exit approaches.
 
 | Approach | Task | Exit | Selection | Test value |
 | --- | --- | --- | --- | --- |
-| Original LatentWave | RF sensing | L8 | full-depth source reference | 75.00% |
+| Original LatentWave | RF sensing | L8 | full-depth L8 | 68.26% |
 | LatentWave with Post-hoc Frozen Early Exits | RF sensing | L8 | earliest within 5% of validation best | 68.26% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | earliest within 5% of validation best | 74.09% |
-| Original LatentWave | NR positioning | L8 | full-depth source reference | 2.680 m |
+| Original LatentWave | NR positioning | L8 | full-depth L8 | 3.104 m |
 | LatentWave with Post-hoc Frozen Early Exits | NR positioning | L6 | earliest within 5% of validation best | 3.204 m |
 | Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | earliest within 5% of validation best | 2.813 m |
-| Original LatentWave | DeepMIMO beam | L8 | full-depth source reference | 50.18% |
+| Original LatentWave | DeepMIMO beam | L8 | full-depth L8 | 44.85% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L2 | earliest within 5% of validation best | 39.23% |
 | Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | earliest within 5% of validation best | 44.69% |
-| Original LatentWave | DeepMIMO LoS/NLoS | L8 | full-depth source reference | 92.92% |
+| Original LatentWave | DeepMIMO LoS/NLoS | L8 | full-depth L8 | 92.13% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO LoS/NLoS | L2 | earliest within 5% of validation best | 92.73% |
 | Proposed Hierarchical Multi-Scale JEPA | DeepMIMO LoS/NLoS | L2 | earliest within 5% of validation best | 92.70% |
 
@@ -64,14 +66,14 @@ earliest exit within 5% of validation-best for the two exit approaches.
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO LoS/NLoS | L2 | 0.026 | 0.5931 | 0.6949 |
 | Proposed Hierarchical Multi-Scale JEPA | DeepMIMO LoS/NLoS | L2 | 0.026 | 0.5752 | 0.5976 |
 
-## Original LatentWave source-faithful reference
+## Original LatentWave full-depth context-encoder reference
 
-| Task | Metric | Test value | Examples |
-| --- | --- | --- | --- |
-| RF sensing | Balanced accuracy (source probe) | 75.00% | 3624 |
-| NR positioning | Mean distance error (m) | 2.680 m | 11628 |
-| DeepMIMO beam | Balanced accuracy (source probe) | 50.18% | 14840 |
-| DeepMIMO LoS/NLoS | Balanced accuracy (source probe) | 92.92% | 14840 |
+| Task | Metric | Test value |
+| --- | --- | --- |
+| RF sensing | Macro accuracy | 68.26% |
+| NR positioning | Mean distance error (m) | 3.104 m |
+| DeepMIMO beam | Macro accuracy | 44.85% |
+| DeepMIMO LoS/NLoS | Macro accuracy | 92.13% |
 
 ## Detailed frozen-exit downstream metrics
 
@@ -194,8 +196,8 @@ The PNG files are 300-DPI raster exports and the PDF files are vector exports.
 - `selected_exit_performance.pdf`
 - `inference_efficiency.png`
 - `inference_efficiency.pdf`
-- `b0_source_reference.png`
-- `b0_source_reference.pdf`
+- `b0_context_l8_reference.png`
+- `b0_context_l8_reference.pdf`
 
 ## Exclusions
 

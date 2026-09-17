@@ -1,0 +1,17 @@
+method,task,evaluation,exit_layer,metric,value,higher_is_better
+b1,rfs,best_validation,8,macro_accuracy,0.6826119422912598,True
+b1,rfs,earliest_within_tolerance,8,macro_accuracy,0.6826119422912598,True
+b1,nrpos-outdoor,best_validation,8,mean_distance_error,3.1043028831481934,False
+b1,nrpos-outdoor,earliest_within_tolerance,6,mean_distance_error,3.204002618789673,False
+b1,deepmimo-beam,best_validation,8,macro_accuracy,0.44850316643714905,True
+b1,deepmimo-beam,earliest_within_tolerance,2,macro_accuracy,0.3922688364982605,True
+b1,deepmimo-los,best_validation,4,macro_accuracy,0.9262790679931641,True
+b1,deepmimo-los,earliest_within_tolerance,2,macro_accuracy,0.9273146986961365,True
+p2,rfs,best_validation,8,macro_accuracy,0.7225880026817322,True
+p2,rfs,earliest_within_tolerance,6,macro_accuracy,0.7408782839775085,True
+p2,nrpos-outdoor,best_validation,8,mean_distance_error,2.7319490909576416,False
+p2,nrpos-outdoor,earliest_within_tolerance,6,mean_distance_error,2.8129425048828125,False
+p2,deepmimo-beam,best_validation,4,macro_accuracy,0.45211800932884216,True
+p2,deepmimo-beam,earliest_within_tolerance,2,macro_accuracy,0.44691866636276245,True
+p2,deepmimo-los,best_validation,2,macro_accuracy,0.9269695281982422,True
+p2,deepmimo-los,earliest_within_tolerance,2,macro_accuracy,0.9269695281982422,True

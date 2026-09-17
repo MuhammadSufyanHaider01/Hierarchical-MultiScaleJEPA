@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Create the single-seed, paper-comparable Phase 5 result packet.
+"""Create the fair, single-seed multi-block comparison result packet.
 
-The source-faithful P0 probe and the context-encoder frozen-exit protocol are
-intentionally reported in separate sections.  The former uses the EMA target
-encoder and the original LatentWave 80/20 scikit-learn probe; the latter is
-the comparable B1/P2 80/10/10 frozen-head evaluation.  Combining those two
-protocols into one metric table would make the result misleading.
+All three manuscript rows use frozen context-encoder representations and the
+same persisted 80/10/10 downstream split.  The original LatentWave row is its
+full-depth L8 context representation; the post-hoc early-exit row reuses that
+same P0 checkpoint, and the hierarchical row uses its own P2 checkpoint.
+
+The historical EMA-teacher/source-style probe is deliberately not plotted or
+tabulated here: it is a useful provenance check, but not a fair comparator for
+the frozen-head evaluation protocol.
 """
 
 from __future__ import annotations
@@ -20,7 +23,7 @@ from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXIT_LAYERS = (2, 4, 6, 8)
-TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
+TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
 METHODS = ("b1", "p2")
 METHOD_LABELS = {
     "b0": "Original LatentWave",
@@ -41,19 +44,19 @@ TASK_LABELS = {
     "rfs": "RF sensing",
     "nrpos-outdoor": "NR positioning",
     "deepmimo-beam": "DeepMIMO beam",
-    "human-activity": "EfficientFi human activity",
+    "deepmimo-los": "DeepMIMO LoS/NLoS",
 }
 TASK_METRICS = {
     "rfs": ("macro_accuracy", "Macro accuracy", True),
     "nrpos-outdoor": ("mean_distance_error", "Mean distance error (m)", False),
     "deepmimo-beam": ("macro_accuracy", "Macro accuracy", True),
-    "human-activity": ("macro_accuracy", "Macro accuracy", True),
+    "deepmimo-los": ("macro_accuracy", "Macro accuracy", True),
 }
 SOURCE_METRICS = {
     "rfs": ("rfs_pca", "Balanced accuracy (source probe)", True),
     "nrpos-outdoor": ("pos_error", "Mean distance error (m)", False),
     "deepmimo-beam": ("beam_pca", "Balanced accuracy (source probe)", True),
-    "human-activity": ("has_pca", "Balanced accuracy (source probe)", True),
+    "deepmimo-los": ("los_pca", "Balanced accuracy (source probe)", True),
 }
 
 
@@ -170,6 +173,44 @@ def _load_source_reference(source_root: Path) -> tuple[dict[str, Any], list[dict
             }
         )
     return reference, rows
+
+
+def _load_context_l8_reference(baseline_packet: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Use P0's frozen context-encoder L8 heads as Original LatentWave.
+
+    This is intentionally derived from the same recorded P0 artifact used by
+    the post-hoc-exit baseline.  It changes only the deployment depth, not the
+    encoder, checkpoint, split, head-training protocol, or test set.
+    """
+
+    rows = []
+    for task in TASKS:
+        fixed_l8 = next(
+            row
+            for row in baseline_packet["metric_rows"]
+            if row["task"] == task
+            and row["evaluation"] == "fixed_exit"
+            and row["exit_layer"] == 8
+        )
+        row = dict(fixed_l8)
+        row.update(
+            {
+                "method": "b0",
+                "method_label": METHOD_LABELS["b0"],
+                "protocol": "frozen context encoder, full-input L8, shared 80/10/10 split",
+                "examples": None,
+            }
+        )
+        rows.append(row)
+    return (
+        {
+            "method": "b0",
+            "label": METHOD_LABELS["b0"],
+            "checkpoint": baseline_packet["checkpoint"],
+            "protocol": "frozen context encoder, full-input L8, shared 80/10/10 split",
+        },
+        rows,
+    )
 
 
 def _load_exit_results(run_root: Path, method: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -446,7 +487,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
     return paths
 
 
-def _plot_source_reference(output_dir: Path, source_rows: list[dict[str, Any]]) -> list[str]:
+def _plot_context_l8_reference(output_dir: Path, source_rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -464,7 +505,7 @@ def _plot_source_reference(output_dir: Path, source_rows: list[dict[str, Any]]) 
         linewidth=0.7,
     )
     axes[0].yaxis.set_major_formatter(PercentFormatter(1.0))
-    axes[0].set_ylabel("Balanced accuracy")
+    axes[0].set_ylabel("Macro accuracy")
     axes[0].set_title("Classification", weight="bold")
     axes[0].tick_params(axis="x", rotation=20)
     axes[1].bar([position["task_label"]], [position["value"]], color="#009E73", edgecolor="#222222", linewidth=0.7)
@@ -472,12 +513,12 @@ def _plot_source_reference(output_dir: Path, source_rows: list[dict[str, Any]]) 
     axes[1].set_title("Positioning", weight="bold")
     for axis in axes:
         axis.grid(axis="y", alpha=0.25, linewidth=0.8)
-    fig.suptitle("Original LatentWave full-depth reference", fontsize=14, weight="bold", y=1.04)
-    fig.text(0.5, -0.025, "EMA target encoder at L8; source-style 80/20 probes. Not directly comparable to frozen-head metrics.", ha="center", fontsize=8.5)
+    fig.suptitle("Original LatentWave full-depth context-encoder reference", fontsize=14, weight="bold", y=1.04)
+    fig.text(0.5, -0.025, "Frozen context encoder at L8; shared 80/10/10 split and validation-selected task heads.", ha="center", fontsize=8.5)
     fig.tight_layout()
     paths = []
     for suffix, kwargs in (("png", {"dpi": 300}), ("pdf", {})):
-        path = output_dir / f"b0_source_reference.{suffix}"
+        path = output_dir / f"b0_context_l8_reference.{suffix}"
         fig.savefig(path, bbox_inches="tight", **kwargs)
         paths.append(str(path))
     plt.close(fig)
@@ -510,8 +551,8 @@ def _build_headline_rows(
                 "value": source["value"],
                 "display_value": source["display_value"],
                 "exit_layer": 8,
-                "selection": "full-depth source reference",
-                "protocol": "EMA target encoder, source-style 80/20 probe",
+                "selection": "full-depth L8",
+                "protocol": "frozen context encoder, shared 80/10/10 split",
                 "flops": source_benchmark["flops"],
                 "latency_mean_ms": source_benchmark["latency_mean_ms"],
                 "latency_p95_ms": source_benchmark["latency_p95_ms"],
@@ -616,7 +657,7 @@ def _plot_all_method_performance(
     fig.text(
         0.5,
         -0.012,
-        "Diamond: Original LatentWave source-style full-depth reference. Circles: frozen-head exits. The full-depth reference uses a separate 80/20 probe protocol.",
+        "Diamond: Original LatentWave at full-depth L8. Circles: frozen-head exits. All rows use the shared 80/10/10 split and frozen context encoders.",
         ha="center",
         fontsize=8.5,
     )
@@ -831,22 +872,29 @@ revision `{_git_revision()}`.
 
 | Approach | Pretraining | Downstream representation | Role |
 |---|---|---|---|
-| Original LatentWave | Original LatentWave training | EMA target encoder, full-input L8 | Source-faithful full-depth reference |
+| Original LatentWave | Original LatentWave training | Frozen context encoder, full-input L8 | Full-depth baseline |
 | LatentWave with Post-hoc Frozen Early Exits | Reuses the Original LatentWave checkpoint | Frozen context encoder at L2/L4/L6/L8 | Early-exit baseline |
 | Proposed Hierarchical Multi-Scale JEPA | Separately pretrained hierarchical JEPA | Frozen context encoder at L2/L4/L6/L8 | Proposed method |
 
-The Original LatentWave reference uses the pinned source-style 80/20
-scikit-learn probe. The two exit approaches use independent frozen heads, a
-shared persisted 80/10/10 split, and validation-only exit selection. The
-single-figure all-approach plots show this protocol distinction explicitly;
-the Original LatentWave point is a full-depth source reference, not a claim
-that its metric was obtained with the frozen-head split.
+All rows use independent frozen task heads, the same persisted 80/10/10
+split, and validation-only head/exit selection. Original LatentWave is the
+P0 context encoder evaluated at L8; the post-hoc early-exit baseline reuses
+that exact P0 checkpoint at L2/L4/L6/L8. Therefore the three approaches are
+directly comparable for this single-seed packet.
 
 All values are single-seed pilot point estimates.
 
+## Task-suite note
+
+This is the completed historical multi-block (`span_time`) pilot, so its
+fourth task is DeepMIMO LoS/NLoS. It does not replace the revised masking
+study, where EfficientFi human activity recognition (HAS) replaces LoS/NLoS.
+The methodological correction in this packet is limited to making the three
+historical rows use the same context-encoder frozen-head protocol.
+
 ## All-approach headline downstream comparison
 
-The deployment rows use the full-depth Original LatentWave reference and the
+The deployment rows use full-depth L8 Original LatentWave and the
 earliest exit within 5% of validation-best for the two exit approaches.
 
 {_markdown_table(['Approach', 'Task', 'Exit', 'Selection', 'Test value'], headline_table)}
@@ -855,9 +903,9 @@ earliest exit within 5% of validation-best for the two exit approaches.
 
 {_markdown_table(['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table)}
 
-## Original LatentWave source-faithful reference
+## Original LatentWave full-depth context-encoder reference
 
-{_markdown_table(['Task', 'Metric', 'Test value', 'Examples'], source_table)}
+{_markdown_table(['Task', 'Metric', 'Test value'], [row[:3] for row in source_table])}
 
 ## Detailed frozen-exit downstream metrics
 
@@ -896,8 +944,10 @@ They require separate approval and are not part of this primary pilot packet.
 """
     (output_dir / "README.md").write_text(report)
 
-    (output_dir / "table_b0_source_reference.md").write_text(
-        "# Original LatentWave source-faithful reference\n\n" + _markdown_table(["Task", "Metric", "Test value", "Examples"], source_table) + "\n"
+    (output_dir / "table_b0_context_l8_reference.md").write_text(
+        "# Original LatentWave full-depth context-encoder reference\n\n"
+        + _markdown_table(["Task", "Metric", "Test value"], [row[:3] for row in source_table])
+        + "\n"
     )
     (output_dir / "table_primary_fixed_exits.md").write_text(
         "# Detailed frozen-exit downstream metrics\n\n" + _markdown_table(["Approach", "Task", "Exit", "Metric", "Test value", "Validation value", "Head epoch"], fixed_table) + "\n"
@@ -931,8 +981,8 @@ They require separate approval and are not part of this primary pilot packet.
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows({field: row.get(field) for field in fields} for row in selected_rows)
-    with (output_dir / "table_b0_source_reference.csv").open("w", newline="") as handle:
-        fields = ["method", "task", "metric", "value", "examples", "protocol"]
+    with (output_dir / "table_b0_context_l8_reference.csv").open("w", newline="") as handle:
+        fields = ["method", "task", "metric", "value", "protocol"]
         writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows({field: row.get(field) for field in fields} for row in source_rows)
@@ -961,8 +1011,8 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
 
-    source_reference, source_rows = _load_source_reference(source_root)
     b1_packet, _ = _load_exit_results(run_root, "b1")
+    source_reference, source_rows = _load_context_l8_reference(b1_packet)
     p2_packet, _ = _load_exit_results(run_root, "p2")
     figure_paths = []
     comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
@@ -973,7 +1023,7 @@ def main() -> int:
         b0_row = dict(row)
         b0_row["method"] = "b0"
         b0_row["method_label"] = METHOD_LABELS["b0"]
-        b0_row["protocol"] = "Original LatentWave full-depth batch-1 benchmark"
+        b0_row["protocol"] = "Original LatentWave frozen context encoder, full-depth L8 benchmark"
         b0_benchmark_rows.append(b0_row)
     benchmark_rows = b0_benchmark_rows + b1_packet["benchmark_rows"] + p2_packet["benchmark_rows"]
     headline_rows = _build_headline_rows(source_rows, comparable_rows, benchmark_rows)
@@ -983,25 +1033,33 @@ def main() -> int:
     figure_paths.extend(_plot_performance(output_dir, comparable_rows))
     figure_paths.extend(_plot_selected(output_dir, comparable_rows))
     figure_paths.extend(_plot_efficiency(output_dir, [row for row in benchmark_rows if row["method"] in METHODS]))
-    figure_paths.extend(_plot_source_reference(output_dir, source_rows))
+    figure_paths.extend(_plot_context_l8_reference(output_dir, source_rows))
     _build_report(output_dir, source_reference, source_rows, b1_packet, p2_packet, headline_rows, benchmark_rows, figure_paths)
     manifest = {
         "report": "phase5_primary_single_seed",
         "git_revision": _git_revision(),
         "run_root": str(run_root),
-        "source_root": str(source_root),
+        "source_root": None,
         "output_dir": str(output_dir),
         "methods": [METHOD_LABELS[method] for method in ("b0", "b1", "p2")],
         "seed": 0,
         "masking": "multi_block/span_time",
+        "task_suite": "historical: rfs, nrpos-outdoor, deepmimo-beam, deepmimo-los",
         "included_inputs": {
-            "b0_source_probe": [str(source_root / "p0_source_probe.json"), str(source_root / "p0_source_probe_has.json")],
+            "b0_context_l8": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_metrics": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_benchmark": str(run_root / "p0/seed_000/benchmarks.json"),
             "p2_metrics": str(run_root / "p2/seed_000/downstream/exit_metrics.json"),
             "p2_benchmark": str(run_root / "p2/seed_000/benchmarks.json"),
         },
-        "excluded": ["diagnostic early-stopped runs", "same-scale auxiliary JEPA control ablation", "OOD", "seeds 1 and 2", "alternate masking regimes"],
+        "excluded": [
+            "EMA-teacher source-style probe (archived provenance only)",
+            "diagnostic early-stopped runs",
+            "same-scale auxiliary JEPA control ablation",
+            "OOD",
+            "seeds 1 and 2",
+            "alternate masking regimes",
+        ],
         "figures": [Path(path).name for path in figure_paths],
     }
     _write_json(output_dir / "manifest.json", manifest)
