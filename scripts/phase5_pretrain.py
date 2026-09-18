@@ -593,23 +593,41 @@ def main() -> int:
         save_last=True,
     )
     class BatchProgressPrinter(callbacks.Callback):
-        """Emit a durable terminal progress line without per-step metric logging."""
+        """Render completed microbatches as one updating terminal progress bar."""
 
         def __init__(self, total_batches: int, interval: int):
             super().__init__()
             self.total_batches = int(total_batches)
             self.interval = int(interval)
+            self._rendered = False
+
+        def _render(self, trainer, completed: int) -> None:
+            width = 30
+            fraction = min(1.0, completed / self.total_batches)
+            filled = int(round(width * fraction))
+            bar = "█" * filled + "░" * (width - filled)
+            sys.stdout.write(
+                f"\r[progress epoch {trainer.current_epoch + 1:03d}] "
+                f"[{bar}] {completed:03d}/{self.total_batches:03d} batches "
+                f"optimizer_step={trainer.global_step}"
+            )
+            sys.stdout.flush()
+            self._rendered = True
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            self._rendered = False
+            self._render(trainer, 0)
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             completed = int(batch_idx) + 1
             if completed % self.interval and completed != self.total_batches:
                 return
-            print(
-                f"[progress epoch {trainer.current_epoch + 1:03d}] "
-                f"batches={completed:03d}/{self.total_batches:03d} "
-                f"optimizer_step={trainer.global_step}",
-                flush=True,
-            )
+            self._render(trainer, completed)
+
+        def on_train_epoch_end(self, trainer, pl_module):
+            if self._rendered:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
 
     class EpochLossPrinter(callbacks.Callback):
         def __init__(self):
