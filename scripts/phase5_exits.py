@@ -25,7 +25,13 @@ os.environ.setdefault("WANDB_KEY", "offline")
 from configs import init_jepa_config  # noqa: E402
 from evaluation import select_best_exit, select_earliest_within_tolerance  # noqa: E402
 from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint  # noqa: E402
-from phase5 import TaskSpec, build_task_dataset, load_or_create_split_manifest, task_subsets  # noqa: E402
+from phase5 import (  # noqa: E402
+    PRIMARY_TASKS,
+    TaskSpec,
+    build_task_dataset,
+    load_or_create_split_manifest,
+    task_subsets,
+)
 from phase6 import (  # noqa: E402
     OOD_TASKS,
     build_ood_task_dataset,
@@ -35,7 +41,6 @@ from phase6 import (  # noqa: E402
 )
 
 
-PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
 TASKS = tuple(dict.fromkeys(PRIMARY_TASKS + OOD_TASKS))
 EXIT_LAYERS = (2, 4, 6, 8)
 
@@ -373,7 +378,7 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     if args.dataset_suite == "primary":
         allowed_tasks = PRIMARY_TASKS
-        manifest_path = args.run_root / f"splits_seed_{args.split_seed}_primary_v2.json"
+        manifest_path = args.run_root / f"splits_seed_{args.split_seed}_primary_v3.json"
         manifest = load_or_create_split_manifest(manifest_path, REPOSITORY_ROOT, seed=args.split_seed)
         build_dataset = lambda task: build_task_dataset(task, REPOSITORY_ROOT)
         make_subsets = task_subsets

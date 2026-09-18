@@ -86,7 +86,7 @@ dataset paths, and documentation.
 Acceptance criteria:
 
 - Repository structure is clear.
-- All seven primary HDF5 files pass schema validation.
+- All ten primary HDF5 inputs pass schema validation.
 - The available source modules import successfully, or any upstream import
   defect is explicitly recorded before Phase 1.
 - No HDF5 file is tracked or staged by Git.
@@ -126,8 +126,9 @@ Scope:
   linear task layer.
 - Freeze the entire context backbone, including patch embedding and
   normalization.
-- Evaluate RF classification, NR positioning, beam prediction, and EfficientFi
-  WiFi human activity recognition.
+- Evaluate the six-task suite: RF classification, jamming classification,
+  EfficientFi WiFi human activity recognition, interference classification,
+  NR positioning, and beam prediction.
 - Implement fixed validation-based selection and earliest-within-tolerance
   selection without using test data.
 
@@ -137,22 +138,37 @@ and selection logic.
 Acceptance criteria: L2/L4/L6/L8 execute correctly; only heads update; exit
 results are reproducible; and test data is excluded from selection.
 
-### Revised primary downstream task suite
+### Six-task primary downstream suite
 
-The primary comparison uses the following four tasks for every masking regime
-and approach:
+Every new masking-regime comparison and every post-epoch-60 P2 evaluation uses
+the following six labelled downstream tasks. They are used only to train and
+evaluate frozen task heads; none is added to the four-cache pretraining set.
 
-| Task | Local cache | Target | Primary metric |
-|---|---|---|---|
-| RF signal classification | `data/downstream/rfs.h5` | 20 classes | Macro accuracy |
-| 5G NR positioning | `data/downstream/nrpos-outdoor.h5` | 3-D position | Mean distance error |
-| Beam prediction | `data/downstream/deepmimo.h5` | 16 beams | Macro accuracy |
-| EfficientFi WiFi human activity recognition | `../has.h5` | 6 activities | Macro accuracy |
+| Task family | Task | Local cache | Target | Primary metric |
+|---|---|---|---|---|
+| Spectral / frequency | RF signal classification | `data/downstream/rfs.h5` | 20 classes | Macro accuracy |
+| Spectral / frequency | Jamming classification | `../jamming.h5` | 6 classes | Macro accuracy |
+| Temporal / cyclostationary | EfficientFi WiFi human activity recognition | `../has.h5` | 6 activities | Macro accuracy |
+| Temporal / cyclostationary | Interference classification | `../interference.h5` | 2 classes | Macro accuracy |
+| Channel / spatial geometry | 5G NR positioning | `data/downstream/nrpos-outdoor.h5` | 3-D position | Mean distance error |
+| Channel / spatial geometry | DeepMIMO beam prediction | `data/downstream/deepmimo.h5` | 16 beams | Macro accuracy |
 
-The HAS task is CSI-based and contains temporal activity signatures. It uses
-the same frozen L2/L4/L6/L8 heads and the project-wide version-2 stratified
-80/10/10 split manifest. DeepMIMO LoS/NLoS is excluded from new primary runs;
-previous LoS/NLoS metrics remain historical only.
+The task pairs define a pre-registered layer-affinity analysis; they do not
+assume that an earlier or later layer must win. Every task uses independent
+frozen L2/L4/L6/L8 heads, the same persisted 80/10/10 split protocol, and
+validation-only head/exit selection. The local interference labels `{1,2}`
+are remapped in memory to `{0,1}`; the HDF5 source file is never modified.
+
+Before the first six-task job, the primary downstream registry and schema audit
+must be extended to register the local jamming and interference caches. This is
+an evaluation-only implementation change: it must not alter architecture,
+pretraining data, masking, or the frozen-head protocol.
+
+Jamming and interference were formerly deferred OOD-transfer caches. They are
+now primary *labelled head-training* tasks for the six-task analysis, while
+remaining outside pretraining. Completed four-task pilot artifacts remain
+historical and must not be presented as six-task results. DeepMIMO LoS/NLoS is
+excluded from new primary runs.
 
 ## Phase 3 — P1 same-scale multi-depth JEPA
 
@@ -284,9 +300,9 @@ deferred and separately approved:
 - Sweep `lambda_H` over `{0.25, 0.5, 1.0, 2.0}`.
 - Test optional coarse L8 supervision only as an ablation.
 - Test alternate region schedules if P2 is promising.
-- Extend held-out OOD transfer beyond the pilot jamming and interference tasks
-  only when a new dataset answers a defined question. EfficientFi human
-  activity recognition is now part of the primary suite.
+- Extend held-out transfer beyond the six primary tasks only when a new dataset
+  answers a defined question. Jamming and interference are primary labelled
+  head-training tasks; they are not pretraining inputs.
 - Treat alternate WiFi CSI and 5G CSI files as separate data-expansion or
   preprocessing ablations.
 - Add dynamic entropy exits only for classification after fixed exits are complete.
@@ -295,8 +311,8 @@ Every ablation must answer a stated research question before GPU allocation.
 
 Implementation protocol: [`phase6_ablations_ood.md`](phase6_ablations_ood.md).
 The Phase 6 framework provides lambda and opt-in L8-coarse P2 ablations,
-repetition/masking-study rules, held-out jamming/interference task
-registration, and classification-only dynamic entropy routing. GPU
+repetition/masking-study rules, six-task downstream registration requirements,
+and classification-only dynamic entropy routing. GPU
 execution remains approval-gated until the Phase 5 pilot review.
 
 ## Interfaces and experiment definitions
@@ -314,10 +330,11 @@ Planned interfaces:
   manifest, environment, and hardware.
 
 The primary pretraining set is the four original LatentWave caches. The primary
-downstream set is RF sensing, NR outdoor positioning, DeepMIMO beam prediction,
-and EfficientFi WiFi human activity recognition (`../has.h5`). DeepMIMO
-LoS/NLoS is retained only as a historical/legacy evaluation and is no longer a
-primary task. Extra files remain deferred until the core comparison is stable.
+downstream set is the six-task suite: RF sensing, jamming, EfficientFi human
+activity sensing, interference classification, NR outdoor positioning, and
+DeepMIMO beam prediction. Jamming and interference remain labelled head-only
+datasets and are never added to pretraining. DeepMIMO LoS/NLoS is retained only
+as a historical/legacy evaluation and is no longer a primary task.
 Main
 The pilot uses seed `0` and the shared stochastic span-time masking regime.
 The finalized P0/B1/P2 protocol uses three seeds and reports the original P0
@@ -344,7 +361,7 @@ For every phase:
   the GPU runtime is ready.
 - The EMA target encoder is the full-input, stop-gradient pretraining branch;
   the context encoder is the primary downstream backbone.
-- The four original pretraining caches and four primary downstream task files
-  define the primary experiment; the HAS cache remains one directory above the
-  repository and is not committed.
+- The four original pretraining caches and six primary downstream task files
+  define the primary experiment; HAS, jamming, and interference caches remain
+  one directory above the repository and are not committed.
 - Large HDF5 files remain local and ignored by Git.

@@ -11,11 +11,20 @@ and RTX 5070 Ti timing procedure.
 The request lists four regimes, so this is a four-regime study rather than a
 three-regime study.
 
-Each condition is evaluated on the revised four-task primary suite: RF signal
-classification, 5G NR positioning, DeepMIMO beam prediction, and EfficientFi
-WiFi human activity recognition. The local HAS cache is `../has.h5`; it is not
-copied into or tracked by Git. DeepMIMO LoS/NLoS is retained only as a legacy
-result and is excluded from new masking-study tables.
+Each condition is evaluated on the six-task primary suite: RF signal
+classification and jamming classification (spectral/frequency); EfficientFi
+human activity recognition and interference classification
+(temporal/cyclostationary); and 5G NR positioning plus DeepMIMO beam prediction
+(channel/spatial geometry). HAS, jamming, and interference are local parent
+directory caches (`../has.h5`, `../jamming.h5`, and `../interference.h5`), are
+used only to train frozen heads, and are never copied into or tracked by Git.
+DeepMIMO LoS/NLoS is retained only as a legacy result and is excluded from new
+masking-study tables.
+
+Execution prerequisite: before a new six-task frozen-head job is submitted,
+register `jamming` and `interference` in the primary downstream suite and
+extend its audit manifest. Until that evaluation-only implementation change is
+made, the existing runner retains its historical four-task behavior.
 
 The research question is:
 
@@ -75,7 +84,7 @@ The complete four-regime matrix contains:
 - 4 Proposed Hierarchical Multi-Scale JEPA pretraining jobs;
 - 4 derived LatentWave early-exit evaluations from the four Original LatentWave checkpoints;
 - 4 Original LatentWave source-style full-depth probes;
-- 8 frozen-head downstream evaluations (early-exit baseline and proposed method);
+- 8 six-task frozen-head downstream evaluations (early-exit baseline and proposed method);
 - 8 batch-1 inference benchmarks; and
 - 4 per-mask comparison reports.
 
@@ -91,10 +100,10 @@ Run one masking condition completely before beginning the next:
 2. Run the mandatory GPU preflight.
 3. Train Original LatentWave for the fixed 60-epoch horizon.
 4. Run the source-faithful full-depth EMA-target L8 probe.
-5. Train the frozen downstream heads for the early-exit baseline at L2/L4/L6/L8.
+5. Train the frozen downstream heads for the early-exit baseline at L2/L4/L6/L8 on all six tasks.
 6. Benchmark the early-exit baseline at batch size 1.
 7. Train the Proposed Hierarchical Multi-Scale JEPA for the fixed 60-epoch horizon.
-8. Train its frozen downstream heads at L2/L4/L6/L8.
+8. Train its frozen downstream heads at L2/L4/L6/L8 on all six tasks.
 9. Benchmark the proposed approach at batch size 1.
 10. Generate the per-mask three-approach tables and figures and review them
     before proceeding to the next mask.
@@ -210,14 +219,14 @@ It must not be silently merged with the frozen-head 80/10/10 metrics.
 
 - The shared split manifest is reused within the mask condition.
 - Test data is not used for head or exit selection.
-- All four tasks and all four exits are present for both frozen-head tracks.
+- All six tasks and all four exits are present for both frozen-head tracks.
 - FLOPs and latency use synchronized batch-1 CUDA timing with warm-up.
 - The report generator produces complete three-approach tables and figures.
 
 ## Deferred work
 
 Do not add extra seeds, the full `N_m ∈ {2,3,4,5,6}` sweep, P1 same-scale
-supervision, OOD transfer, dynamic exits, or alternate datasets until the
+supervision, extra transfer datasets, dynamic exits, or alternate datasets until the
 four requested `N_m=6`/75% conditions have been reviewed. If the first pass
 shows a task-dependent effect, the next justified study is the structured
 mask-count sweep from the LatentWave paper.

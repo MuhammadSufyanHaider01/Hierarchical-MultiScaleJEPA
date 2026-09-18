@@ -124,34 +124,38 @@ uses the same logging when its ablation is approved.
 
 ## Frozen-head, OOD-transfer, and benchmark protocol
 
-The revised primary task suite is RF signal classification, 5G NR positioning,
-DeepMIMO 16-beam prediction, and EfficientFi WiFi human activity recognition
-from `../has.h5`. Classification reports macro accuracy; positioning reports
-mean physical distance error. All four tasks use the shared version-2
-stratified 80/10/10 split manifest, with test data read only after head and
-exit selection.
+The revised primary task suite is RF signal classification, jamming
+classification, EfficientFi WiFi human activity recognition, interference
+classification, 5G NR positioning, and DeepMIMO 16-beam prediction. The first
+four are classification tasks and report macro accuracy; positioning reports
+mean physical distance error. All six tasks use persisted 80/10/10 split
+manifests, with test data read only after head and exit selection. Jamming and
+interference are labelled frozen-head tasks only and are not pretraining data.
+Before this six-task packet is launched, add jamming and interference to the
+primary evaluation registry and schema manifest; this is an evaluation-only
+change and does not modify pretraining.
 
 The early-exit runner trains independent heads at L2, L4, L6, and L8 over the
-full frozen context encoder. RF sensing, DeepMIMO beam, and EfficientFi human
-activity splits are stratified; NR outdoor positioning is deterministically
-random. Every method reuses the same persisted 80/10/10 manifest.
+full frozen context encoder. RF sensing, jamming, interference, DeepMIMO beam,
+and EfficientFi human activity splits are stratified; NR outdoor positioning
+is deterministically random. Every method reuses the same persisted 80/10/10
+manifest for each task.
 
 The head maximum is 200 epochs. Each independent head stops after 20
 non-improving epochs on its task-specific validation metric (macro accuracy
 for classification; physical mean distance error for position); the best
 validation head is saved. This early stopping is valid because the labelled
 validation split and metric are stationary. Test data is read only after all
-four validation-selected heads and both fixed-exit policies are chosen.
+six tasks' validation-selected heads and both fixed-exit policies are chosen.
 
 “Fine-tuning” in this pilot means fitting these frozen linear exit heads only;
-the pretrained backbone is never updated. The primary paper-comparable packet
-uses RF classification, NR positioning, DeepMIMO beam prediction, and
-EfficientFi human activity recognition. The EfficientFi cache is preprocessed
-CSI with six activity labels and is loaded from `../has.h5`. OOD transfer uses
-separately registered labelled datasets and remains a deferred supplementary
-study; its partial diagnostic artifacts are excluded from all current
-comparisons. LoS/NLoS results from earlier packets are historical and must not
-be mixed into the revised four-task tables.
+the pretrained backbone is never updated. The six-task packet uses RF
+classification, jamming classification, EfficientFi human activity
+recognition, interference classification, NR positioning, and DeepMIMO beam
+prediction. The EfficientFi cache is preprocessed CSI with six activity labels
+and is loaded from `../has.h5`; jamming and interference remain outside
+pretraining. The completed four-task pilot remains historical and must not be
+mixed into the six-task tables. LoS/NLoS results are historical only.
 
 Report each method's L2/L4/L6/L8 test performance, L8 full-depth reference,
 best validation-selected exit, earliest exit within 5% of the best validation

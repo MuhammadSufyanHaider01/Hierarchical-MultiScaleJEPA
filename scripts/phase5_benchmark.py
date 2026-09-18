@@ -26,11 +26,10 @@ os.environ.setdefault("WANDB_KEY", "offline")
 from checkpointing import environment_metadata  # noqa: E402
 from configs import init_jepa_config  # noqa: E402
 from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint  # noqa: E402
-from phase5 import build_task_dataset  # noqa: E402
+from phase5 import PRIMARY_TASKS, build_task_dataset  # noqa: E402
 from phase6 import OOD_TASKS, build_ood_task_dataset, default_ood_root  # noqa: E402
 
 
-PRIMARY_TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity")
 TASKS = tuple(dict.fromkeys(PRIMARY_TASKS + OOD_TASKS))
 EXIT_LAYERS = (2, 4, 6, 8)
 

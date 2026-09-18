@@ -8,14 +8,23 @@ from pathlib import Path
 from typing import Sequence
 
 import h5py
+import numpy as np
 import torch
 from torch.utils.data import Dataset, Subset
 
 from datasets import DeepMIMO, ImageDataset
 
 
-SPLIT_SCHEMA_VERSION = 2
+SPLIT_SCHEMA_VERSION = 3
 SPLIT_FRACTIONS = {"train": 0.80, "validation": 0.10, "test": 0.10}
+PRIMARY_TASKS = (
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam",
+)
 
 
 def _path_record(path: Path, root: Path) -> str:
@@ -38,6 +47,46 @@ class TaskSpec:
     sample_shape: tuple[int, ...]
     coord_min: list[float] | None = None
     coord_max: list[float] | None = None
+
+
+class _RemappedLabelDataset(Dataset):
+    """Map source classification labels to contiguous IDs without editing HDF5."""
+
+    def __init__(self, dataset: ImageDataset, mapping: dict[int, int]):
+        self.dataset = dataset
+        self.mapping = mapping
+        self.sample_shape = dataset.sample_shape
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __getitem__(self, index: int):
+        sample, label = self.dataset[index]
+        return sample, torch.tensor(self.mapping[int(label.item())], dtype=torch.long)
+
+
+def _classification_dataset(
+    path: Path,
+    *,
+    sample_key: str,
+    label_key: str,
+) -> tuple[Dataset, int, dict[int, int]]:
+    """Load a classification cache and make labels contiguous in memory."""
+
+    with h5py.File(path, "r") as h5:
+        labels = np.asarray(h5[label_key][:]).reshape(-1)
+    if not np.issubdtype(labels.dtype, np.integer):
+        raise TypeError(f"{path}:{label_key} must contain integer labels, got {labels.dtype}")
+    classes = np.unique(labels)
+    if classes.size < 2:
+        raise ValueError(f"{path}:{label_key} must contain at least two classes")
+    mapping = {int(value): index for index, value in enumerate(classes.tolist())}
+    dataset: Dataset = ImageDataset(path, sample_key=sample_key, label_key=label_key)
+    if any(source != target for source, target in mapping.items()):
+        dataset = _RemappedLabelDataset(dataset, mapping)
+    if len(dataset) != len(labels):
+        raise ValueError(f"{path} has mismatched sample and label counts")
+    return dataset, int(classes.size), mapping
 
 
 def build_task_dataset(task: str, repository_root: Path) -> tuple[Dataset, TaskSpec]:
@@ -99,6 +148,38 @@ def build_task_dataset(task: str, repository_root: Path) -> tuple[Dataset, TaskS
             metric_name="macro_accuracy",
             sample_shape=dataset.sample_shape,
         )
+    if task == "jamming":
+        path = root.parent / "jamming.h5"
+        dataset, outputs, _ = _classification_dataset(
+            path,
+            sample_key="normalized_spectrograms",
+            label_key="labels",
+        )
+        return dataset, TaskSpec(
+            name=task,
+            path=_path_record(path, root),
+            target_type="classification",
+            num_outputs=outputs,
+            higher_is_better=True,
+            metric_name="macro_accuracy",
+            sample_shape=dataset.sample_shape,
+        )
+    if task == "interference":
+        path = root.parent / "interference.h5"
+        dataset, outputs, _ = _classification_dataset(
+            path,
+            sample_key="cls_spectrograms",
+            label_key="cls_labels",
+        )
+        return dataset, TaskSpec(
+            name=task,
+            path=_path_record(path, root),
+            target_type="classification",
+            num_outputs=outputs,
+            higher_is_better=True,
+            metric_name="macro_accuracy",
+            sample_shape=dataset.sample_shape,
+        )
     raise ValueError(f"unsupported Phase 5 task: {task}")
 
 
@@ -154,18 +235,23 @@ def split_indices(
 
 
 def _labels(dataset: Dataset) -> list[int] | None:
+    mapping: dict[int, int] | None = None
+    if isinstance(dataset, _RemappedLabelDataset):
+        mapping = dataset.mapping
+        dataset = dataset.dataset
     if not isinstance(dataset, ImageDataset):
         return None
     if dataset.label_dtype is not torch.long:
         return None
     with h5py.File(dataset.h5_path, "r") as h5:
         labels = torch.as_tensor(h5[dataset.label_key][:]).reshape(-1)
-    return [int(value) for value in labels.tolist()]
+    values = [int(value) for value in labels.tolist()]
+    return [mapping[value] for value in values] if mapping is not None else values
 
 
 def create_split_manifest(repository_root: Path, *, seed: int) -> dict[str, object]:
     tasks: dict[str, object] = {}
-    for task in ("rfs", "nrpos-outdoor", "deepmimo-beam", "human-activity"):
+    for task in PRIMARY_TASKS:
         dataset, spec = build_task_dataset(task, repository_root)
         split = split_indices(len(dataset), seed=seed, labels=_labels(dataset))
         tasks[task] = {

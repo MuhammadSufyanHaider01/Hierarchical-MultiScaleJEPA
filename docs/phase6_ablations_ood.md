@@ -1,19 +1,20 @@
 # Phase 6: deferred repetitions, masking studies, and ablations
 
-This document records optional future OOD, repetition, masking, and ablation
-work. These jobs are explicitly deferred and are not required for the current
-paper-comparable P0/B1/P2 pilot. OOD transfer does not alter the primary
-P0/B1/P2 definition. P1/B2 is the same-scale control ablation. Diagnostic
+This document records optional future transfer, repetition, masking, and
+ablation work. These jobs are explicitly deferred and are not required for the
+current paper-comparable P0/B1/P2 pilot. P1/B2 is the same-scale control
+ablation. Diagnostic
 early-stopped checkpoints are not eligible. Any later OOD or ablation command
 requires separate approval under [`gpu_run_protocol.md`](gpu_run_protocol.md);
 none is queued automatically.
 
-## Registered OOD tasks
+## Promoted labelled downstream tasks
 
-The local parent directory contains two held-out classification datasets. They
+The local parent directory contains two labelled classification datasets. They
 are not added to pretraining and no HDF5 file is copied into or tracked by this
-repository. EfficientFi HAS is no longer listed here because it has been
-promoted to the primary downstream task suite.
+repository. Jamming and interference are now part of the six-task primary
+frozen-head suite for new masking-regime and post-epoch-60 evaluations; they
+are not labelled OOD in those reports.
 
 | Task | Source file | Sample key | Label key | Classes |
 |---|---|---|---|---:|
@@ -23,8 +24,8 @@ promoted to the primary downstream task suite.
 The audit confirms that the available tensors are finite `[N,C,H,W]` float32
 inputs with integer labels. Interference source labels `{1,2}` are remapped in
 memory to `{0,1}` and that mapping is preserved in every split manifest; the
-original file is never changed. Each OOD task receives its own fixed,
-stratified 80/10/10 train/validation/test split with seed 2025.
+original file is never changed. Each task receives a fixed, stratified
+80/10/10 train/validation/test split with seed 2025.
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/audit_phase6_ood.py \
@@ -73,7 +74,11 @@ on a promising P2 main result, and an arbitrary schedule would not answer a
 well-defined research question. A reviewed Phase 5 result must identify the
 specific failure mode before one is added.
 
-## OOD frozen-exit protocol
+## Legacy OOD frozen-exit protocol
+
+The commands below are retained only for historical diagnostic artifacts. New
+six-task evaluations must register jamming and interference in the primary
+frozen-head suite, not invoke `--dataset-suite ood`.
 
 For the completed P0 checkpoint, B1 and the original P0 source reference use
 the same checkpoint but remain separate evaluation tracks. For the completed
