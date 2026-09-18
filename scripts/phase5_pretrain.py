@@ -222,6 +222,18 @@ def _seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def _allow_trusted_checkpoint_metadata_for_resume() -> None:
+    """Allow PyTorch 2.6+ to restore our own Lightning checkpoint metadata.
+
+    Lightning loads resume checkpoints with ``weights_only=True`` by default
+    under current PyTorch releases.  The local checkpoints record
+    ``TorchVersion`` in metadata, which is safe and required to restore the
+    optimizer/scheduler/EMA state of a checkpoint produced by this project.
+    """
+
+    torch.serialization.add_safe_globals([torch.torch_version.TorchVersion])
+
+
 def _loader_options(config, *, prefetch_factor: int) -> dict:
     """Return worker settings without passing prefetching to a zero-worker loader."""
 
@@ -780,6 +792,8 @@ def main() -> int:
     if args.device == "cuda":
         torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
+    if args.resume:
+        _allow_trusted_checkpoint_metadata_for_resume()
     trainer.fit(model, train_loader, validation_loaders, ckpt_path=str(args.resume) if args.resume else None)
     elapsed_seconds = time.perf_counter() - started
     global_step = int(trainer.global_step)

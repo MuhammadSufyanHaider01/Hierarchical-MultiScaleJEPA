@@ -97,6 +97,14 @@ def _arguments() -> argparse.Namespace:
             "or report the test split; use this for checkpoint-selection probes."
         ),
     )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help=(
+            "Evaluate the held-out split using heads saved by an earlier --selection-only run. "
+            "This never trains heads or revisits validation for exit selection."
+        ),
+    )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
     return parser.parse_args()
 
@@ -345,6 +353,8 @@ def main() -> int:
         raise ValueError("batch limits must be positive when set")
     if args.tolerance < 0:
         raise ValueError("tolerance must be non-negative")
+    if args.selection_only and args.test_only:
+        raise ValueError("--selection-only and --test-only are mutually exclusive")
     if args.head_early_stopping_patience < 1:
         raise ValueError("head-early-stopping-patience must be positive")
     if args.head_early_stopping_min_delta < 0:
@@ -380,6 +390,59 @@ def main() -> int:
     if unsupported:
         raise ValueError(f"tasks {unsupported} are not in the {args.dataset_suite} dataset suite")
     output = run_dir / "exit_metrics.json"
+    if args.test_only:
+        if not output.is_file():
+            raise FileNotFoundError(
+                f"--test-only requires saved validation-selected heads and metrics: {output}"
+            )
+        all_results = json.loads(output.read_text())
+        if all_results.get("method") != args.method or int(all_results.get("pretrain_seed", -1)) != args.pretrain_seed:
+            raise ValueError(f"cannot test incompatible metrics file: {output}")
+        for task_name in tasks:
+            if task_name not in all_results.get("tasks", {}):
+                raise ValueError(f"--test-only is missing saved results for task: {task_name}")
+            dataset, spec = build_dataset(task_name)
+            split_record = manifest["tasks"][task_name]
+            subsets = make_subsets(dataset, split_record)
+            test_loader = _loader(
+                subsets["test"],
+                batch_size=args.batch_size,
+                shuffle=False,
+                num_workers=args.num_workers,
+                seed=head_seed,
+                pin_memory=device.type == "cuda",
+            )
+            encoder = _new_encoder(config, checkpoint, device)
+            task_result = all_results["tasks"][task_name]
+            exit_results = task_result.get("exits", {})
+            for exit_layer in EXIT_LAYERS:
+                record = exit_results.get(str(exit_layer))
+                if record is None:
+                    raise ValueError(f"--test-only is missing L{exit_layer} head metadata for {task_name}")
+                head_path = Path(record["head_path"])
+                if not head_path.is_file():
+                    raise FileNotFoundError(f"--test-only head is missing: {head_path}")
+                record["test"] = _evaluate_saved_head(
+                    encoder,
+                    exit_layer=exit_layer,
+                    spec=spec,
+                    head_path=head_path,
+                    test_loader=test_loader,
+                    device=device,
+                    limit_batches=args.limit_test_batches,
+                )
+            selected_best = int(task_result["selected_exit_best_validation"])
+            selected_tolerance = int(task_result["selected_exit_earliest_within_tolerance"])
+            task_result["selected_test_best_validation"] = exit_results[str(selected_best)]["test"]
+            task_result["selected_test_earliest_within_tolerance"] = exit_results[str(selected_tolerance)]["test"]
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+        all_results.setdefault("protocol", {})["test_evaluation"] = True
+        all_results["protocol"]["test_evaluation_mode"] = "post_selection_saved_heads"
+        all_results["protocol"]["selection_uses"] = "validation_only"
+        output.write_text(json.dumps(all_results, indent=2, sort_keys=True))
+        print(json.dumps({"metrics": str(output), "tasks": list(tasks), "mode": "test_only"}, indent=2))
+        return 0
     all_results = {
         "method": args.method,
         "pretrain_seed": args.pretrain_seed,
