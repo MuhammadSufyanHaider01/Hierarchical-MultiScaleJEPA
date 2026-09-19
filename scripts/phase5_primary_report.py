@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create the fair, single-seed multi-block comparison result packet.
+"""Create a fair, single-seed masking-condition comparison result packet.
 
 All three manuscript rows use frozen context-encoder representations and the
 same persisted 80/10/10 downstream split.  The original LatentWave row is its
@@ -23,7 +23,19 @@ from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXIT_LAYERS = (2, 4, 6, 8)
-TASKS = ("rfs", "nrpos-outdoor", "deepmimo-beam", "deepmimo-los")
+TASK_ORDER = (
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam",
+    "deepmimo-los",
+)
+# Updated by ``_discover_tasks`` before any result packet is loaded. Keeping
+# the historical LoS/NLoS task in TASK_ORDER lets existing multiblock reports
+# remain reproducible while new packets use the six-task suite.
+TASKS = TASK_ORDER[:6]
 METHODS = ("b1", "p2")
 METHOD_LABELS = {
     "b0": "Original LatentWave",
@@ -42,12 +54,18 @@ FIGURE_METHOD_SHORT = {
 }
 TASK_LABELS = {
     "rfs": "RF sensing",
+    "jamming": "Jamming classification",
+    "human-activity": "Human activity sensing",
+    "interference": "Interference classification",
     "nrpos-outdoor": "NR positioning",
     "deepmimo-beam": "DeepMIMO beam",
     "deepmimo-los": "DeepMIMO LoS/NLoS",
 }
 TASK_METRICS = {
     "rfs": ("macro_accuracy", "Macro accuracy", True),
+    "jamming": ("macro_accuracy", "Macro accuracy", True),
+    "human-activity": ("macro_accuracy", "Macro accuracy", True),
+    "interference": ("macro_accuracy", "Macro accuracy", True),
     "nrpos-outdoor": ("mean_distance_error", "Mean distance error (m)", False),
     "deepmimo-beam": ("macro_accuracy", "Macro accuracy", True),
     "deepmimo-los": ("macro_accuracy", "Macro accuracy", True),
@@ -65,6 +83,16 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_formal")
     parser.add_argument("--source-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_pilot")
     parser.add_argument("--output-dir", type=Path, default=REPOSITORY_ROOT / "reports/phase5_primary")
+    parser.add_argument(
+        "--masking-label",
+        default="multi-block/span_time",
+        help="Human-readable masking condition recorded in the report manifest and README.",
+    )
+    parser.add_argument(
+        "--report-title",
+        default="Phase 5 primary single-seed pilot packet",
+        help="Top-level Markdown title for this report packet.",
+    )
     return parser.parse_args()
 
 
@@ -80,6 +108,38 @@ def _read(path: Path) -> dict[str, Any]:
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def _discover_tasks(run_root: Path) -> tuple[str, ...]:
+    """Require P0 and P2 to contain exactly the same recognised task suite."""
+
+    packets = {
+        method: _read(run_root / method / "seed_000/downstream/exit_metrics.json")
+        for method in ("p0", "p2")
+    }
+    task_sets = {method: set(packet.get("tasks", {})) for method, packet in packets.items()}
+    if task_sets["p0"] != task_sets["p2"]:
+        raise ValueError(f"P0/P2 downstream task suites differ: {task_sets}")
+    unknown = task_sets["p0"].difference(TASK_ORDER)
+    if unknown:
+        raise ValueError(f"report does not recognise downstream tasks: {sorted(unknown)}")
+    tasks = tuple(task for task in TASK_ORDER if task in task_sets["p0"])
+    if not tasks:
+        raise ValueError("report requires at least one downstream task")
+    return tasks
+
+
+def _task_grid() -> tuple[int, int]:
+    """Return a compact panel layout for either four or six task packets."""
+
+    columns = 2 if len(TASKS) <= 4 else 3
+    rows = (len(TASKS) + columns - 1) // columns
+    return rows, columns
+
+
+def _hide_unused_axes(axes, populated: int) -> None:
+    for axis in axes.flat[populated:]:
+        axis.set_visible(False)
 
 
 def _fmt(value: Any, digits: int = 4) -> str:
@@ -333,7 +393,8 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
 
     colors = {"b1": "#0072B2", "p2": "#D55E00"}
     paths = []
-    fig, axes = plt.subplots(2, 2, figsize=(10.2, 7.4), squeeze=False)
+    rows_count, columns_count = _task_grid()
+    fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         metric_key, metric_label, higher_is_better = TASK_METRICS[task]
         for method in METHODS:
@@ -369,6 +430,7 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
                 color="#555555",
             )
     handles, labels = axes.flat[0].get_legend_handles_labels()
+    _hide_unused_axes(axes, len(TASKS))
     fig.legend(handles, labels, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 0.995))
     fig.suptitle("Frozen-head downstream performance by encoder depth", fontsize=14, weight="bold", y=1.045)
     fig.text(0.5, -0.015, "Single-seed pilot; test metrics are reported after validation-only head/exit selection.", ha="center", fontsize=9)
@@ -391,7 +453,8 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     colors = {"b1": "#0072B2", "p2": "#D55E00"}
     hatches = {"best_validation": "", "earliest_within_tolerance": "//"}
     labels = {"best_validation": "Best validation", "earliest_within_tolerance": "Earliest within 5%"}
-    fig, axes = plt.subplots(2, 2, figsize=(10.2, 7.4), squeeze=False)
+    rows_count, columns_count = _task_grid()
+    fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         _, metric_label, higher_is_better = TASK_METRICS[task]
         positions = []
@@ -423,6 +486,7 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
         for method in METHODS
     ]
     policy_handles = [plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="#222222", hatch=hatches[policy], label=labels[policy]) for policy in hatches]
+    _hide_unused_axes(axes, len(TASKS))
     fig.legend(handles=method_handles + policy_handles, loc="upper center", ncol=4, frameon=False, bbox_to_anchor=(0.5, 0.995))
     fig.suptitle("Validation-selected exits and held-out test performance", fontsize=14, weight="bold", y=1.045)
     fig.text(0.5, -0.015, "Exit labels show the selected encoder depth; selection never uses the test split.", ha="center", fontsize=9)
@@ -443,7 +507,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
     import matplotlib.pyplot as plt
 
     colors = {"b1": "#0072B2", "p2": "#D55E00"}
-    fig, axes = plt.subplots(2, 4, figsize=(14.2, 6.3), squeeze=False)
+    fig, axes = plt.subplots(2, len(TASKS), figsize=(3.6 * len(TASKS), 6.3), squeeze=False)
     for column, task in enumerate(TASKS):
         for method in METHODS:
             task_rows = [row for row in benchmark_rows if row["method"] == method and row["task"] == task]
@@ -608,7 +672,8 @@ def _plot_all_method_performance(
     from matplotlib.ticker import PercentFormatter
 
     colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
-    fig, axes = plt.subplots(2, 2, figsize=(11.4, 7.8), squeeze=False)
+    rows_count, columns_count = _task_grid()
+    fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         _, _, higher_is_better = TASK_METRICS[task]
         source = next(row for row in source_rows if row["task"] == task)
@@ -652,6 +717,7 @@ def _plot_all_method_performance(
         else:
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
     handles, labels = axes.flat[0].get_legend_handles_labels()
+    _hide_unused_axes(axes, len(TASKS))
     fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
     fig.suptitle("Downstream performance across the three approaches", fontsize=14, weight="bold", y=1.045)
     fig.text(
@@ -682,7 +748,8 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
 
     colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
     methods = ("b0", "b1", "p2")
-    fig, axes = plt.subplots(2, 2, figsize=(11.4, 7.8), squeeze=False)
+    rows_count, columns_count = _task_grid()
+    fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         _, _, higher_is_better = TASK_METRICS[task]
         task_rows = [row for row in headline_rows if row["task"] == task]
@@ -714,6 +781,7 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
         else:
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
     handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in methods]
+    _hide_unused_axes(axes, len(TASKS))
     fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
     fig.suptitle("Headline downstream result at each approach's deployment choice", fontsize=14, weight="bold", y=1.045)
     fig.text(0.5, -0.012, "Layer labels show full-depth L8 for Original LatentWave and the earliest exit within 5% of validation-best for the two exit methods.", ha="center", fontsize=8.5)
@@ -737,7 +805,7 @@ def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, A
 
     colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
     methods = ("b0", "b1", "p2")
-    fig, axes = plt.subplots(2, 4, figsize=(16.4, 7.1), squeeze=False)
+    fig, axes = plt.subplots(2, len(TASKS), figsize=(3.45 * len(TASKS), 7.1), squeeze=False)
     for column, task in enumerate(TASKS):
         task_rows = [row for row in headline_rows if row["task"] == task]
         labels = [f"{FIGURE_METHOD_SHORT[method]}\nL{next(row['exit_layer'] for row in task_rows if row['method'] == method)}" for method in methods]
@@ -794,6 +862,9 @@ def _build_report(
     headline_rows: list[dict[str, Any]],
     benchmark_rows: list[dict[str, Any]],
     figure_paths: list[str],
+    *,
+    report_title: str,
+    masking_label: str,
 ) -> None:
     comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
     detailed_benchmark_rows = [row for row in benchmark_rows if row["method"] in METHODS]
@@ -861,7 +932,7 @@ def _build_report(
                 f"{row['latency_savings_vs_l8'] * 100:.1f}%",
             ]
         )
-    report = f"""# Phase 5 primary single-seed pilot packet
+    report = f"""# {report_title}
 
 This directory contains the submission-oriented result tables and figures for
 the completed single-seed pilot. It is an aggregation of recorded
@@ -886,11 +957,10 @@ All values are single-seed pilot point estimates.
 
 ## Task-suite note
 
-This is the completed historical multi-block (`span_time`) pilot, so its
-fourth task is DeepMIMO LoS/NLoS. It does not replace the revised masking
-study, where EfficientFi human activity recognition (HAS) replaces LoS/NLoS.
-The methodological correction in this packet is limited to making the three
-historical rows use the same context-encoder frozen-head protocol.
+This packet covers **{masking_label}** and the following downstream task suite:
+{", ".join(TASK_LABELS[task] for task in TASKS)}. Jamming and interference
+are labelled frozen-head tasks only; none of the six downstream caches is used
+for pretraining.
 
 ## All-approach headline downstream comparison
 
@@ -938,8 +1008,8 @@ The PNG files are 300-DPI raster exports and the PDF files are vector exports.
 ## Exclusions
 
 Diagnostic early-stopped pretraining runs, the same-scale auxiliary JEPA
-ablation, OOD transfer results, extra seeds, and alternate masking regimes are
-excluded.
+ablation, extra transfer datasets, extra seeds, and alternate masking regimes
+are excluded.
 They require separate approval and are not part of this primary pilot packet.
 """
     (output_dir / "README.md").write_text(report)
@@ -1010,6 +1080,8 @@ def main() -> int:
     output_dir = _repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
+    global TASKS
+    TASKS = _discover_tasks(run_root)
 
     b1_packet, _ = _load_exit_results(run_root, "b1")
     source_reference, source_rows = _load_context_l8_reference(b1_packet)
@@ -1034,7 +1106,18 @@ def main() -> int:
     figure_paths.extend(_plot_selected(output_dir, comparable_rows))
     figure_paths.extend(_plot_efficiency(output_dir, [row for row in benchmark_rows if row["method"] in METHODS]))
     figure_paths.extend(_plot_context_l8_reference(output_dir, source_rows))
-    _build_report(output_dir, source_reference, source_rows, b1_packet, p2_packet, headline_rows, benchmark_rows, figure_paths)
+    _build_report(
+        output_dir,
+        source_reference,
+        source_rows,
+        b1_packet,
+        p2_packet,
+        headline_rows,
+        benchmark_rows,
+        figure_paths,
+        report_title=args.report_title,
+        masking_label=args.masking_label,
+    )
     manifest = {
         "report": "phase5_primary_single_seed",
         "git_revision": _git_revision(),
@@ -1043,8 +1126,8 @@ def main() -> int:
         "output_dir": str(output_dir),
         "methods": [METHOD_LABELS[method] for method in ("b0", "b1", "p2")],
         "seed": 0,
-        "masking": "multi_block/span_time",
-        "task_suite": "historical: rfs, nrpos-outdoor, deepmimo-beam, deepmimo-los",
+        "masking": args.masking_label,
+        "task_suite": list(TASKS),
         "included_inputs": {
             "b0_context_l8": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_metrics": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
@@ -1056,7 +1139,7 @@ def main() -> int:
             "EMA-teacher source-style probe (archived provenance only)",
             "diagnostic early-stopped runs",
             "same-scale auxiliary JEPA control ablation",
-            "OOD",
+            "extra transfer datasets",
             "seeds 1 and 2",
             "alternate masking regimes",
         ],

@@ -1,0 +1,7 @@
+method,task,metric,value,protocol
+b0,rfs,macro_accuracy,0.7896893620491028,"frozen context encoder, full-input L8, shared 80/10/10 split"
+b0,jamming,macro_accuracy,0.8546666502952576,"frozen context encoder, full-input L8, shared 80/10/10 split"
+b0,human-activity,macro_accuracy,0.9666666984558105,"frozen context encoder, full-input L8, shared 80/10/10 split"
+b0,interference,macro_accuracy,0.7128571271896362,"frozen context encoder, full-input L8, shared 80/10/10 split"
+b0,nrpos-outdoor,mean_distance_error,2.93912935256958,"frozen context encoder, full-input L8, shared 80/10/10 split"
+b0,deepmimo-beam,macro_accuracy,0.3909437656402588,"frozen context encoder, full-input L8, shared 80/10/10 split"
