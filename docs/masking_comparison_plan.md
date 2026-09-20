@@ -63,11 +63,17 @@ the local collator, the patch grid height is frequency and width is time, so
 `span_time` means full-time contiguous-frequency masking. It is therefore the
 frequency condition, not a generic region condition.
 
-All non-masking settings remain unchanged from the formal pilot: FP32, seed
-`0`, four original pretraining caches, 60 epochs, effective batch size 64,
-the pinned LatentWave optimizer/scheduler/EMA settings, and the current P2
-memory-safe profile. The first pass changes only the mask geometry or fixed
-random ratio.
+All non-masking settings remain unchanged from the formal pilot: seed `0`,
+four original pretraining caches, 60 epochs, effective batch size 64, and the
+pinned LatentWave optimizer/scheduler/EMA settings. P0 remains the
+source-faithful FP32/math-attention configuration. Every P2 job in this
+four-regime masking matrix uses the same successful RTX 5070 Ti
+performance-safe profile: BF16 mixed precision, fused attention, microbatch
+16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, and
+`PYTORCH_ALLOC_CONF=expandable_segments:True`. This keeps the P2
+configuration matched across frequency, region, time, and random masking and
+reduces the activation-memory risk observed with larger FP32 hierarchical
+batches. The first pass changes only the mask geometry or fixed random ratio.
 
 Before formal execution, audit the current context-mask scale and realized
 mask coverage against the paper. The repository's current formal config uses
@@ -102,7 +108,8 @@ Run one masking condition completely before beginning the next:
 4. Run the source-faithful full-depth EMA-target L8 probe.
 5. Train the frozen downstream heads for the early-exit baseline at L2/L4/L6/L8 on all six tasks.
 6. Benchmark the early-exit baseline at batch size 1.
-7. Train the Proposed Hierarchical Multi-Scale JEPA for the fixed 60-epoch horizon.
+7. Train the Proposed Hierarchical Multi-Scale JEPA for the fixed 60-epoch
+   horizon with the matched performance-safe P2 profile defined above.
 8. Train its frozen downstream heads at L2/L4/L6/L8 on all six tasks.
 9. Benchmark the proposed approach at batch size 1.
 10. Generate the per-mask three-approach tables and figures and review them

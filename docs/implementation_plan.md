@@ -255,9 +255,16 @@ source-style P0 scikit-learn probe is kept separate from the context-encoder
 early-exit protocol. Formal early-exit runs persist one shared 80/10/10
 downstream split manifest, choose frozen-head epochs and exits on downstream
 validation only, and do not run the legacy full-dataset downstream probe during
-pretraining. P2 uses the memory-safe microbatch-4/accumulation-16 profile on
-the RTX 5070 Ti while retaining effective batch size 64; P1 uses it only if its
-ablation is later approved.
+pretraining. For the four-regime masking matrix, P2 uses the matched RTX 5070
+Ti performance-safe profile: BF16 mixed precision, fused attention, microbatch
+16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, and
+`PYTORCH_ALLOC_CONF=expandable_segments:True`, retaining effective batch size
+64. This is the same successful profile used by the completed region P2 run
+and is required for the future frequency, time, and random P2 runs. The
+conservative FP32 microbatch-4/accumulation-16 `--memory-safe` profile remains
+available as a separately recorded fallback if a particular mask geometry
+causes an OOM. P1 uses a separately approved profile only if its ablation is
+later approved.
 
 Review gate: inspect metrics, checkpoints, logs, plots, and failure cases
 before spending GPU time on ablations.

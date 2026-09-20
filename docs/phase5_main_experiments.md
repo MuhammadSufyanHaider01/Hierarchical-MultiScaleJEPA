@@ -82,13 +82,16 @@ or make final statistical claims from them.
   exactly 60 epochs. This is a fixed, matched pilot budget, not early stopping.
   The pinned LatentWave 240-epoch schedule remains an optional separate
   source-faithful reproduction and must not be conflated with this pilot.
-- Formal jobs use FP32, deterministic Lightning execution, one GPU,
+- P0 uses the source-faithful FP32/math-attention configuration, with
+  deterministic Lightning execution, one GPU,
   `torch.set_float32_matmul_precision("high")`, the original masking,
   optimizer, LR/weight-decay schedules, EMA branch, and L8 anchor.
-- P0 uses microbatch 16 and gradient accumulation 4. Its effective batch is
-  64. P2 uses microbatch 4 and accumulation 16, also effective batch 64;
-  this preserves optimizer-step and scheduler timing while fitting the
-  hierarchical branches in the RTX 5070 Ti memory budget.
+- Every P2 run in the four-regime masking comparison uses the matched
+  performance-safe profile: BF16 mixed precision, fused attention, microbatch
+  16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry,
+  and effective batch 64. This is the successful region configuration and is
+  required for the frequency, time, and random P2 runs so their training
+  settings are comparable.
 - A separate throughput experiment is available for hierarchical jobs:
   microbatch 8, accumulation 8, eight data-loader workers, and FP32 preserve
   effective batch 64 while halving serialized microbatches per optimizer step.
@@ -100,12 +103,15 @@ or make final statistical claims from them.
   accumulation 4, twelve workers, prefetch factor 4, epoch-only telemetry,
   and fused scaled-dot-product attention. It is selected with
   `--performance-safe`, preserves effective batch 64, and reduces activation
-  memory. It is a documented precision variant, so final
-  P0/P2 comparisons must use the same profile for every trained method.
-- P2 formal commands must set
+  memory. It is the required matched profile across P2 masking conditions;
+  P0 remains the separately documented source-faithful FP32 reference.
+- P2 performance-safe commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
-  `--memory-safe`. The runner verifies batch size 4, accumulation 16, FP32,
-  CUDA, and the allocator setting and records it in `experiment.json`.
+  `--performance-safe`. The runner verifies BF16, fused attention, batch size
+  16, accumulation 4, CUDA, 12 workers, prefetch factor 4, and the allocator
+  setting and records them in `experiment.json`. The FP32
+  microbatch-4/accumulation-16 `--memory-safe` profile is retained only as an
+  explicitly documented fallback for a mask geometry that does not fit.
 - Pilot pretraining has no held-out latent validation set and no early
   stopping. Its downstream checkpoint is `last.ckpt` after the fixed horizon.
   The `--early-stopping` switch remains available only with
@@ -213,15 +219,22 @@ PYTHONPATH=src .venv/bin/python scripts/phase5_pretrain.py \
   --precision 32-true --device cuda
 ```
 
-A formal P2 seed uses the required memory-safe profile:
+A formal P2 seed in the masking comparison uses the matched performance-safe profile:
 
 ```bash
 PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   .venv/bin/python scripts/phase5_pretrain.py \
   --method p2 --seed 0 --run-root runs/phase5_formal \
-  --run-kind formal --batch-size 4 --accumulate-grad-batches 16 \
-  --precision 32-true --device cuda --memory-safe
+  --run-kind formal --batch-size 16 --accumulate-grad-batches 4 \
+  --num-workers 12 --prefetch-factor 4 --epoch-metrics-only \
+  --attention-backend fused --precision bf16-mixed --device cuda \
+  --performance-safe
 ```
+
+If a mask geometry triggers an OOM under this matched profile, stop the run,
+record the failure, and obtain separate approval before switching that mask to
+the conservative FP32 `--memory-safe` fallback. Do not silently mix profiles
+within a final comparison table.
 
 For an explicitly approved speed experiment, use the separate throughput
 profile. It writes to a fresh directory and remains FP32 so that any speed

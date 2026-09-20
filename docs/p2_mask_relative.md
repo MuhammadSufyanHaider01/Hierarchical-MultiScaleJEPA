@@ -77,8 +77,11 @@ odd mask geometry and padded-region pooling, positional-query averaging,
 malformed-mask rejection, prediction/target axis matching, auxiliary
 gradients, and the absence of target gradients.
 
-Phase 5 pilot P2 uses the same fixed 60-epoch horizon as P0, without raw
-latent-loss early stopping. Its RTX 5070 Ti profile is FP32, microbatch 4,
-accumulation 16, effective batch 64, and
-`PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts with
-the runner's `--memory-safe` check enabled.
+The four-regime masking-comparison P2 runs use the same fixed 60-epoch horizon
+as P0, without raw latent-loss early stopping. Their matched RTX 5070 Ti
+profile is BF16 mixed precision with fused attention, microbatch 16,
+accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, effective
+batch 64, and `PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python
+starts with the runner's `--performance-safe` check enabled. The FP32
+microbatch-4/accumulation-16 `--memory-safe` profile remains a separately
+approved fallback for a mask geometry that causes OOM.
