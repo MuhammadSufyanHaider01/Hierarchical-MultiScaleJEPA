@@ -48,11 +48,13 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   be used in the main result table.
 - P2 jobs in the four-regime masking comparison use the matched performance-
   safe profile: BF16 mixed precision, fused attention, microbatch 16,
-  accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, and
+  accumulation 4, prefetch factor 4, epoch-only telemetry, and
   `PYTORCH_ALLOC_CONF=expandable_segments:True` with
   `--performance-safe`. The runner verifies and records this profile before
-  allocating GPU memory. This is the successful region configuration and is
-  required for future frequency, time, and random P2 runs.
+  allocating GPU memory. Future P2 runs use the HDF5-balanced loader mode:
+  three workers per cache with `--hdf5-worker-budget 12` across the four
+  cache loaders, after a one-epoch finite-loss throughput diagnostic. This
+  changes only input delivery and is recorded separately from legacy runs.
 - The conservative FP32 microbatch-4/accumulation-16 `--memory-safe` profile
   remains an explicitly approved fallback if a mask geometry causes OOM. A
   separately approved `--throughput-safe` profile tests microbatch 8,
@@ -64,7 +66,7 @@ The gate must succeed on the RTX 5070 Ti before a formal command with
   pressure. The BF16 profile below is a separate, explicitly recorded
   performance variant rather than a replacement for source-faithful FP32.
 - `--performance-safe` is the bounded BF16 speed profile: microbatch 16,
-  accumulation 4, twelve workers, prefetch factor 4, epoch-only training
+  accumulation 4, prefetch factor 4, epoch-only training
   telemetry, and PyTorch fused scaled-dot-product attention. It preserves
   effective batch 64 but is not source-faithful FP32. Fused attention computes
   the same attention operation, with only small precision-level differences.

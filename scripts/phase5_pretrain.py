@@ -123,6 +123,16 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--accumulate-grad-batches", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument(
+        "--hdf5-worker-budget",
+        type=int,
+        default=None,
+        help=(
+            "Optional total worker budget shared across the four pretraining HDF5 caches. "
+            "When set, it is divided deterministically across cache loaders instead of "
+            "using --num-workers for every cache loader."
+        ),
+    )
+    parser.add_argument(
         "--prefetch-factor",
         type=int,
         default=2,
@@ -196,7 +206,8 @@ def _arguments() -> argparse.Namespace:
         action="store_true",
         help=(
             "Use the bounded RTX 5070 Ti performance profile: BF16, microbatch 16, "
-            "accumulation 4, fused attention, 12 workers, prefetch 4, and epoch-only metrics."
+            "accumulation 4, fused attention, three workers per cache (12 total), "
+            "prefetch 4, and epoch-only metrics."
         ),
     )
     parser.add_argument(
@@ -234,34 +245,60 @@ def _allow_trusted_checkpoint_metadata_for_resume() -> None:
     torch.serialization.add_safe_globals([torch.torch_version.TorchVersion])
 
 
-def _loader_options(config, *, prefetch_factor: int) -> dict:
+def _loader_options(config, *, num_workers: int, prefetch_factor: int) -> dict:
     """Return worker settings without passing prefetching to a zero-worker loader."""
 
     options = {
-        "num_workers": config.data.num_workers,
+        "num_workers": num_workers,
         "pin_memory": config.data.pin_mem,
-        "persistent_workers": config.data.num_workers > 0,
+        "persistent_workers": num_workers > 0,
     }
-    if config.data.num_workers > 0:
+    if num_workers > 0:
         options["prefetch_factor"] = prefetch_factor
     return options
 
 
-def _build_pretrain_loader(config, *, prefetch_factor: int):
+def _worker_allocation(*, cache_count: int, workers_per_cache: int, worker_budget: int | None) -> tuple[int, ...]:
+    """Return deterministic per-cache worker counts.
+
+    The legacy behavior gives every cache loader ``workers_per_cache`` workers.
+    A total budget caps the aggregate process count while retaining one loader
+    per cache and deterministic sample order.
+    """
+
+    if cache_count < 1:
+        raise ValueError("cache_count must be positive")
+    if workers_per_cache < 0:
+        raise ValueError("workers_per_cache must be non-negative")
+    if worker_budget is None:
+        return (workers_per_cache,) * cache_count
+    if worker_budget < 1:
+        raise ValueError("hdf5 worker budget must be positive")
+    quotient, remainder = divmod(worker_budget, cache_count)
+    return tuple(quotient + (index < remainder) for index in range(cache_count))
+
+
+def _build_pretrain_loader(config, *, prefetch_factor: int, worker_budget: int | None = None):
     collator = get_collator(config.masks.type)(
         input_size=config.encoder.img_size,
         patch_size=config.encoder.patch_size,
         **getattr(config.masks, config.masks.type).model_dump(),
     )
+    dataset_configs = tuple(config.data.pretrain_datasets)
+    worker_counts = _worker_allocation(
+        cache_count=len(dataset_configs),
+        workers_per_cache=config.data.num_workers,
+        worker_budget=worker_budget,
+    )
     dataloaders = {}
-    for dataset_config in config.data.pretrain_datasets:
+    for dataset_config, num_workers in zip(dataset_configs, worker_counts, strict=True):
         dataset = PretrainCache(dataset_config.path, dataset_config.key)
         dataloaders[dataset_config.name] = DataLoader(
             dataset,
             batch_size=config.data.batch_size,
             sampler=RandomSampler(dataset),
             collate_fn=collator,
-            **_loader_options(config, prefetch_factor=prefetch_factor),
+            **_loader_options(config, num_workers=num_workers, prefetch_factor=prefetch_factor),
         )
     loader = CombinedLoader(dataloaders, mode="max_size_cycle")
     iter(loader)
@@ -284,6 +321,7 @@ def _build_pretrain_loaders_with_validation(
     validation_seed: int,
     manifest_path: Path,
     prefetch_factor: int,
+    worker_budget: int | None = None,
 ):
     """Build disjoint cache loaders and persist their deterministic split manifest."""
     train_collator = get_collator(config.masks.type)(
@@ -299,7 +337,13 @@ def _build_pretrain_loaders_with_validation(
         "validation_seed": validation_seed,
         "datasets": [],
     }
-    for dataset_index, dataset_config in enumerate(config.data.pretrain_datasets):
+    dataset_configs = tuple(config.data.pretrain_datasets)
+    worker_counts = _worker_allocation(
+        cache_count=len(dataset_configs),
+        workers_per_cache=config.data.num_workers,
+        worker_budget=worker_budget,
+    )
+    for dataset_index, (dataset_config, num_workers) in enumerate(zip(dataset_configs, worker_counts, strict=True)):
         dataset = PretrainCache(dataset_config.path, dataset_config.key)
         train_indices, validation_indices = _split_pretrain_indices(
             len(dataset), validation_fraction, validation_seed + dataset_index
@@ -311,7 +355,7 @@ def _build_pretrain_loaders_with_validation(
             batch_size=config.data.batch_size,
             sampler=RandomSampler(train_dataset),
             collate_fn=train_collator,
-            **_loader_options(config, prefetch_factor=prefetch_factor),
+            **_loader_options(config, num_workers=num_workers, prefetch_factor=prefetch_factor),
         )
         validation_collator = get_collator(config.masks.type)(
             input_size=config.encoder.img_size,
@@ -383,6 +427,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             "epochs, batch size, accumulation, workers, prefetch factor, logging interval, progress interval, "
             "and checkpoint interval must be positive"
         )
+    if args.hdf5_worker_budget is not None and args.hdf5_worker_budget < 1:
+        raise ValueError("hdf5 worker budget must be positive")
     if args.validate_every < 0:
         raise ValueError("validate-every must be non-negative")
     if not 0.0 < args.validation_fraction < 1.0:
@@ -463,8 +509,10 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             )
         if args.precision != "bf16-mixed":
             raise ValueError("--performance-safe requires --precision bf16-mixed")
-        if args.num_workers != 12 or args.prefetch_factor != 4:
-            raise ValueError("--performance-safe requires --num-workers 12 --prefetch-factor 4")
+        if args.num_workers != 3 or args.prefetch_factor != 4:
+            raise ValueError("--performance-safe requires --num-workers 3 --prefetch-factor 4")
+        if args.hdf5_worker_budget != 12:
+            raise ValueError("--performance-safe requires --hdf5-worker-budget 12")
         if not args.epoch_metrics_only:
             raise ValueError("--performance-safe requires --epoch-metrics-only")
         if args.attention_backend != "fused":
@@ -503,6 +551,12 @@ def main() -> int:
         config.hierarchy.include_l8_coarse = True
     config.checkpoint.dir = str(run_dir / "checkpoints")
     config.checkpoint.every_n_epochs = args.checkpoint_every
+    cache_count = len(config.data.pretrain_datasets)
+    worker_allocation = _worker_allocation(
+        cache_count=cache_count,
+        workers_per_cache=args.num_workers,
+        worker_budget=args.hdf5_worker_budget,
+    )
 
     validation_dataset_names = None
     validation_manifest = None
@@ -514,10 +568,15 @@ def main() -> int:
                 validation_seed=args.validation_seed,
                 manifest_path=run_dir / "pretrain_split.json",
                 prefetch_factor=args.prefetch_factor,
+                worker_budget=args.hdf5_worker_budget,
             )
         )
     else:
-        train_loader = _build_pretrain_loader(config, prefetch_factor=args.prefetch_factor)
+        train_loader = _build_pretrain_loader(
+            config,
+            prefetch_factor=args.prefetch_factor,
+            worker_budget=args.hdf5_worker_budget,
+        )
         validation_loaders = None
     microbatches_per_epoch = _limited_length(len(train_loader), args.limit_train_batches)
     optimizer_steps_per_epoch = math.ceil(microbatches_per_epoch / args.accumulate_grad_batches)
@@ -547,6 +606,9 @@ def main() -> int:
         "throughput_safe": args.throughput_safe,
         "performance_safe": args.performance_safe,
         "data_loader_workers": args.num_workers,
+        "hdf5_worker_budget": args.hdf5_worker_budget,
+        "data_loader_workers_per_cache": list(worker_allocation),
+        "total_data_loader_workers": sum(worker_allocation),
         "data_loader_prefetch_factor": args.prefetch_factor,
         "log_every_n_steps": args.log_every_n_steps,
         "progress_every_n_batches": args.progress_every_n_batches,

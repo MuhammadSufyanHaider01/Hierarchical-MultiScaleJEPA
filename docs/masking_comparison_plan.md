@@ -67,13 +67,16 @@ All non-masking settings remain unchanged from the formal pilot: seed `0`,
 four original pretraining caches, 60 epochs, effective batch size 64, and the
 pinned LatentWave optimizer/scheduler/EMA settings. P0 remains the
 source-faithful FP32/math-attention configuration. Every P2 job in this
-four-regime masking matrix uses the same successful RTX 5070 Ti
-performance-safe profile: BF16 mixed precision, fused attention, microbatch
-16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, and
-`PYTORCH_ALLOC_CONF=expandable_segments:True`. This keeps the P2
-configuration matched across frequency, region, time, and random masking and
-reduces the activation-memory risk observed with larger FP32 hierarchical
-batches. The first pass changes only the mask geometry or fixed random ratio.
+four-regime masking matrix uses BF16 mixed precision, fused attention,
+microbatch 16, accumulation 4, prefetch factor 4, epoch-only telemetry, and
+`PYTORCH_ALLOC_CONF=expandable_segments:True`. Future P2 runs additionally
+use the HDF5-balanced loader mode: three workers per cache and a total
+`--hdf5-worker-budget 12`, rather than 12 workers for each of the four cache
+loaders. This changes input delivery only; masks, samples, model, objective,
+optimizer, and effective batch size remain unchanged. The completed region
+run and the active time run retain the legacy per-cache-worker profile, so
+pretraining wall-clock time must be reported separately by loader profile.
+The first pass changes only the mask geometry or fixed random ratio.
 
 Before formal execution, audit the current context-mask scale and realized
 mask coverage against the paper. The repository's current formal config uses
@@ -109,7 +112,8 @@ Run one masking condition completely before beginning the next:
 5. Train the frozen downstream heads for the early-exit baseline at L2/L4/L6/L8 on all six tasks.
 6. Benchmark the early-exit baseline at batch size 1.
 7. Train the Proposed Hierarchical Multi-Scale JEPA for the fixed 60-epoch
-   horizon with the matched performance-safe P2 profile defined above.
+   horizon with the documented P2 profile. Use the HDF5-balanced variant only
+   after an approved one-epoch throughput diagnostic verifies finite losses.
 8. Train its frozen downstream heads at L2/L4/L6/L8 on all six tasks.
 9. Benchmark the proposed approach at batch size 1.
 10. Generate the per-mask three-approach tables and figures and review them

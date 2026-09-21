@@ -21,7 +21,10 @@ changes to an existing run:
 The FP32 profile reduces serialized microbatches per optimizer step from 16 to
 8; the BF16 profile reduces it from 16 to 4. `--throughput-safe` validates the FP32 configuration, and
 `--performance-safe` validates the BF16/fused configuration, including loader
-and epoch-metric bounds, before model allocation. They are mutually exclusive with
+and epoch-metric bounds, before model allocation. Its HDF5-balanced future-run
+variant uses `--num-workers 3 --hdf5-worker-budget 12`: the budget is split
+across the four cache loaders, preventing the legacy 48-worker process fan-out.
+It must first pass a one-epoch finite-loss throughput diagnostic. The profiles are mutually exclusive with
 `--memory-safe` and currently apply to P1/P2 only.
 
 ## HDF5 worker check
@@ -67,7 +70,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   --method p2 --seed 0 --run-root runs/masking_study/region_n6/performance \
   --run-name proposed_hierarchical --mask-profile region_n6 \
   --run-kind formal --max-epochs 60 --batch-size 16 \
-  --accumulate-grad-batches 4 --num-workers 12 --prefetch-factor 4 \
+  --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 \
   --log-every-n-steps 1 --epoch-metrics-only --progress-every-n-batches 25 \
   --attention-backend fused \
   --precision bf16-mixed --device cuda --performance-safe

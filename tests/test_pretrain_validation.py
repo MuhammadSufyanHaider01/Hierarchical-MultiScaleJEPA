@@ -10,7 +10,13 @@ from unittest.mock import patch
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
-from phase5_pretrain import FORMAL_EPOCHS, _split_pretrain_indices, _uses_expandable_segments, _validate_run_arguments  # noqa: E402
+from phase5_pretrain import (  # noqa: E402
+    FORMAL_EPOCHS,
+    _split_pretrain_indices,
+    _uses_expandable_segments,
+    _validate_run_arguments,
+    _worker_allocation,
+)
 
 
 class PretrainValidationSplitTest(unittest.TestCase):
@@ -23,6 +29,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "batch_size": 16,
             "accumulate_grad_batches": 4,
             "num_workers": 0,
+            "hdf5_worker_budget": None,
             "prefetch_factor": 2,
             "log_every_n_steps": 1,
             "progress_every_n_batches": 25,
@@ -88,6 +95,20 @@ class PretrainValidationSplitTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "progress interval"):
             _validate_run_arguments(self._arguments(progress_every_n_batches=0))
 
+    def test_hdf5_worker_budget_is_split_deterministically_across_caches(self):
+        self.assertEqual(
+            _worker_allocation(cache_count=4, workers_per_cache=12, worker_budget=12),
+            (3, 3, 3, 3),
+        )
+        self.assertEqual(
+            _worker_allocation(cache_count=4, workers_per_cache=12, worker_budget=10),
+            (3, 3, 2, 2),
+        )
+        self.assertEqual(
+            _worker_allocation(cache_count=4, workers_per_cache=3, worker_budget=None),
+            (3, 3, 3, 3),
+        )
+
     def test_throughput_profile_requires_matched_batch_and_workers(self):
         arguments = self._arguments(
             method="p2",
@@ -126,7 +147,8 @@ class PretrainValidationSplitTest(unittest.TestCase):
             method="p2",
             batch_size=16,
             accumulate_grad_batches=4,
-            num_workers=12,
+            num_workers=3,
+            hdf5_worker_budget=12,
             prefetch_factor=4,
             epoch_metrics_only=True,
             attention_backend="fused",
@@ -143,7 +165,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
         ):
             _validate_run_arguments(arguments)
 
-        with self.assertRaisesRegex(ValueError, "requires --num-workers 12 --prefetch-factor 4"):
+        with self.assertRaisesRegex(ValueError, "requires --num-workers 3 --prefetch-factor 4"):
             with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch(
                 "phase5_pretrain.torch.cuda.is_bf16_supported", return_value=True
             ), patch.dict(
@@ -157,6 +179,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
                         batch_size=16,
                         accumulate_grad_batches=4,
                         num_workers=8,
+                        hdf5_worker_budget=12,
                         prefetch_factor=4,
                         epoch_metrics_only=True,
                         attention_backend="fused",

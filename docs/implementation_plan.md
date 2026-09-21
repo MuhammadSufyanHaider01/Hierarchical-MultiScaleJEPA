@@ -257,10 +257,14 @@ downstream split manifest, choose frozen-head epochs and exits on downstream
 validation only, and do not run the legacy full-dataset downstream probe during
 pretraining. For the four-regime masking matrix, P2 uses the matched RTX 5070
 Ti performance-safe profile: BF16 mixed precision, fused attention, microbatch
-16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry, and
+16, accumulation 4, prefetch factor 4, epoch-only telemetry, and
 `PYTORCH_ALLOC_CONF=expandable_segments:True`, retaining effective batch size
-64. This is the same successful profile used by the completed region P2 run
-and is required for the future frequency, time, and random P2 runs. The
+64. Future P2 runs use the HDF5-balanced loader mode—three workers per cache
+with `--hdf5-worker-budget 12` across all four caches—after a one-epoch
+throughput diagnostic verifies finite losses. This changes input delivery only;
+it does not change samples, masks, model, objective, optimizer, or effective
+batch size. The completed region and active time runs retain their recorded
+legacy per-cache-worker profiles. The
 conservative FP32 microbatch-4/accumulation-16 `--memory-safe` profile remains
 available as a separately recorded fallback if a particular mask geometry
 causes an OOM. P1 uses a separately approved profile only if its ablation is

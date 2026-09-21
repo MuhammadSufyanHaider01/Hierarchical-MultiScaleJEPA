@@ -88,10 +88,11 @@ or make final statistical claims from them.
   optimizer, LR/weight-decay schedules, EMA branch, and L8 anchor.
 - Every P2 run in the four-regime masking comparison uses the matched
   performance-safe profile: BF16 mixed precision, fused attention, microbatch
-  16, accumulation 4, 12 workers, prefetch factor 4, epoch-only telemetry,
-  and effective batch 64. This is the successful region configuration and is
-  required for the frequency, time, and random P2 runs so their training
-  settings are comparable.
+  16, accumulation 4, prefetch factor 4, epoch-only telemetry, and effective
+  batch 64. Future P2 runs use the HDF5-balanced loader mode—three workers per
+  cache with `--hdf5-worker-budget 12` across all four caches—after an approved
+  one-epoch finite-loss throughput diagnostic. This changes only input delivery
+  and must be recorded separately from the legacy region/time worker profile.
 - A separate throughput experiment is available for hierarchical jobs:
   microbatch 8, accumulation 8, eight data-loader workers, and FP32 preserve
   effective batch 64 while halving serialized microbatches per optimizer step.
@@ -100,7 +101,7 @@ or make final statistical claims from them.
   handles lazily per worker; the first eight-worker run must be checked for
   I/O contention before it is used for a larger study.
 - The bounded performance profile uses BF16 mixed precision, microbatch 16,
-  accumulation 4, twelve workers, prefetch factor 4, epoch-only telemetry,
+  accumulation 4, prefetch factor 4, epoch-only telemetry,
   and fused scaled-dot-product attention. It is selected with
   `--performance-safe`, preserves effective batch 64, and reduces activation
   memory. It is the required matched profile across P2 masking conditions;
@@ -108,8 +109,8 @@ or make final statistical claims from them.
 - P2 performance-safe commands must set
   `PYTORCH_ALLOC_CONF=expandable_segments:True` before Python starts and pass
   `--performance-safe`. The runner verifies BF16, fused attention, batch size
-  16, accumulation 4, CUDA, 12 workers, prefetch factor 4, and the allocator
-  setting and records them in `experiment.json`. The FP32
+  16, accumulation 4, CUDA, per-cache worker allocation, prefetch factor 4,
+  and the allocator setting and records them in `experiment.json`. The FP32
   microbatch-4/accumulation-16 `--memory-safe` profile is retained only as an
   explicitly documented fallback for a mask geometry that does not fit.
 - Pilot pretraining has no held-out latent validation set and no early
@@ -226,7 +227,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True PYTHONPATH=src \
   .venv/bin/python scripts/phase5_pretrain.py \
   --method p2 --seed 0 --run-root runs/phase5_formal \
   --run-kind formal --batch-size 16 --accumulate-grad-batches 4 \
-  --num-workers 12 --prefetch-factor 4 --epoch-metrics-only \
+  --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only \
   --attention-backend fused --precision bf16-mixed --device cuda \
   --performance-safe
 ```
