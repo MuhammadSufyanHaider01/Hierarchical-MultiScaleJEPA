@@ -1,0 +1,55 @@
+{
+  "excluded": [
+    "EMA-teacher source-style probe (archived provenance only)",
+    "diagnostic early-stopped runs",
+    "same-scale auxiliary JEPA control ablation",
+    "extra transfer datasets",
+    "seeds 1 and 2",
+    "alternate masking regimes"
+  ],
+  "figures": [
+    "all_methods_downstream_performance.png",
+    "all_methods_downstream_performance.pdf",
+    "all_methods_selected_performance.png",
+    "all_methods_selected_performance.pdf",
+    "all_methods_inference_cost.png",
+    "all_methods_inference_cost.pdf",
+    "early_exit_performance.png",
+    "early_exit_performance.pdf",
+    "selected_exit_performance.png",
+    "selected_exit_performance.pdf",
+    "inference_efficiency.png",
+    "inference_efficiency.pdf",
+    "b0_context_l8_reference.png",
+    "b0_context_l8_reference.pdf"
+  ],
+  "git_revision": "95451bbbaac68c61bfb84edd4e8112c4df587a45",
+  "included_inputs": {
+    "b0_context_l8": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/exit_metrics.json",
+    "b1_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/benchmarks.json",
+    "b1_metrics": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/exit_metrics.json",
+    "p2_benchmark": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/benchmarks.json",
+    "p2_metrics": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/exit_metrics.json"
+  },
+  "masking": "time masking, N_m=6",
+  "methods": [
+    "Original LatentWave",
+    "LatentWave with Post-hoc Frozen Early Exits",
+    "Proposed Hierarchical Multi-Scale JEPA"
+  ],
+  "output_dir": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/reports/masking_study/time_n6",
+  "p2_run_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks",
+  "provenance_note": "The proposed method uses the recoverable epoch-29 checkpoint (step 6,780). Pretraining was interrupted by an NVIDIA driver reset after epoch 34 completed; epoch 34 was not checkpointed. These results are therefore a preliminary single-seed checkpoint comparison, not the planned 60-epoch final result.",
+  "report": "phase5_primary_single_seed",
+  "run_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6",
+  "seed": 0,
+  "source_root": null,
+  "task_suite": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ]
+}

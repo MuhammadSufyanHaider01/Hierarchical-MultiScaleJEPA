@@ -81,6 +81,15 @@ SOURCE_METRICS = {
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_formal")
+    parser.add_argument(
+        "--p2-run-root",
+        type=Path,
+        default=None,
+        help=(
+            "Optional root containing p2/seed_000 artifacts. Use when the proposed "
+            "checkpoint was evaluated in a separate, checkpoint-specific run root."
+        ),
+    )
     parser.add_argument("--source-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_pilot")
     parser.add_argument("--output-dir", type=Path, default=REPOSITORY_ROOT / "reports/phase5_primary")
     parser.add_argument(
@@ -92,6 +101,11 @@ def _arguments() -> argparse.Namespace:
         "--report-title",
         default="Phase 5 primary single-seed pilot packet",
         help="Top-level Markdown title for this report packet.",
+    )
+    parser.add_argument(
+        "--provenance-note",
+        default=None,
+        help="Optional run-specific limitation or provenance note recorded in the README and manifest.",
     )
     return parser.parse_args()
 
@@ -110,12 +124,12 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
-def _discover_tasks(run_root: Path) -> tuple[str, ...]:
+def _discover_tasks(p0_run_root: Path, p2_run_root: Path) -> tuple[str, ...]:
     """Require P0 and P2 to contain exactly the same recognised task suite."""
 
     packets = {
-        method: _read(run_root / method / "seed_000/downstream/exit_metrics.json")
-        for method in ("p0", "p2")
+        "p0": _read(p0_run_root / "p0/seed_000/downstream/exit_metrics.json"),
+        "p2": _read(p2_run_root / "p2/seed_000/downstream/exit_metrics.json"),
     }
     task_sets = {method: set(packet.get("tasks", {})) for method, packet in packets.items()}
     if task_sets["p0"] != task_sets["p2"]:
@@ -273,8 +287,13 @@ def _load_context_l8_reference(baseline_packet: dict[str, Any]) -> tuple[dict[st
     )
 
 
-def _load_exit_results(run_root: Path, method: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    source_method = "p0" if method == "b1" else "p2"
+def _load_exit_results(
+    run_root: Path,
+    method: str,
+    *,
+    source_method: str | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    source_method = source_method or ("p0" if method == "b1" else "p2")
     base = run_root / source_method / "seed_000"
     metrics_path = base / "downstream/exit_metrics.json"
     benchmark_path = base / "benchmarks.json"
@@ -865,6 +884,7 @@ def _build_report(
     *,
     report_title: str,
     masking_label: str,
+    provenance_note: str | None,
 ) -> None:
     comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
     detailed_benchmark_rows = [row for row in benchmark_rows if row["method"] in METHODS]
@@ -954,6 +974,8 @@ that exact P0 checkpoint at L2/L4/L6/L8. Therefore the three approaches are
 directly comparable for this single-seed packet.
 
 All values are single-seed pilot point estimates.
+
+{f"## Run-specific provenance\n\n{provenance_note}\n" if provenance_note else ""}
 
 ## Task-suite note
 
@@ -1076,16 +1098,17 @@ They require separate approval and are not part of this primary pilot packet.
 def main() -> int:
     args = _arguments()
     run_root = _repo_path(args.run_root)
+    p2_run_root = _repo_path(args.p2_run_root) if args.p2_run_root is not None else run_root
     source_root = _repo_path(args.source_root)
     output_dir = _repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
     global TASKS
-    TASKS = _discover_tasks(run_root)
+    TASKS = _discover_tasks(run_root, p2_run_root)
 
     b1_packet, _ = _load_exit_results(run_root, "b1")
     source_reference, source_rows = _load_context_l8_reference(b1_packet)
-    p2_packet, _ = _load_exit_results(run_root, "p2")
+    p2_packet, _ = _load_exit_results(p2_run_root, "p2")
     figure_paths = []
     comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
     b0_benchmark_rows = []
@@ -1117,11 +1140,13 @@ def main() -> int:
         figure_paths,
         report_title=args.report_title,
         masking_label=args.masking_label,
+        provenance_note=args.provenance_note,
     )
     manifest = {
         "report": "phase5_primary_single_seed",
         "git_revision": _git_revision(),
         "run_root": str(run_root),
+        "p2_run_root": str(p2_run_root),
         "source_root": None,
         "output_dir": str(output_dir),
         "methods": [METHOD_LABELS[method] for method in ("b0", "b1", "p2")],
@@ -1132,8 +1157,8 @@ def main() -> int:
             "b0_context_l8": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_metrics": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_benchmark": str(run_root / "p0/seed_000/benchmarks.json"),
-            "p2_metrics": str(run_root / "p2/seed_000/downstream/exit_metrics.json"),
-            "p2_benchmark": str(run_root / "p2/seed_000/benchmarks.json"),
+            "p2_metrics": str(p2_run_root / "p2/seed_000/downstream/exit_metrics.json"),
+            "p2_benchmark": str(p2_run_root / "p2/seed_000/benchmarks.json"),
         },
         "excluded": [
             "EMA-teacher source-style probe (archived provenance only)",
@@ -1144,6 +1169,7 @@ def main() -> int:
             "alternate masking regimes",
         ],
         "figures": [Path(path).name for path in figure_paths],
+        "provenance_note": args.provenance_note,
     }
     _write_json(output_dir / "manifest.json", manifest)
     print(json.dumps({"output_dir": str(output_dir), "figures": len(figure_paths), "methods": manifest["methods"]}, indent=2))
