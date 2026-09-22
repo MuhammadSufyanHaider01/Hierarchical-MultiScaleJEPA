@@ -174,6 +174,11 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
         self.assertEqual(row["selected_exit"], 6)
         self.assertEqual(row["selected_flops"], 123)
         self.assertEqual(row["validation_L2_mean_distance_error"], 2.0)
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            report._write_antenna_exit_plot(output_dir, study)
+            self.assertTrue((output_dir / "antenna_exit_vs_channels.png").is_file())
+            self.assertTrue((output_dir / "antenna_exit_vs_channels.pdf").is_file())
 
 
 if __name__ == "__main__":

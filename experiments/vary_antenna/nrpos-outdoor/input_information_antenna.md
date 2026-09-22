@@ -1,0 +1,6 @@
+| study | task | available_channels | condition | input_shape | token_count | validation_L2_mean_distance_error | l8_relative_gap_L2 | validation_L4_mean_distance_error | l8_relative_gap_L4 | validation_L6_mean_distance_error | l8_relative_gap_L6 | validation_L8_mean_distance_error | l8_relative_gap_L8 | selected_exit | selected_validation_metric | selected_test_metric | selected_flops | selected_latency_ms_median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| antenna | nrpos-outdoor | 1 | C1 | 1x224x224 | 196 | 9.762841 | 0.932886 | 9.464097 | 0.634142 | 8.347952 | -0.482003 | 8.829955 | 0.000000 | 6 | 8.347952 |  | 2111407616 | 2.589304 |
+| antenna | nrpos-outdoor | 2 | C2 | 2x224x224 | 392 | 7.968737 | 0.728642 | 7.441136 | 0.201041 | 6.625657 | -0.614438 | 7.240095 | 0.000000 | 6 | 6.625657 |  | 4694869504 | 2.715994 |
+| antenna | nrpos-outdoor | 3 | C3 | 3x224x224 | 588 | 4.532684 | 0.267824 | 4.299913 | 0.035053 | 4.167001 | -0.097859 | 4.264860 | 0.000000 | 4 | 4.299913 |  | 5192615424 | 2.760064 |
+| antenna | nrpos-outdoor | 4 | C4 | 4x224x224 | 784 | 3.745489 | 0.324675 | 3.442674 | 0.021860 | 3.446764 | 0.025949 | 3.420815 | 0.000000 | 4 | 3.442674 |  | 7552894464 | 2.839673 |

@@ -8,6 +8,8 @@ import csv
 import json
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+
 
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -56,7 +58,7 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     if not rows:
         return
     with path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -70,6 +72,42 @@ def _write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
         handle.write("| " + " | ".join("---" for _ in fields) + " |\n")
         for row in rows:
             handle.write("| " + " | ".join(_format(row[field]) for field in fields) + " |\n")
+
+
+def _write_antenna_exit_plot(output_dir: Path, study: dict) -> None:
+    """Plot validation-selected exit depth against available antenna channels."""
+
+    metric = study["task_spec"]["metric_name"]
+    conditions = sorted(study["conditions"], key=lambda condition: int(condition["available_channels"]))
+    channels = [int(condition["available_channels"]) for condition in conditions]
+    exits = [int(condition["selected_exit_earliest_within_tolerance"]) for condition in conditions]
+    errors = [float(condition["validation"][str(exit)][metric]) for condition, exit in zip(conditions, exits)]
+    suffix = " m" if metric == "mean_distance_error" else ""
+    metric_label = "mean distance error (m)" if metric == "mean_distance_error" else metric.replace("_", " ")
+
+    figure, axis = plt.subplots(figsize=(7.2, 4.8), constrained_layout=True)
+    axis.plot(channels, errors, marker="o", linewidth=2.2, markersize=7, color="#1f77b4")
+    for channel, exit_layer, error in zip(channels, exits, errors):
+        axis.annotate(
+            f"L{exit_layer}",
+            xy=(channel, error),
+            xytext=(0, 12),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            bbox={"boxstyle": "round,pad=0.2", "fc": "white", "ec": "#1f77b4", "alpha": 0.9},
+        )
+    axis.set_xticks(channels)
+    margin = max(0.1, (max(errors) - min(errors)) * 0.15)
+    axis.set_ylim(min(errors) - margin, max(errors) + margin * 1.8)
+    axis.set_xlabel("Available antenna channels (C)")
+    axis.set_ylabel(metric_label.capitalize())
+    axis.set_title("Antenna availability vs. selected-exit validation error")
+    axis.grid(axis="both", color="#d9d9d9", linewidth=0.8)
+    for extension in ("png", "pdf"):
+        figure.savefig(output_dir / f"antenna_exit_vs_channels.{extension}", dpi=300, bbox_inches="tight")
+    plt.close(figure)
 
 
 def main() -> int:
@@ -90,6 +128,8 @@ def main() -> int:
         all_rows.extend(rows)
         _write_csv(args.output_dir / f"input_information_{study_name}.csv", rows)
         _write_markdown(args.output_dir / f"input_information_{study_name}.md", rows)
+        if study_name == "antenna":
+            _write_antenna_exit_plot(args.output_dir, study)
     if not all_rows:
         raise ValueError(f"study artifact has no recognized study results: {args.input}")
     selected = [
