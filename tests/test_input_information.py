@@ -83,6 +83,22 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
         self.assertEqual(study["levels"], (1, 2, 3))
         self.assertEqual(runner._condition_name("antenna-human-activity", 3), "C3")
 
+    def test_nr_temporal_study_uses_patch_aligned_windows(self):
+        runner = _runner_module()
+        study = runner.STUDIES["temporal-nrpos-outdoor"]
+        self.assertEqual(study["task"], "nrpos-outdoor")
+        self.assertEqual(study["mode"], "leading_temporal_patches")
+        self.assertEqual(study["levels"], (2, 4, 8, 14))
+        self.assertEqual(runner._condition_name("temporal-nrpos-outdoor", 8), "Tp8")
+
+    def test_interference_temporal_study_uses_patch_aligned_windows(self):
+        runner = _runner_module()
+        study = runner.STUDIES["temporal-interference"]
+        self.assertEqual(study["task"], "interference")
+        self.assertEqual(study["mode"], "leading_temporal_patches")
+        self.assertEqual(study["levels"], (2, 4, 8, 14))
+        self.assertEqual(runner._condition_name("temporal-interference", 4), "Tp4")
+
     def test_saved_head_loads_and_backbone_remains_frozen(self):
         runner = _runner_module()
         encoder = Encoder(img_size=(32, 32), patch_size=8, embed_dim=16, depth=8, num_heads=2)
@@ -141,7 +157,7 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
             (root / "checkpoint.ckpt").write_bytes(b"checkpoint")
             (root / "splits.json").write_text(json.dumps({"tasks": {}}))
             tasks = {}
-            for task in ("nrpos-outdoor", "human-activity"):
+            for task in ("nrpos-outdoor", "human-activity", "interference"):
                 exits = {}
                 for layer in (2, 4, 6, 8):
                     head = root / "heads" / task / f"L{layer}.pt"
@@ -187,6 +203,24 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
             report._write_antenna_exit_plot(output_dir, study, stem="antenna_exit_vs_channels")
             self.assertTrue((output_dir / "antenna_exit_vs_channels.png").is_file())
             self.assertTrue((output_dir / "antenna_exit_vs_channels.pdf").is_file())
+
+    def test_temporal_plot_is_rendered_for_nr_positioning(self):
+        report = _report_module()
+        study = {
+            "task": "nrpos-outdoor",
+            "task_spec": {"metric_name": "mean_distance_error"},
+            "conditions": [{
+                "condition": "Tp2",
+                "temporal_patch_columns": 2,
+                "validation": {str(layer): {"mean_distance_error": float(layer)} for layer in (2, 4, 6, 8)},
+                "selected_exit_earliest_within_tolerance": 4,
+            }],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            report._write_temporal_exit_plot(output_dir, study, stem="temporal_exit_vs_time_patches")
+            self.assertTrue((output_dir / "temporal_exit_vs_time_patches.png").is_file())
+            self.assertTrue((output_dir / "temporal_exit_vs_time_patches.pdf").is_file())
 
 
 if __name__ == "__main__":

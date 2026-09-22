@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 TASK_TITLES = {
     "nrpos-outdoor": "5G NR outdoor positioning",
     "human-activity": "WiFi human activity recognition",
+    "interference": "Wireless interference classification",
 }
 
 
@@ -120,6 +121,41 @@ def _write_antenna_exit_plot(output_dir: Path, study: dict, *, stem: str) -> Non
     plt.close(figure)
 
 
+def _write_temporal_exit_plot(output_dir: Path, study: dict, *, stem: str) -> None:
+    """Plot validation-selected exit depth against available temporal patches."""
+
+    metric = study["task_spec"]["metric_name"]
+    conditions = sorted(study["conditions"], key=lambda condition: int(condition["temporal_patch_columns"]))
+    patches = [int(condition["temporal_patch_columns"]) for condition in conditions]
+    exits = [int(condition["selected_exit_earliest_within_tolerance"]) for condition in conditions]
+    errors = [float(condition["validation"][str(exit)][metric]) for condition, exit in zip(conditions, exits)]
+    metric_label = "mean distance error (m)" if metric == "mean_distance_error" else metric.replace("_", " ")
+
+    figure, axis = plt.subplots(figsize=(7.2, 4.8), constrained_layout=True)
+    axis.plot(patches, errors, marker="o", linewidth=2.2, markersize=7, color="#1f77b4")
+    for patches_count, exit_layer, error in zip(patches, exits, errors):
+        axis.annotate(
+            f"L{exit_layer}",
+            xy=(patches_count, error),
+            xytext=(0, 12),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            bbox={"boxstyle": "round,pad=0.2", "fc": "white", "ec": "#1f77b4", "alpha": 0.9},
+        )
+    axis.set_xticks(patches)
+    margin = max(0.1, (max(errors) - min(errors)) * 0.15)
+    axis.set_ylim(min(errors) - margin, max(errors) + margin * 1.8)
+    axis.set_xlabel("Available time patches (Tₚ)")
+    axis.set_ylabel(metric_label.capitalize())
+    axis.set_title(TASK_TITLES.get(study["task"], str(study["task"])))
+    axis.grid(axis="both", color="#d9d9d9", linewidth=0.8)
+    for extension in ("png", "pdf"):
+        figure.savefig(output_dir / f"{stem}.{extension}", dpi=300, bbox_inches="tight")
+    plt.close(figure)
+
+
 def main() -> int:
     args = _arguments()
     artifact = json.loads(args.input.read_text())
@@ -128,19 +164,20 @@ def main() -> int:
         raise ValueError(f"study artifact has no studies: {args.input}")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     all_rows = []
-    for study_name in ("antenna", "antenna-human-activity", "temporal"):
-        study = studies.get(study_name)
-        if study is None:
-            continue
+    for study_name, study in studies.items():
         if not isinstance(study, dict):
             raise ValueError(f"study artifact has malformed {study_name} data")
         rows = _rows(study_name, study)
         all_rows.extend(rows)
-        _write_csv(args.output_dir / f"input_information_{study_name}.csv", rows)
-        _write_markdown(args.output_dir / f"input_information_{study_name}.md", rows)
+        output_study_name = "temporal" if study_name.startswith("temporal") else study_name
+        _write_csv(args.output_dir / f"input_information_{output_study_name}.csv", rows)
+        _write_markdown(args.output_dir / f"input_information_{output_study_name}.md", rows)
         if study.get("availability_mode") == "antenna_prefix" or study_name == "antenna":
             stem = "antenna_exit_vs_channels" if study["task"] == "nrpos-outdoor" else f"{study['task']}_antenna_exit_vs_channels"
             _write_antenna_exit_plot(args.output_dir, study, stem=stem)
+        elif study.get("availability_mode") == "leading_temporal_patches":
+            stem = "temporal_exit_vs_time_patches" if study["task"] == "nrpos-outdoor" else f"{study['task']}_temporal_exit_vs_time_patches"
+            _write_temporal_exit_plot(args.output_dir, study, stem=stem)
     if not all_rows:
         raise ValueError(f"study artifact has no recognized study results: {args.input}")
     selected = [

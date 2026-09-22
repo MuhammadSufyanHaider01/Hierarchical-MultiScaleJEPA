@@ -1,0 +1,6 @@
+| study | task | temporal_patch_columns | condition | input_shape | token_count | validation_L2_macro_accuracy | l8_relative_gap_L2 | validation_L4_macro_accuracy | l8_relative_gap_L4 | validation_L6_macro_accuracy | l8_relative_gap_L6 | validation_L8_macro_accuracy | l8_relative_gap_L8 | selected_exit | selected_validation_metric | selected_test_metric | selected_flops | selected_latency_ms_median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| temporal | human-activity | 2 | Tp2 | 3x224x32 | 84 | 0.841667 | -0.133333 | 0.816667 | -0.108333 | 0.725000 | -0.016667 | 0.708333 | 0.000000 | 2 | 0.841667 |  | 289704960 | 4.765137 |
+| temporal | human-activity | 4 | Tp4 | 3x224x64 | 168 | 0.841667 | -0.075000 | 0.825000 | -0.058333 | 0.808333 | -0.041667 | 0.766667 | 0.000000 | 2 | 0.841667 |  | 608308224 | 4.748293 |
+| temporal | human-activity | 8 | Tp8 | 3x224x128 | 336 | 0.875000 | 0.008333 | 0.858333 | 0.025000 | 0.875000 | 0.008333 | 0.883333 | 0.000000 | 2 | 0.875000 |  | 1332218880 | 4.780491 |
+| temporal | human-activity | 14 | Tp14 | 3x224x224 | 588 | 1.000000 | 0.000000 | 0.991667 | 0.008333 | 0.991667 | 0.008333 | 1.000000 | 0.000000 | 2 | 1.000000 |  | 2634845184 | 2.546792 |

@@ -1,0 +1,324 @@
+{
+  "protocol": {
+    "antenna_policy": "fixed ordered prefix channels [0:C)",
+    "candidate_exit_layers": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "cost_measurement": "selected earliest-within-tolerance exit only",
+    "device": "cuda",
+    "downstream_head_weights_updated": false,
+    "foundation_weights_updated": false,
+    "selection_uses": "validation_only",
+    "split_manifest_created": false,
+    "temporal_policy": "leading patch-aligned processed-cache window [0:16*T_p)",
+    "tolerance": 0.05
+  },
+  "provenance": {
+    "checkpoint": {
+      "modified_ns": 1789789211661154827,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "size_bytes": 113182455
+    },
+    "config": {
+      "modified_ns": 1789518013935055616,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/configs/p0.yml",
+      "sha256": "a70dc16584ecce6b6b170299641d71eb201f4322c32bc313faf8eca9e64e1963",
+      "size_bytes": 1375
+    },
+    "source_head_files": {
+      "nrpos-outdoor": {
+        "2": {
+          "modified_ns": 1789798523337614734,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/heads/nrpos-outdoor/L2.pt",
+          "size_bytes": 7467
+        },
+        "4": {
+          "modified_ns": 1789799189097344521,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/heads/nrpos-outdoor/L4.pt",
+          "size_bytes": 7467
+        },
+        "6": {
+          "modified_ns": 1789800455954984506,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/heads/nrpos-outdoor/L6.pt",
+          "size_bytes": 7467
+        },
+        "8": {
+          "modified_ns": 1789801814817955819,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/heads/nrpos-outdoor/L8.pt",
+          "size_bytes": 7467
+        }
+      }
+    },
+    "source_method": "p0",
+    "source_metrics": {
+      "modified_ns": 1789939858504439856,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/p0/seed_000/downstream/exit_metrics.json",
+      "sha256": "cb3cd01f9c6c1e4b97e1b396fb88beb8fe6158b82f1e3fc12901007b8e290a1a",
+      "size_bytes": 20277
+    },
+    "source_pretrain_seed": 0,
+    "source_repository_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main",
+    "split_manifest": {
+      "modified_ns": 1789796896491760007,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/splits_seed_2025_primary_v3.json",
+      "sha256": "b183b0a731fdfd2ff4a3f5e09d300e76ad5130d3900001fe58e6d7fc52d3a2af",
+      "size_bytes": 852547
+    }
+  },
+  "schema_version": 1,
+  "stage": "selection_complete",
+  "studies": {
+    "temporal-nrpos-outdoor": {
+      "availability_mode": "leading_temporal_patches",
+      "conditions": [
+        {
+          "condition": "Tp2",
+          "input_shape": [
+            4,
+            224,
+            32
+          ],
+          "patch_grid": [
+            14,
+            2
+          ],
+          "selected_exit_best_validation": 6,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 1148716544,
+            "latency_ms": {
+              "mean": 4.350035025,
+              "median": 4.7979215,
+              "p95": 5.314504,
+              "standard_deviation": 1.296422911207765
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 6,
+          "temporal_patch_columns": 2,
+          "token_count": 112,
+          "validation": {
+            "2": {
+              "mean_distance_error": 10.66317367553711,
+              "median_distance_error": 10.55510139465332
+            },
+            "4": {
+              "mean_distance_error": 9.03661060333252,
+              "median_distance_error": 8.92298698425293
+            },
+            "6": {
+              "mean_distance_error": 5.398281574249268,
+              "median_distance_error": 4.925430774688721
+            },
+            "8": {
+              "mean_distance_error": 6.804498195648193,
+              "median_distance_error": 6.3311285972595215
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": 3.858675479888916,
+            "4": 2.232112407684326,
+            "6": -1.4062166213989258,
+            "8": 0.0
+          }
+        },
+        {
+          "condition": "Tp4",
+          "input_shape": [
+            4,
+            224,
+            64
+          ],
+          "patch_grid": [
+            14,
+            4
+          ],
+          "selected_exit_best_validation": 6,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 2451572224,
+            "latency_ms": {
+              "mean": 3.5678856899999998,
+              "median": 4.824040500000001,
+              "p95": 5.362754,
+              "standard_deviation": 1.8114271552575267
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 6,
+          "temporal_patch_columns": 4,
+          "token_count": 224,
+          "validation": {
+            "2": {
+              "mean_distance_error": 7.565223217010498,
+              "median_distance_error": 7.344407558441162
+            },
+            "4": {
+              "mean_distance_error": 6.4241557121276855,
+              "median_distance_error": 6.212576866149902
+            },
+            "6": {
+              "mean_distance_error": 5.430610656738281,
+              "median_distance_error": 5.038475513458252
+            },
+            "8": {
+              "mean_distance_error": 6.053278923034668,
+              "median_distance_error": 5.657919406890869
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": 1.51194429397583,
+            "4": 0.3708767890930176,
+            "6": -0.6226682662963867,
+            "8": 0.0
+          }
+        },
+        {
+          "condition": "Tp8",
+          "input_shape": [
+            4,
+            224,
+            128
+          ],
+          "patch_grid": [
+            14,
+            8
+          ],
+          "selected_exit_best_validation": 4,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 3699377664,
+            "latency_ms": {
+              "mean": 4.426279055,
+              "median": 4.859496,
+              "p95": 5.358891,
+              "standard_deviation": 1.2053579512778958
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 4,
+          "temporal_patch_columns": 8,
+          "token_count": 448,
+          "validation": {
+            "2": {
+              "mean_distance_error": 5.403861045837402,
+              "median_distance_error": 5.185338497161865
+            },
+            "4": {
+              "mean_distance_error": 3.9194140434265137,
+              "median_distance_error": 3.6434929370880127
+            },
+            "6": {
+              "mean_distance_error": 4.044390678405762,
+              "median_distance_error": 3.6593446731567383
+            },
+            "8": {
+              "mean_distance_error": 4.615503311157227,
+              "median_distance_error": 4.213660717010498
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": 0.7883577346801758,
+            "4": -0.6960892677307129,
+            "6": -0.5711126327514648,
+            "8": 0.0
+          }
+        },
+        {
+          "condition": "Tp14",
+          "input_shape": [
+            4,
+            224,
+            224
+          ],
+          "patch_grid": [
+            14,
+            14
+          ],
+          "selected_exit_best_validation": 8,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 7552894464,
+            "latency_ms": {
+              "mean": 2.8674694499999998,
+              "median": 3.0788045000000004,
+              "p95": 3.261386,
+              "standard_deviation": 0.6277095938249686
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 4,
+          "temporal_patch_columns": 14,
+          "token_count": 784,
+          "validation": {
+            "2": {
+              "mean_distance_error": 3.7454893589019775,
+              "median_distance_error": 3.347836971282959
+            },
+            "4": {
+              "mean_distance_error": 3.442674398422241,
+              "median_distance_error": 3.116914987564087
+            },
+            "6": {
+              "mean_distance_error": 3.446763515472412,
+              "median_distance_error": 3.0053865909576416
+            },
+            "8": {
+              "mean_distance_error": 3.4208145141601562,
+              "median_distance_error": 3.0529441833496094
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": 0.3246748447418213,
+            "4": 0.02185988426208496,
+            "6": 0.02594900131225586,
+            "8": 0.0
+          }
+        }
+      ],
+      "levels": [
+        2,
+        4,
+        8,
+        14
+      ],
+      "task": "nrpos-outdoor",
+      "task_spec": {
+        "coord_max": [
+          80.0,
+          60.0,
+          40.0
+        ],
+        "coord_min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "higher_is_better": false,
+        "metric_name": "mean_distance_error",
+        "name": "nrpos-outdoor",
+        "num_outputs": 3,
+        "path": "data/downstream/nrpos-outdoor.h5",
+        "sample_shape": [
+          4,
+          224,
+          224
+        ],
+        "target_type": "position"
+      }
+    }
+  },
+  "study": "input_information_early_exit_inference",
+  "test_evaluation": false
+}

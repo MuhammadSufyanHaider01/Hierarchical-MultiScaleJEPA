@@ -57,6 +57,18 @@ STUDIES = {
         "levels": (2, 4, 8, 14),
         "level_name": "temporal_patch_columns",
     },
+    "temporal-nrpos-outdoor": {
+        "task": "nrpos-outdoor",
+        "mode": "leading_temporal_patches",
+        "levels": (2, 4, 8, 14),
+        "level_name": "temporal_patch_columns",
+    },
+    "temporal-interference": {
+        "task": "interference",
+        "mode": "leading_temporal_patches",
+        "levels": (2, 4, 8, 14),
+        "level_name": "temporal_patch_columns",
+    },
 }
 ARTIFACT_NAME = "input_information_exit_metrics.json"
 SCHEMA_VERSION = 1
@@ -309,7 +321,7 @@ def _validate_source_metrics(source_path: Path) -> tuple[dict[str, Any], Path, P
             missing.append(f"{task}: {details}")
     if missing:
         raise RuntimeError(
-            "input-information inference requires completed full-information frozen heads for both tasks; "
+            "input-information inference requires completed full-information frozen heads for every configured task; "
             + "; ".join(missing)
         )
     return source, checkpoint, manifest, source_root, float(tolerance)
