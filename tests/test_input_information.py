@@ -75,6 +75,14 @@ class InputAvailabilityDatasetTest(unittest.TestCase):
 
 
 class InputInformationRunnerValidationTest(unittest.TestCase):
+    def test_har_antenna_study_uses_only_available_channels(self):
+        runner = _runner_module()
+        study = runner.STUDIES["antenna-human-activity"]
+        self.assertEqual(study["task"], "human-activity")
+        self.assertEqual(study["mode"], "antenna_prefix")
+        self.assertEqual(study["levels"], (1, 2, 3))
+        self.assertEqual(runner._condition_name("antenna-human-activity", 3), "C3")
+
     def test_saved_head_loads_and_backbone_remains_frozen(self):
         runner = _runner_module()
         encoder = Encoder(img_size=(32, 32), patch_size=8, embed_dim=16, depth=8, num_heads=2)
@@ -176,7 +184,7 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
         self.assertEqual(row["validation_L2_mean_distance_error"], 2.0)
         with tempfile.TemporaryDirectory() as directory:
             output_dir = Path(directory)
-            report._write_antenna_exit_plot(output_dir, study)
+            report._write_antenna_exit_plot(output_dir, study, stem="antenna_exit_vs_channels")
             self.assertTrue((output_dir / "antenna_exit_vs_channels.png").is_file())
             self.assertTrue((output_dir / "antenna_exit_vs_channels.pdf").is_file())
 

@@ -25,7 +25,11 @@ def _format(value: object) -> str:
 def _rows(study_name: str, study: dict) -> list[dict[str, object]]:
     spec = study["task_spec"]
     metric = spec["metric_name"]
-    level_name = "available_channels" if study_name == "antenna" else "temporal_patch_columns"
+    level_name = (
+        "available_channels"
+        if study.get("availability_mode") == "antenna_prefix" or study_name == "antenna"
+        else "temporal_patch_columns"
+    )
     rows = []
     for condition in study["conditions"]:
         row: dict[str, object] = {
@@ -74,7 +78,7 @@ def _write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
             handle.write("| " + " | ".join(_format(row[field]) for field in fields) + " |\n")
 
 
-def _write_antenna_exit_plot(output_dir: Path, study: dict) -> None:
+def _write_antenna_exit_plot(output_dir: Path, study: dict, *, stem: str) -> None:
     """Plot validation-selected exit depth against available antenna channels."""
 
     metric = study["task_spec"]["metric_name"]
@@ -106,7 +110,7 @@ def _write_antenna_exit_plot(output_dir: Path, study: dict) -> None:
     axis.set_title("Antenna availability vs. selected-exit validation error")
     axis.grid(axis="both", color="#d9d9d9", linewidth=0.8)
     for extension in ("png", "pdf"):
-        figure.savefig(output_dir / f"antenna_exit_vs_channels.{extension}", dpi=300, bbox_inches="tight")
+        figure.savefig(output_dir / f"{stem}.{extension}", dpi=300, bbox_inches="tight")
     plt.close(figure)
 
 
@@ -118,7 +122,7 @@ def main() -> int:
         raise ValueError(f"study artifact has no studies: {args.input}")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     all_rows = []
-    for study_name in ("antenna", "temporal"):
+    for study_name in ("antenna", "antenna-human-activity", "temporal"):
         study = studies.get(study_name)
         if study is None:
             continue
@@ -128,8 +132,9 @@ def main() -> int:
         all_rows.extend(rows)
         _write_csv(args.output_dir / f"input_information_{study_name}.csv", rows)
         _write_markdown(args.output_dir / f"input_information_{study_name}.md", rows)
-        if study_name == "antenna":
-            _write_antenna_exit_plot(args.output_dir, study)
+        if study.get("availability_mode") == "antenna_prefix" or study_name == "antenna":
+            stem = "antenna_exit_vs_channels" if study["task"] == "nrpos-outdoor" else f"{study['task']}_antenna_exit_vs_channels"
+            _write_antenna_exit_plot(args.output_dir, study, stem=stem)
     if not all_rows:
         raise ValueError(f"study artifact has no recognized study results: {args.input}")
     selected = [

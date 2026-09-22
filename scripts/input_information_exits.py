@@ -45,6 +45,12 @@ STUDIES = {
         "levels": (1, 2, 3, 4),
         "level_name": "available_channels",
     },
+    "antenna-human-activity": {
+        "task": "human-activity",
+        "mode": "antenna_prefix",
+        "levels": (1, 2, 3),
+        "level_name": "available_channels",
+    },
     "temporal": {
         "task": "human-activity",
         "mode": "leading_temporal_patches",
@@ -345,7 +351,7 @@ def _validate_task_compatibility(source: dict[str, Any], task: str, spec: TaskSp
 
 
 def _condition_name(study_name: str, level: int) -> str:
-    return f"C{level}" if study_name == "antenna" else f"Tp{level}"
+    return f"C{level}" if STUDIES[study_name]["mode"] == "antenna_prefix" else f"Tp{level}"
 
 
 def _condition_record(
