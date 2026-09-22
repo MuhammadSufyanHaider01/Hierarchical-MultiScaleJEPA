@@ -1,0 +1,4 @@
+study,task,condition,token_count,selected_exit,selected_validation_metric,selected_test_metric,selected_flops,selected_latency_ms_median
+antenna-human-activity,human-activity,C1,196,4,0.8666666746139526,,1416170496,2.5057955
+antenna-human-activity,human-activity,C2,392,2,0.8583332896232605,,1599212544,2.4343690000000002
+antenna-human-activity,human-activity,C3,588,2,1.0,,2634845184,0.4621855

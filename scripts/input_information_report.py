@@ -11,6 +11,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
+TASK_TITLES = {
+    "nrpos-outdoor": "5G NR outdoor positioning",
+    "human-activity": "WiFi human activity recognition",
+}
+
+
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True, help="input_information_exit_metrics.json")
@@ -107,7 +113,7 @@ def _write_antenna_exit_plot(output_dir: Path, study: dict, *, stem: str) -> Non
     axis.set_ylim(min(errors) - margin, max(errors) + margin * 1.8)
     axis.set_xlabel("Available antenna channels (C)")
     axis.set_ylabel(metric_label.capitalize())
-    axis.set_title("Antenna availability vs. selected-exit validation error")
+    axis.set_title(TASK_TITLES.get(study["task"], str(study["task"])))
     axis.grid(axis="both", color="#d9d9d9", linewidth=0.8)
     for extension in ("png", "pdf"):
         figure.savefig(output_dir / f"{stem}.{extension}", dpi=300, bbox_inches="tight")
