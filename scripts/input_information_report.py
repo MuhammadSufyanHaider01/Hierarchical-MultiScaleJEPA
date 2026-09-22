@@ -82,12 +82,16 @@ def main() -> int:
     all_rows = []
     for study_name in ("antenna", "temporal"):
         study = studies.get(study_name)
+        if study is None:
+            continue
         if not isinstance(study, dict):
-            raise ValueError(f"study artifact lacks {study_name}")
+            raise ValueError(f"study artifact has malformed {study_name} data")
         rows = _rows(study_name, study)
         all_rows.extend(rows)
         _write_csv(args.output_dir / f"input_information_{study_name}.csv", rows)
         _write_markdown(args.output_dir / f"input_information_{study_name}.md", rows)
+    if not all_rows:
+        raise ValueError(f"study artifact has no recognized study results: {args.input}")
     selected = [
         {
             key: row[key]

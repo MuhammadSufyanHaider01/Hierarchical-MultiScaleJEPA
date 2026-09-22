@@ -18,14 +18,15 @@ With the project environment activated:
 ```bash
 PYTHONPATH=src python scripts/input_information_exits.py select \
   --source-metrics runs/phase5_formal/p0/seed_000/downstream/exit_metrics.json \
-  --output-root runs/input_information/p0_seed000 --device cuda
+  --output-root runs/input_information/p0_seed000 --study antenna --device cuda
 ```
 
-The resulting `input_information_exit_metrics.json` contains the antenna
-conditions `C1/C2/C3/C4` for NR positioning and temporal conditions
-`Tp2/Tp4/Tp8/Tp14` for HAR. Antenna conditions use ordered channel prefixes;
-temporal conditions use leading 16-pixel patch-aligned windows from the
-existing processed cache, without resizing or renormalizing.
+The resulting `input_information_exit_metrics.json` contains the requested
+antenna conditions `C1/C2/C3/C4` for NR positioning and, when `--study all`
+is used, temporal conditions `Tp2/Tp4/Tp8/Tp14` for HAR. Antenna conditions
+use ordered channel prefixes; temporal conditions use leading 16-pixel
+patch-aligned windows from the existing processed cache, without resizing or
+renormalizing.
 
 Only after reviewing the selection artifact, run the held-out test stage. It
 evaluates all fixed exits using the saved heads and records the selected exit's

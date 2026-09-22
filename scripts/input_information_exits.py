@@ -63,6 +63,12 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--artifact", type=Path, help="Completed selection artifact (test only).")
     parser.add_argument("--output-root", type=Path, help="Directory for the selection artifact (select only).")
     parser.add_argument("--config", type=Path, default=None, help="Defaults to configs/<source method>.yml.")
+    parser.add_argument(
+        "--study",
+        choices=("all", *STUDIES),
+        default="all",
+        help="Availability study to select; test follows the studies recorded in its artifact.",
+    )
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
@@ -425,12 +431,13 @@ def _selection_artifact(
     checkpoint: Path,
     manifest_path: Path,
     source_root: Path,
+    study_names: tuple[str, ...],
     config_path: Path,
     tolerance: float,
     args: argparse.Namespace,
     device: torch.device,
 ) -> dict[str, object]:
-    manifest = _read_manifest(manifest_path, required_tasks=tuple(entry["task"] for entry in STUDIES.values()))
+    manifest = _read_manifest(manifest_path, required_tasks=tuple(STUDIES[name]["task"] for name in study_names))
     config = init_jepa_config(str(config_path))
     provenance: dict[str, object] = {
         "source_metrics": _file_record(source_path, include_hash=True),
@@ -462,7 +469,8 @@ def _selection_artifact(
         },
         "studies": {},
     }
-    for study_name, study in STUDIES.items():
+    for study_name in study_names:
+        study = STUDIES[study_name]
         task = study["task"]
         dataset, spec = build_task_dataset(task, REPOSITORY_ROOT)
         _validate_task_compatibility(source, task, spec)
@@ -522,10 +530,14 @@ def _run_test(artifact_path: Path, args: argparse.Namespace, device: torch.devic
     config_path = Path(provenance.get("config", {}).get("path", ""))
     if not config_path.is_file():
         raise FileNotFoundError(f"selection artifact config is missing: {config_path}")
-    manifest = _read_manifest(manifest_path, required_tasks=tuple(entry["task"] for entry in STUDIES.values()))
+    selected_studies = tuple(artifact.get("studies", {}))
+    if not selected_studies or any(name not in STUDIES for name in selected_studies):
+        raise ValueError("selection artifact has no recognized studies")
+    manifest = _read_manifest(manifest_path, required_tasks=tuple(STUDIES[name]["task"] for name in selected_studies))
     config = init_jepa_config(str(config_path))
 
-    for study_name, study in STUDIES.items():
+    for study_name in selected_studies:
+        study = STUDIES[study_name]
         study_output = artifact.get("studies", {}).get(study_name)
         if not isinstance(study_output, dict):
             raise ValueError(f"selection artifact lacks study {study_name}")
@@ -588,6 +600,7 @@ def main() -> int:
             checkpoint=checkpoint,
             manifest_path=manifest_path,
             source_root=source_root,
+            study_names=tuple(STUDIES) if args.study == "all" else (args.study,),
             config_path=config_path,
             tolerance=tolerance,
             args=args,
