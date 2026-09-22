@@ -33,11 +33,17 @@ class Encoder(nn.Module):
             patch_size=patch_size,
             embed_dim=embed_dim
         )
-        num_patches = (self.patch_embed.img_size // self.patch_embed.patch_size) ** 2
+        self.base_grid_size = (
+            int(img_size[0]) // self.patch_embed.patch_size,
+            int(img_size[1]) // self.patch_embed.patch_size,
+        )
+        if min(self.base_grid_size) < 1:
+            raise ValueError(f"img_size must be at least one patch in each dimension, got {img_size}")
+        num_patches = self.base_grid_size[0] * self.base_grid_size[1]
         # --
         self.pos_embed = nn.Parameter(torch.zeros(1, 1, num_patches, embed_dim), requires_grad=False)
         pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1],
-                                            int(num_patches**.5),
+                                            self.base_grid_size,
                                             cls_token=False)
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
         # --
@@ -88,12 +94,26 @@ class Encoder(nn.Module):
             if not isinstance(masks, list):
                 masks = [masks]
 
+        if x.ndim != 4:
+            raise ValueError(f"expected input with shape [B, C, H, W], got {tuple(x.shape)}")
+        height, width = int(x.shape[-2]), int(x.shape[-1])
+        patch_size = self.patch_embed.patch_size
+        if height % patch_size or width % patch_size:
+            raise ValueError(
+                f"input spatial dimensions must be divisible by patch_size={patch_size}, got {(height, width)}"
+            )
+        grid_size = (height // patch_size, width // patch_size)
+
         # -- patchify x
         x = self.patch_embed(x)
 
         # -- add positional embedding to x
-        if x.shape[2] != self.pos_embed.shape[2]:
-            pos_embed = torch.tensor(get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(x.shape[2]**.5), cls_token=False), device=x.device, dtype=torch.float32)
+        if grid_size != self.base_grid_size:
+            pos_embed = torch.tensor(
+                get_2d_sincos_pos_embed(self.pos_embed.shape[-1], grid_size, cls_token=False),
+                device=x.device,
+                dtype=torch.float32,
+            ).unsqueeze(0).unsqueeze(0)
         else:
             pos_embed = self.pos_embed
 

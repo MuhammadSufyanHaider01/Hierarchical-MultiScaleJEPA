@@ -7,16 +7,25 @@ import numpy as np
 
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
     """
-    grid_size: int of the grid height and width
+    grid_size: an int for a square grid, or ``(height, width)``.
     return:
     pos_embed: [grid_size*grid_size, embed_dim] or [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
     """
-    grid_h = np.arange(grid_size, dtype=float)
-    grid_w = np.arange(grid_size, dtype=float)
+    if isinstance(grid_size, int):
+        grid_height = grid_width = grid_size
+    else:
+        if len(grid_size) != 2:
+            raise ValueError(f"grid_size must be an int or a (height, width) pair, got {grid_size!r}")
+        grid_height, grid_width = (int(value) for value in grid_size)
+    if grid_height < 1 or grid_width < 1:
+        raise ValueError(f"grid dimensions must be positive, got {(grid_height, grid_width)}")
+
+    grid_h = np.arange(grid_height, dtype=float)
+    grid_w = np.arange(grid_width, dtype=float)
     grid = np.meshgrid(grid_w, grid_h)  # here w goes first
     grid = np.stack(grid, axis=0)
 
-    grid = grid.reshape([2, 1, grid_size, grid_size])
+    grid = grid.reshape([2, 1, grid_height, grid_width])
     pos_embed = get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
     if cls_token:
         pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)

@@ -13,6 +13,7 @@ from models import (
     load_context_encoder_checkpoint,
     load_target_encoder_checkpoint,
 )
+from models.utils import get_2d_sincos_pos_embed
 
 
 class ExitTest(unittest.TestCase):
@@ -38,6 +39,25 @@ class ExitTest(unittest.TestCase):
         torch.testing.assert_close(
             outputs[2], self.encoder.forward_to_layer(self.inputs, 2), rtol=0.0, atol=0.0
         )
+
+    def test_square_positional_embeddings_are_unchanged_with_tuple_geometry(self):
+        original = get_2d_sincos_pos_embed(16, 4)
+        tuple_geometry = get_2d_sincos_pos_embed(16, (4, 4))
+        self.assertEqual(original.shape, (16, 16))
+        self.assertTrue((original == tuple_geometry).all())
+
+    def test_rectangular_temporal_patch_grid_runs_at_each_study_width(self):
+        encoder = Encoder(
+            img_size=(224, 224),
+            patch_size=16,
+            embed_dim=16,
+            depth=8,
+            num_heads=2,
+        ).eval()
+        for columns in (2, 4, 8):
+            inputs = torch.randn(2, 3, 224, columns * 16)
+            output = encoder.forward_to_layer(inputs, 2)
+            self.assertEqual(tuple(output.shape), (2, 3 * 14 * columns, 16))
 
     def test_forward_to_layer_stops_after_requested_block(self):
         calls = [0] * len(self.encoder.blocks)
