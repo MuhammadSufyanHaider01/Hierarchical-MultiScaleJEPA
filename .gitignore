@@ -7,6 +7,7 @@ runs/
 scratch/
 figures/
 reports/phase5_primary/.matplotlib/
+reports/**/.matplotlib/
 *.ckpt
 *.pth
 *.pt
