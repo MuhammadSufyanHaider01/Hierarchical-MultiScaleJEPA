@@ -1,0 +1,5 @@
+study,task,condition,token_count,selected_exit,selected_validation_metric,selected_test_metric,selected_flops,selected_latency_ms_median
+antenna,nrpos-outdoor,C1,196,2,9.180093765258789,,720930304,0.565924
+antenna,nrpos-outdoor,C2,392,2,7.621031761169434,,1599211008,0.49934049999999996
+antenna,nrpos-outdoor,C3,588,6,4.121476650238037,,7750387200,1.0723465
+antenna,nrpos-outdoor,C4,784,6,3.1444642543792725,,11277960704,1.3221924999999999

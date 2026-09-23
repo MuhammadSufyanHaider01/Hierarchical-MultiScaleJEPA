@@ -1,0 +1,5 @@
+| study | task | available_channels | condition | input_shape | token_count | validation_L2_macro_accuracy | l8_relative_gap_L2 | validation_L4_macro_accuracy | l8_relative_gap_L4 | validation_L6_macro_accuracy | l8_relative_gap_L6 | validation_L8_macro_accuracy | l8_relative_gap_L8 | selected_exit | selected_validation_metric | selected_test_metric | selected_flops | selected_latency_ms_median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| antenna-human-activity | human-activity | 1 | C1 | 1x224x224 | 196 | 0.691667 | -0.125000 | 0.691667 | -0.125000 | 0.716667 | -0.150000 | 0.566667 | 0.000000 | 2 | 0.691667 |  | 720931840 | 0.563464 |
+| antenna-human-activity | human-activity | 2 | C2 | 2x224x224 | 392 | 0.933333 | -0.066667 | 0.958333 | -0.091667 | 0.933333 | -0.066667 | 0.866667 | 0.000000 | 2 | 0.933333 |  | 1599212544 | 0.575374 |
+| antenna-human-activity | human-activity | 3 | C3 | 3x224x224 | 588 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 2 | 1.000000 |  | 2634845184 | 0.583467 |

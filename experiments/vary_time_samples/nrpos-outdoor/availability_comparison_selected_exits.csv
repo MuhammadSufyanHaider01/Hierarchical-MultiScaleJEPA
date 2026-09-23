@@ -1,0 +1,9 @@
+method,study,task,condition,token_count,selected_exit,selected_validation_metric,selected_flops,selected_latency_ms_median
+LatentWave + EE,temporal-nrpos-outdoor,nrpos-outdoor,Tp2,112,6,5.398281574249268,1148716544,4.7979215
+LatentWave + EE,temporal-nrpos-outdoor,nrpos-outdoor,Tp4,224,6,5.430610656738281,2451572224,4.824040500000001
+LatentWave + EE,temporal-nrpos-outdoor,nrpos-outdoor,Tp8,448,4,3.9194140434265137,3699377664,4.859496
+LatentWave + EE,temporal-nrpos-outdoor,nrpos-outdoor,Tp14,784,4,3.442674398422241,7552894464,3.0788045000000004
+Proposed hierarchical approach,temporal-nrpos-outdoor,nrpos-outdoor,Tp2,112,6,4.824436664581299,1148716544,1.199217
+Proposed hierarchical approach,temporal-nrpos-outdoor,nrpos-outdoor,Tp4,224,6,4.238656520843506,2451572224,1.2739660000000002
+Proposed hierarchical approach,temporal-nrpos-outdoor,nrpos-outdoor,Tp8,448,6,3.7548115253448486,5519705600,1.2608125000000001
+Proposed hierarchical approach,temporal-nrpos-outdoor,nrpos-outdoor,Tp14,784,6,3.1444642543792725,11277960704,1.364322

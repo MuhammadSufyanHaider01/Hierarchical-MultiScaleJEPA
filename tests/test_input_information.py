@@ -222,6 +222,108 @@ class InputInformationRunnerValidationTest(unittest.TestCase):
             self.assertTrue((output_dir / "temporal_exit_vs_time_patches.png").is_file())
             self.assertTrue((output_dir / "temporal_exit_vs_time_patches.pdf").is_file())
 
+    def test_full_information_control_allows_small_gpu_numerical_variation(self):
+        runner = _runner_module()
+        spec = TaskSpec(
+            name="nrpos-outdoor",
+            path="toy.h5",
+            target_type="position",
+            num_outputs=3,
+            higher_is_better=False,
+            metric_name="mean_distance_error",
+            sample_shape=(4, 224, 224),
+        )
+        source_values = {layer: float(layer) for layer in (2, 4, 6, 8)}
+        record = {
+            "available_channels": 4,
+            "validation": {str(layer): {"mean_distance_error": value + 1.0e-5} for layer, value in source_values.items()},
+        }
+        runner._assert_full_information_control(
+            study_name="antenna", record=record, source_values=source_values, spec=spec
+        )
+        record["validation"]["2"]["mean_distance_error"] += 1.0e-3
+        with self.assertRaisesRegex(RuntimeError, "does not reproduce"):
+            runner._assert_full_information_control(
+                study_name="antenna", record=record, source_values=source_values, spec=spec
+            )
+
+    def test_single_method_readme_indexes_metrics_and_individual_plot(self):
+        report = _report_module()
+        study = {
+            "task": "human-activity",
+            "availability_mode": "antenna_prefix",
+            "levels": [1, 3],
+            "task_spec": {"metric_name": "macro_accuracy", "sample_shape": [3, 224, 224]},
+        }
+        artifact = {
+            "protocol": {"matmul_precision": "high", "tf32_enabled": True},
+            "provenance": {
+                "source_method": "p2",
+                "source_metrics": {"path": "source.json"},
+                "checkpoint": {"path": "model.ckpt"},
+                "split_manifest": {"path": "splits.json"},
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            report._write_single_method_readme(output, artifact, "antenna-human-activity", study)
+            text = (output / "README.md").read_text()
+            self.assertIn("Proposed hierarchical approach", text)
+            self.assertIn("human-activity_antenna_exit_vs_channels.png", text)
+            self.assertIn("input_information_antenna-human-activity.md", text)
+
+    def test_paired_report_writes_two_method_packet_and_plot(self):
+        report = _report_module()
+
+        def artifact(method: str, error: float) -> dict:
+            return {
+                "stage": "selection_complete",
+                "test_evaluation": False,
+                "provenance": {"source_method": method, "split_manifest": {"sha256": "shared"}},
+                "studies": {"antenna": {
+                    "task": "nrpos-outdoor",
+                    "availability_mode": "antenna_prefix",
+                    "task_spec": {"metric_name": "mean_distance_error", "sample_shape": [4, 224, 224]},
+                    "levels": [4],
+                    "conditions": [{
+                        "condition": "C4",
+                        "available_channels": 4,
+                        "input_shape": [4, 224, 224],
+                        "token_count": 784,
+                        "validation": {str(layer): {"mean_distance_error": error + layer} for layer in (2, 4, 6, 8)},
+                        "validation_l8_relative_gap": {str(layer): float(layer - 8) for layer in (2, 4, 6, 8)},
+                        "selected_exit_earliest_within_tolerance": 4,
+                        "selected_exit_compute": {"flops": 123, "latency_ms": {"median": 1.5}},
+                    }],
+                }},
+            }
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            p0, p2 = root / "p0.json", root / "p2.json"
+            p0.write_text(json.dumps(artifact("p0", 1.0)))
+            p2.write_text(json.dumps(artifact("p2", 2.0)))
+            output = root / "comparison"
+            report._write_paired_report(p0, p2, output)
+            self.assertTrue((output / "availability_comparison.csv").is_file())
+            self.assertTrue((output / "antenna_exit_vs_channels.png").is_file())
+            self.assertTrue((output / "antenna_exit_vs_channels.pdf").is_file())
+            self.assertEqual((output / "availability_comparison.csv").read_text().count("LatentWave + EE"), 1)
+            self.assertEqual((output / "availability_comparison.csv").read_text().count("Proposed hierarchical approach"), 1)
+
+    def test_paired_report_rejects_mismatched_manifests(self):
+        report = _report_module()
+        study = {
+            "task": "nrpos-outdoor",
+            "availability_mode": "antenna_prefix",
+            "task_spec": {"metric_name": "mean_distance_error"},
+            "conditions": [{"condition": "C4", "available_channels": 4, "input_shape": [4, 224, 224], "token_count": 784}],
+        }
+        p0 = {"stage": "selection_complete", "test_evaluation": False, "provenance": {"source_method": "p0", "split_manifest": {"sha256": "p0"}}, "studies": {"antenna": study}}
+        p2 = {"stage": "selection_complete", "test_evaluation": False, "provenance": {"source_method": "p2", "split_manifest": {"sha256": "p2"}}, "studies": {"antenna": study}}
+        with self.assertRaisesRegex(ValueError, "different split manifests"):
+            report._validate_paired_studies(p0, Path("p0.json"), p2, Path("p2.json"))
+
 
 if __name__ == "__main__":
     unittest.main()

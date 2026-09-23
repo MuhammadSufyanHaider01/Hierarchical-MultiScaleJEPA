@@ -1,0 +1,7 @@
+method,study,task,condition,token_count,selected_exit,selected_validation_metric,selected_flops,selected_latency_ms_median
+LatentWave + EE,antenna-human-activity,human-activity,C1,196,4,0.8666666746139526,1416170496,2.5057955
+LatentWave + EE,antenna-human-activity,human-activity,C2,392,2,0.8583332896232605,1599212544,2.4343690000000002
+LatentWave + EE,antenna-human-activity,human-activity,C3,588,2,1.0,2634845184,0.4621855
+Proposed hierarchical approach,antenna-human-activity,human-activity,C1,196,2,0.6916667222976685,720931840,0.5634635
+Proposed hierarchical approach,antenna-human-activity,human-activity,C2,392,2,0.9333333969116211,1599212544,0.575374
+Proposed hierarchical approach,antenna-human-activity,human-activity,C3,588,2,1.0,2634845184,0.583467

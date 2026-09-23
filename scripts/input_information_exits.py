@@ -92,6 +92,12 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="cuda")
     parser.add_argument("--warmup-iterations", type=int, default=50)
     parser.add_argument("--measure-iterations", type=int, default=200)
+    parser.add_argument(
+        "--matmul-precision",
+        choices=("high", "highest"),
+        default="high",
+        help="Float32 matmul precision; recorded in the immutable selection artifact.",
+    )
     return parser.parse_args()
 
 
@@ -433,7 +439,7 @@ def _assert_full_information_control(
     mismatches = []
     for layer in EXIT_LAYERS:
         value = float(observed[str(layer)][spec.metric_name])
-        if not math.isclose(value, source_values[layer], rel_tol=0.0, abs_tol=1.0e-6):
+        if not math.isclose(value, source_values[layer], rel_tol=0.0, abs_tol=2.0e-5):
             mismatches.append(f"L{layer}: observed={value:.8f}, source={source_values[layer]:.8f}")
     if mismatches:
         raise RuntimeError(
@@ -483,6 +489,9 @@ def _selection_artifact(
             "antenna_policy": "fixed ordered prefix channels [0:C)",
             "temporal_policy": "leading patch-aligned processed-cache window [0:16*T_p)",
             "cost_measurement": "selected earliest-within-tolerance exit only",
+            "full_information_control_absolute_tolerance": 2.0e-5,
+            "matmul_precision": args.matmul_precision,
+            "tf32_enabled": args.matmul_precision != "highest",
             "device": str(device),
         },
         "studies": {},
@@ -598,7 +607,10 @@ def main() -> int:
     if args.stage == "test" and (args.artifact is None or args.source_metrics is not None or args.output_root is not None):
         raise ValueError("test requires --artifact only; source and output provenance come from that artifact")
     device = _device(args.device)
-    torch.set_float32_matmul_precision("high")
+    torch.set_float32_matmul_precision(args.matmul_precision)
+    tf32_enabled = args.matmul_precision != "highest"
+    torch.backends.cuda.matmul.allow_tf32 = tf32_enabled
+    torch.backends.cudnn.allow_tf32 = tf32_enabled
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)

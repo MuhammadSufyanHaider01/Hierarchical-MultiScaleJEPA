@@ -1,0 +1,5 @@
+study,task,condition,token_count,selected_exit,selected_validation_metric,selected_test_metric,selected_flops,selected_latency_ms_median
+temporal-interference,interference,Tp2,28,2,0.4585714340209961,,93357056,0.8285245
+temporal-interference,interference,Tp4,56,8,0.46785712242126465,,737674240,1.5297809999999998
+temporal-interference,interference,Tp8,112,2,0.6471428871154785,,392692736,0.813087
+temporal-interference,interference,Tp14,196,2,0.7228571176528931,,720929792,0.5082025

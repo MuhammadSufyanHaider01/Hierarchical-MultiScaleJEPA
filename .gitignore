@@ -1,4 +1,7 @@
 data/**/*.h5
+# Local worktree data links; datasets themselves are not versioned here.
+data/downstream
+data/pretraining
 
 # Local experiment outputs and caches.
 pretraining_checkpoints/

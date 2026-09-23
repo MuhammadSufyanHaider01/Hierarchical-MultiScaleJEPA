@@ -1,0 +1,6 @@
+| study | task | temporal_patch_columns | condition | input_shape | token_count | validation_L2_mean_distance_error | l8_relative_gap_L2 | validation_L4_mean_distance_error | l8_relative_gap_L4 | validation_L6_mean_distance_error | l8_relative_gap_L6 | validation_L8_mean_distance_error | l8_relative_gap_L8 | selected_exit | selected_validation_metric | selected_test_metric | selected_flops | selected_latency_ms_median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| temporal-nrpos-outdoor | nrpos-outdoor | 2 | Tp2 | 4x224x32 | 112 | 14.316057 | 6.605318 | 6.208472 | -1.502267 | 4.824437 | -2.886303 | 7.710740 | 0.000000 | 6 | 4.824437 |  | 1148716544 | 1.199217 |
+| temporal-nrpos-outdoor | nrpos-outdoor | 4 | Tp4 | 4x224x64 | 224 | 13.444474 | 6.971587 | 5.081507 | -1.391381 | 4.238657 | -2.234231 | 6.472888 | 0.000000 | 6 | 4.238657 |  | 2451572224 | 1.273966 |
+| temporal-nrpos-outdoor | nrpos-outdoor | 8 | Tp8 | 4x224x128 | 448 | 5.997620 | 1.845948 | 4.003730 | -0.147943 | 3.754812 | -0.396861 | 4.151672 | 0.000000 | 6 | 3.754812 |  | 5519705600 | 1.260813 |
+| temporal-nrpos-outdoor | nrpos-outdoor | 14 | Tp14 | 4x224x224 | 784 | 3.625646 | 0.502720 | 3.338229 | 0.215304 | 3.144464 | 0.021539 | 3.122926 | 0.000000 | 6 | 3.144464 |  | 11277960704 | 1.364322 |

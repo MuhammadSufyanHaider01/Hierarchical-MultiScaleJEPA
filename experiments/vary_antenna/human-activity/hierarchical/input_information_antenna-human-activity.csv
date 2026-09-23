@@ -1,0 +1,4 @@
+study,task,available_channels,condition,input_shape,token_count,validation_L2_macro_accuracy,l8_relative_gap_L2,validation_L4_macro_accuracy,l8_relative_gap_L4,validation_L6_macro_accuracy,l8_relative_gap_L6,validation_L8_macro_accuracy,l8_relative_gap_L8,selected_exit,selected_validation_metric,selected_test_metric,selected_flops,selected_latency_ms_median
+antenna-human-activity,human-activity,1,C1,1x224x224,196,0.6916667222976685,-0.125,0.6916667222976685,-0.125,0.7166666984558105,-0.1499999761581421,0.5666667222976685,0.0,2,0.6916667222976685,,720931840,0.5634635
+antenna-human-activity,human-activity,2,C2,2x224x224,392,0.9333333969116211,-0.06666672229766846,0.9583333730697632,-0.09166669845581055,0.9333333373069763,-0.06666666269302368,0.8666666746139526,0.0,2,0.9333333969116211,,1599212544,0.575374
+antenna-human-activity,human-activity,3,C3,3x224x224,588,1.0,0.0,1.0,0.0,1.0,0.0,1.0,0.0,2,1.0,,2634845184,0.583467

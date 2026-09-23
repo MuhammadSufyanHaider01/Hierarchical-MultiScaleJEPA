@@ -1,0 +1,265 @@
+{
+  "protocol": {
+    "antenna_policy": "fixed ordered prefix channels [0:C)",
+    "candidate_exit_layers": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "cost_measurement": "selected earliest-within-tolerance exit only",
+    "device": "cuda",
+    "downstream_head_weights_updated": false,
+    "foundation_weights_updated": false,
+    "full_information_control_absolute_tolerance": 2e-05,
+    "matmul_precision": "high",
+    "selection_uses": "validation_only",
+    "split_manifest_created": false,
+    "temporal_policy": "leading patch-aligned processed-cache window [0:16*T_p)",
+    "tf32_enabled": true,
+    "tolerance": 0.05
+  },
+  "provenance": {
+    "checkpoint": {
+      "modified_ns": 1790023678502548667,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "size_bytes": 144556396
+    },
+    "config": {
+      "modified_ns": 1789518013935055616,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/configs/p2.yml",
+      "sha256": "1cd399dd723d1665a3b795f64dfeae431acc97c5a2c6d81ac299e6f83f9d2048",
+      "size_bytes": 1698
+    },
+    "source_head_files": {
+      "human-activity": {
+        "2": {
+          "modified_ns": 1790035843260534170,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/heads/human-activity/L2.pt",
+          "size_bytes": 10539
+        },
+        "4": {
+          "modified_ns": 1790035860784525154,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/heads/human-activity/L4.pt",
+          "size_bytes": 10539
+        },
+        "6": {
+          "modified_ns": 1790035883074513685,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/heads/human-activity/L6.pt",
+          "size_bytes": 10539
+        },
+        "8": {
+          "modified_ns": 1790035916038492851,
+          "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/heads/human-activity/L8.pt",
+          "size_bytes": 10539
+        }
+      }
+    },
+    "source_method": "p2",
+    "source_metrics": {
+      "modified_ns": 1790041870430511310,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/p2/seed_000/downstream/exit_metrics.json",
+      "sha256": "f4f5c942c14ad4f2861af27e8c34239914700a1ddee653f428ce9d29cc646d8a",
+      "size_bytes": 21092
+    },
+    "source_pretrain_seed": 0,
+    "source_repository_root": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main",
+    "split_manifest": {
+      "modified_ns": 1790035110988032113,
+      "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/checkpoint_epoch029_six_tasks/splits_seed_2025_primary_v3.json",
+      "sha256": "b183b0a731fdfd2ff4a3f5e09d300e76ad5130d3900001fe58e6d7fc52d3a2af",
+      "size_bytes": 852547
+    }
+  },
+  "schema_version": 1,
+  "stage": "selection_complete",
+  "studies": {
+    "antenna-human-activity": {
+      "availability_mode": "antenna_prefix",
+      "conditions": [
+        {
+          "available_channels": 1,
+          "condition": "C1",
+          "input_shape": [
+            1,
+            224,
+            224
+          ],
+          "patch_grid": [
+            14,
+            14
+          ],
+          "selected_exit_best_validation": 6,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 720931840,
+            "latency_ms": {
+              "mean": 0.578249665,
+              "median": 0.5634635,
+              "p95": 0.653747,
+              "standard_deviation": 0.04317327692328029
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 2,
+          "token_count": 196,
+          "validation": {
+            "2": {
+              "accuracy": 0.6916666666666667,
+              "macro_accuracy": 0.6916667222976685
+            },
+            "4": {
+              "accuracy": 0.6916666666666667,
+              "macro_accuracy": 0.6916667222976685
+            },
+            "6": {
+              "accuracy": 0.7166666666666667,
+              "macro_accuracy": 0.7166666984558105
+            },
+            "8": {
+              "accuracy": 0.5666666666666667,
+              "macro_accuracy": 0.5666667222976685
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": -0.125,
+            "4": -0.125,
+            "6": -0.1499999761581421,
+            "8": 0.0
+          }
+        },
+        {
+          "available_channels": 2,
+          "condition": "C2",
+          "input_shape": [
+            2,
+            224,
+            224
+          ],
+          "patch_grid": [
+            14,
+            14
+          ],
+          "selected_exit_best_validation": 4,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 1599212544,
+            "latency_ms": {
+              "mean": 0.565227895,
+              "median": 0.575374,
+              "p95": 0.684157,
+              "standard_deviation": 0.07109480643000991
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 2,
+          "token_count": 392,
+          "validation": {
+            "2": {
+              "accuracy": 0.9333333333333333,
+              "macro_accuracy": 0.9333333969116211
+            },
+            "4": {
+              "accuracy": 0.9583333333333334,
+              "macro_accuracy": 0.9583333730697632
+            },
+            "6": {
+              "accuracy": 0.9333333333333333,
+              "macro_accuracy": 0.9333333373069763
+            },
+            "8": {
+              "accuracy": 0.8666666666666667,
+              "macro_accuracy": 0.8666666746139526
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": -0.06666672229766846,
+            "4": -0.09166669845581055,
+            "6": -0.06666666269302368,
+            "8": 0.0
+          }
+        },
+        {
+          "available_channels": 3,
+          "condition": "C3",
+          "input_shape": [
+            3,
+            224,
+            224
+          ],
+          "patch_grid": [
+            14,
+            14
+          ],
+          "selected_exit_best_validation": 2,
+          "selected_exit_compute": {
+            "batch_size": 1,
+            "flops": 2634845184,
+            "latency_ms": {
+              "mean": 0.59492921,
+              "median": 0.583467,
+              "p95": 0.687824,
+              "standard_deviation": 0.04114530074116978
+            },
+            "measure_iterations": 200,
+            "synchronized": true,
+            "warmup_iterations": 50
+          },
+          "selected_exit_earliest_within_tolerance": 2,
+          "token_count": 588,
+          "validation": {
+            "2": {
+              "accuracy": 1.0,
+              "macro_accuracy": 1.0
+            },
+            "4": {
+              "accuracy": 1.0,
+              "macro_accuracy": 1.0
+            },
+            "6": {
+              "accuracy": 1.0,
+              "macro_accuracy": 1.0
+            },
+            "8": {
+              "accuracy": 1.0,
+              "macro_accuracy": 1.0
+            }
+          },
+          "validation_l8_relative_gap": {
+            "2": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          }
+        }
+      ],
+      "levels": [
+        1,
+        2,
+        3
+      ],
+      "task": "human-activity",
+      "task_spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "human-activity",
+        "num_outputs": 6,
+        "path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/has.h5",
+        "sample_shape": [
+          3,
+          224,
+          224
+        ],
+        "target_type": "classification"
+      }
+    }
+  },
+  "study": "input_information_early_exit_inference",
+  "test_evaluation": false
+}
