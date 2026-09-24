@@ -1,4 +1,5 @@
 data/**/*.h5
+data/synthetic/
 # Local worktree data links; datasets themselves are not versioned here.
 data/downstream
 data/pretraining
@@ -22,4 +23,5 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .venv/
+.venv-sionna/
 uvicorn_config.json

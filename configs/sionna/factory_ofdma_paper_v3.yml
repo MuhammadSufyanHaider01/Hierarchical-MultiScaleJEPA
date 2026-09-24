@@ -1,0 +1,73 @@
+schema_version: 2
+scenario_id: factory_ofdma_mobile_array_paper_v3
+paper_source:
+  title: Spectrum Anomaly Detection in OFDMA Systems
+  arxiv: https://arxiv.org/abs/2606.02102
+  source_repository: https://github.com/akdd11/ofdma-spectrum-anomalies-simulation
+  radio_config: https://github.com/akdd11/ofdma-spectrum-anomalies-simulation/blob/main/src/conf/dataset_generation.yaml
+  reference_sionna_version: 1.2.2
+paper_radio_parameters:
+  carrier_frequency_hz: 3750000000
+  transmitter_height_m: 1.5
+  out_of_band_suppression_db: -20
+  bandwidth_hz: 20000000
+  subcarrier_spacing_hz: 15000
+  subcarriers_per_resource_block: 12
+  resource_blocks: 110
+  slots_per_observation: 5
+  symbols_per_slot: 14
+  qam_bits_per_symbol: 2
+  fft_size: 2048
+  cyclic_prefix_samples: 144
+  pilot_slots: [2]
+  legitimate_transmitter_count: [3, 10]
+  legitimate_transmitter_power_dbm: 10
+  legitimate_resource_utilization: [0.3, 1.0]
+  jammer_probability: 0.5
+  jammer_power_dbm: [0, 5, 10, 15, 20, 25, 30]
+  jammer_pattern: directional
+  implemented_jammer_pattern: tr38901_separately_traced
+  legitimate_antenna_pattern: isotropic
+  sensing_unit_noise_figure_db: 10
+  additional_impairments_db: 15
+  ray_count_per_source: 100000
+  reflection_depth: 4
+  diffraction: true
+study_extensions:
+  receiver_array:
+    geometry: ULA
+    elements: 16
+    spacing: half_wavelength_at_3_75_ghz
+    spacing_m: 0.0399723
+    subset_policy: fixed_aperture_center_out_nested
+  positioning:
+    target: receiver_xyz_m
+    use_case_label: synthetic_factory_receiver_localization
+    not_equivalent_to: measured_nrpos_outdoor
+  classifier_adapters:
+    interference: "No extra co-channel source vs added co-channel source; output IDs retain frozen-head indices, source meanings remain unknown."
+    jamming: "Six locally defined synthetic emission profiles; these are not claimed to equal the paper's five jammer types or the measured-cache labels."
+  feature_representation:
+    master_shape: [16, 224, 896]
+    time_axis: 2
+    frequency_interpolation_only: true
+    normalization: fixed_log_magnitude_affine
+    note: "Encoder-compatible adapter; not the paper's 1320x70 PNG representation."
+  implementation_deviations:
+    - "Sionna 2.1.x adapter instead of the paper's Sionna 1.2.2 environment."
+    - "Sionna RT scene is a compact rebuilt factory geometry, not the paper repository's exported Blender/Mitsuba scene mesh."
+    - "Sionna RT patterns are applied in separate transmitter traces: legitimate links use isotropic patterns and jammer links use TR 38.901 directional patterns with randomized orientation."
+    - "The paper uses 21 fixed sensing units; this study uses one mobile 16-element array as an explicit extension."
+availability:
+  antenna_counts: [1, 2, 4, 6, 8, 10, 12, 16]
+  temporal_patches: [2, 4, 6, 8, 10, 12, 14, 18, 22, 28, 36, 44, 56]
+  antenna_reference_time_patches: 14
+  maximum_evaluated_tokens: 3136
+  combined_C16_Tp56: false
+tasks: [nrpos-outdoor, interference, jamming]
+methods: [p0, p2]
+dataset_semantics: assumption_based_synthetic_stress_test
+formal_generation_policy:
+  anchor_calibration_passed: false
+  matched_task_accuracy_claim_allowed: false
+  zero_shot_stress_test_generation_allowed: true
