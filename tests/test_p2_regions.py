@@ -14,7 +14,7 @@ from models.regions import (
 )
 
 
-def tiny_p2_config() -> SimpleNamespace:
+def tiny_p2_config(mode="mask_relative_fine_to_coarse") -> SimpleNamespace:
     return SimpleNamespace(
         encoder=SimpleNamespace(img_size=(32, 32), patch_size=8, embed_dim=16, depth=8, num_heads=2),
         predictor=SimpleNamespace(embed_dim=8, depth=1, num_heads=2),
@@ -36,7 +36,7 @@ def tiny_p2_config() -> SimpleNamespace:
         ),
         hierarchy=SimpleNamespace(
             enabled=True,
-            mode="mask_relative_fine_to_coarse",
+            mode=mode,
             layers=[2, 4, 6],
             lambda_h=1.0,
             warmup_epochs=12,
@@ -223,6 +223,53 @@ class P2HierarchyTest(unittest.TestCase):
         )
         self.assertTrue(torch.isfinite(loss))
         self.assertFalse(targets[8].requires_grad)
+
+
+    def test_reverse_p2_uses_coarse_local_fine_counts_and_gradients(self):
+        mask = torch.arange(28, dtype=torch.long).reshape(1, -1)
+        layout = build_mask_relative_region_layout([mask], grid_size=14)
+        self.assertEqual(
+            {2: layout.for_layer(6).shape[-2], 4: layout.for_layer(4).shape[-2], 6: layout.for_layer(2).shape[-2]},
+            {2: 1, 4: 7, 6: 28},
+        )
+        for layer in (2, 4, 6):
+            self.assertTrue(torch.isin(layout.for_layer(layer), mask).all())
+
+        model = JEPA(
+            tiny_p2_config(mode="mask_relative_coarse_to_fine"),
+            iterations_per_epoch=2,
+            eval_fns=[lambda *_: 0.0],
+            metrics=["smoke"],
+        ).eval()
+        _, anchor_target, _, predictions, targets = model(
+            self.x, self.masks_enc, self.masks_pred, return_hierarchy=True
+        )
+        expected_regions = {2: 1, 4: 2, 6: 8}
+        for layer, regions in expected_regions.items():
+            shape = (1, 1, 2, 1, regions, 16)
+            self.assertEqual(tuple(predictions[layer].shape), shape)
+            self.assertEqual(tuple(targets[layer].shape), shape)
+            self.assertFalse(targets[layer].requires_grad)
+        standalone_target = model.target_encoder(self.x)
+        torch.testing.assert_close(anchor_target, model._target_for_prediction_masks(
+            standalone_target, 1, self.masks_enc, self.masks_pred
+        ))
+        anchor_prediction = model(self.x, self.masks_enc, self.masks_pred)[0]
+        loss = F.mse_loss(anchor_prediction, anchor_target) + torch.stack([
+            F.mse_loss(predictions[layer], targets[layer]) for layer in expected_regions
+        ]).mean()
+        loss.backward()
+        self.assertTrue(torch.isfinite(loss))
+        self.assertTrue(all(parameter.grad is None for parameter in model.target_encoder.parameters()))
+        self.assertTrue(any(parameter.grad is not None for parameter in model.context_encoder.parameters()))
+        for predictor in model.aux_predictors.values():
+            self.assertTrue(any(parameter.grad is not None for parameter in predictor.parameters()))
+
+    def test_reverse_p2_rejects_optional_l8_p2_auxiliary(self):
+        config = tiny_p2_config(mode="mask_relative_coarse_to_fine")
+        config.hierarchy.include_l8_coarse = True
+        with self.assertRaisesRegex(ValueError, "P2-only"):
+            JEPA(config, iterations_per_epoch=1, eval_fns=[lambda *_: 0.0], metrics=["smoke"])
 
 
 if __name__ == "__main__":

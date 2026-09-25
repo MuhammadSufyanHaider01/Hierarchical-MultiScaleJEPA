@@ -29,14 +29,13 @@ PYTHONPATH=src .venv/bin/python scripts/gpu_preflight.py
 
 The gate runs `nvidia-smi`, verifies a CUDA matrix multiplication in the
 project environment, fully audits all ten primary HDF5 inputs once the
-six-task registry update is implemented, and runs two
-finite real-data CUDA smoke steps for P0, P1, and P2. It never launches a
-formal Phase 5 or Phase 6 run and does not create checkpoints, split
-manifests, metrics, or benchmarks.
+six-task registry update is implemented, runs two finite real-data CUDA smoke
+steps for P0, P1, and P2, and runs the synthetic reverse-P2 loss/gradient/mask
+smoke. It never launches a formal Phase 5 or Phase 6 run or creates artifacts.
 
-The gate must succeed on the RTX 5070 Ti before a formal command with
-`--device cuda` is approved. Do not replace it with CPU execution or
-`--device auto` for formal results.
+On ARC, run the gate in an allocation on the `gpu-h100` partition. Prefer one
+H200 (`--gres=gpu:h200:1`), with H100 as fallback. Do not replace GPU
+validation with CPU execution or `--device auto` for formal results.
 
 ## Formal-job rules
 

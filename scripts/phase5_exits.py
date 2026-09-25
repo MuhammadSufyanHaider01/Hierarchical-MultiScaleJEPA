@@ -48,7 +48,7 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p1", "p2"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--head-seed", type=int, default=None)
     parser.add_argument("--split-seed", type=int, default=2025)

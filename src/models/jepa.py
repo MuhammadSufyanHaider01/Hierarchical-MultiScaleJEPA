@@ -100,7 +100,11 @@ class JEPA(ValidationModule):
     def _validate_hierarchy_config(self):
         if not self.hierarchy_enabled:
             return
-        supported_modes = {"same_scale", "mask_relative_fine_to_coarse"}
+        supported_modes = {
+            "same_scale",
+            "mask_relative_fine_to_coarse",
+            "mask_relative_coarse_to_fine",
+        }
         if self.hierarchy_mode not in supported_modes:
             raise ValueError(f"unsupported hierarchy mode: {self.hierarchy_mode!r}")
         if self.hierarchy_warmup_epochs < 0:
@@ -114,9 +118,12 @@ class JEPA(ValidationModule):
             raise ValueError(
                 f"same-scale auxiliary layers must be in [1, {depth - 1}], got {self.hierarchy_layers}"
             )
-        if self.hierarchy_mode == "mask_relative_fine_to_coarse" and self.hierarchy_layers != P2_LAYERS:
+        if self.hierarchy_mode in {
+            "mask_relative_fine_to_coarse",
+            "mask_relative_coarse_to_fine",
+        } and self.hierarchy_layers != P2_LAYERS:
             raise ValueError(
-                f"P2 requires auxiliary layers {P2_LAYERS}, got {self.hierarchy_layers}"
+                f"mask-relative hierarchy requires auxiliary layers {P2_LAYERS}, got {self.hierarchy_layers}"
             )
         if self.include_l8_coarse and (
             not self.hierarchy_enabled or self.hierarchy_mode != "mask_relative_fine_to_coarse"
@@ -126,6 +133,15 @@ class JEPA(ValidationModule):
     def _freeze_target_encoder(self):
         for param in self.target_encoder.parameters():
             param.requires_grad = False
+
+    def _region_layout_layer(self, encoder_layer: int) -> int:
+        """Map an encoder tap to its target-region scale for mask-relative modes."""
+        if encoder_layer == len(self.context_encoder.blocks):
+            # The optional L8 P2 auxiliary loss supervises the full prediction block.
+            return 6
+        if self.hierarchy_mode == "mask_relative_coarse_to_fine":
+            return {2: 6, 4: 4, 6: 2}[encoder_layer]
+        return encoder_layer
 
     @staticmethod
     def _target_for_prediction_masks(target_out, channels, masks_enc, masks_pred):
@@ -222,7 +238,7 @@ class JEPA(ValidationModule):
                             layout=p2_layout,
                             # L8 coarse supervision pools the same complete
                             # masked block as L6, but from L8 target features.
-                            layer=6 if layer == len(self.context_encoder.blocks) else layer,
+                            layer=self._region_layout_layer(layer),
                         )
                         .unsqueeze(1)
                         .expand(-1, num_context_masks, -1, -1, -1, -1)
@@ -245,8 +261,8 @@ class JEPA(ValidationModule):
                     context_outputs[layer],
                     C,
                     masks_enc,
-                    p2_layout.for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
-                    p2_layout.sizes_for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
+                    p2_layout.for_layer(self._region_layout_layer(layer)),
+                    p2_layout.sizes_for_layer(self._region_layout_layer(layer)),
                 )
                 for layer in self.auxiliary_layers
             }
