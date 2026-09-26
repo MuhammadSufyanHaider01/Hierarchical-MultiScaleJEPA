@@ -159,6 +159,11 @@ CUDA_VISIBLE_DEVICES= .venv-synthetic-study/bin/python scripts/generate_syntheti
   --mode formal --count-plan data/synthetic_trained_heads/factory_ofdma_v2/count_plan_test_fraction_v2.json \
   --seed 341902 --output data/synthetic_trained_heads/factory_ofdma_v2/formal_n7500_seed341902_countplan_v2
 
+# Audit the completed master and split provenance before training any heads.
+.venv-synthetic-study/bin/python scripts/audit_synthetic_trained_head_master.py \
+  --master data/synthetic_trained_heads/factory_ofdma_v2/formal_n7500_seed341902_countplan_v2/master.h5 \
+  --count-plan data/synthetic_trained_heads/factory_ofdma_v2/count_plan_test_fraction_v2.json
+
 # Train/anchor all formal heads first. Selection requires passed formal anchors
 # for both methods and both sweeps of that task.
 .venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
