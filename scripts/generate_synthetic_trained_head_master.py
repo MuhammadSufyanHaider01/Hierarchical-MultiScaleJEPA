@@ -48,7 +48,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=("pilot", "formal"), required=True)
     parser.add_argument("--count", type=int, help="pilot count; formal count must come from a locked plan")
     parser.add_argument("--seed", type=int, default=341901)
-    parser.add_argument("--profile", type=Path, default=ROOT / "configs/synthetic_trained_heads/factory_ofdma_v1.yml")
+    parser.add_argument("--profile", type=Path, default=ROOT / "configs/synthetic_trained_heads/factory_ofdma_v2.yml")
     parser.add_argument("--count-plan", type=Path, help="required for formal mode")
     parser.add_argument("--output", type=Path, help="immutable output directory; defaults below profile outputs.data_root")
     parser.add_argument("--ray-count-override", type=int, help="smoke tests only; recorded and disallowed for formal mode")
@@ -64,18 +64,22 @@ def main() -> None:
         if args.ray_count_override is not None:
             parser.error("formal data must use the immutable profile ray count; smoke overrides are pilot-only")
         plan = json.loads(args.count_plan.read_text())
-        if plan.get("status") != "locked" or int(plan.get("total_count", -1)) < 12:
+        if plan.get("status") != "locked" or int(plan.get("shared_total_count", plan.get("total_count", -1))) < 12:
             parser.error("count plan must have status=locked and a valid total_count")
-        if args.count is not None and args.count != int(plan["total_count"]):
+        if args.count is not None and args.count != int(plan.get("shared_total_count", plan.get("total_count"))):
             parser.error("--count disagrees with the locked count plan")
-        count = int(plan["total_count"])
+        if plan.get("profile_sha256") != sha256(profile_path):
+            parser.error("count plan profile hash does not match the supplied profile")
+        if plan.get("formal_seed") is None or args.seed != int(plan["formal_seed"]):
+            parser.error("formal seed must exactly match the seed locked in count_plan.json")
+        count = int(plan.get("shared_total_count", plan.get("total_count")))
     else:
         count = args.count or 512
         plan = None
 
     profile_path = args.profile.resolve()
     profile = yaml.safe_load(profile_path.read_text())
-    if profile.get("study_id") != "factory_ofdma_synthetic_trained_heads_v1":
+    if not str(profile.get("study_id", "")).startswith("factory_ofdma_synthetic_trained_heads_v"):
         parser.error("unsupported or altered study profile")
     if args.mode == "pilot":
         outdir = args.output or (ROOT / profile["outputs"]["data_root"] / f"pilot_n{count}_seed{args.seed}")
@@ -93,7 +97,7 @@ def main() -> None:
 
     rng = np.random.default_rng(args.seed)
     jammer_labels = balanced_jammer_labels(count, rng)
-    ids = [f"factory-ofdma-v1-{args.seed:08d}-{index:06d}" for index in range(count)]
+    ids = [f"{profile['study_id']}-{args.seed:08d}-{index:06d}" for index in range(count)]
     scene_path = ROOT / "src/synthetic_study/assets/factory_scene/scene0/scene.xml"
     scene = make_scene(scene_path, profile)
     metadata_records = []

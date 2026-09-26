@@ -11,7 +11,8 @@ wireless environment.
 
 The simulator scenario is the open factory/OFDMA spectrum-anomaly setting
 described by Schösser et al. and its public implementation. We adapt that
-setting to three explicitly synthetic tasks: factory-scene 3-D localization,
+setting to three explicitly synthetic tasks: factory-floor localization at a
+fixed receiver height (not 3-D localization),
 binary jammer-presence detection, and six-way jammer-mode recognition. These
 are task proxies with frozen label maps, not recovered meanings of the
 measured NR-positioning or interference/jamming labels.
@@ -28,9 +29,12 @@ measured NR-positioning or interference/jamming labels.
   received feature tensor and the same realization ID, receiver location,
   jammer-presence label, and jammer-mode label. Both encoders and every
   availability condition use the same sample IDs and features.
-- Split by independent scene/signal realization ID into disjoint
-  `head_train`, `head_validation`, `exit_selection`, and `test` sets. Use the
-  same immutable manifest for all tasks, methods, sweeps, and diagnostics.
+- The 512-sample pilot uses disjoint `head_train` (70%), `head_validation`
+  (15%), and `exit_selection` (15%) partitions; for pilot calibration only,
+  `exit_selection` is treated as the anchor holdout and no exit selector is run.
+- Formal data use disjoint `head_train` (60%), `head_validation` (10%),
+  `calibration` (10%), `exit_selection` (10%), and `test` (10%) partitions.
+  One immutable manifest is shared by tasks, methods, sweeps, and diagnostics.
 - The feature transform and its normalization are shared across methods and
   conditions. Fit normalization from `head_train` full-information samples
   only; apply it unchanged to every split and crop. Never normalize a
@@ -40,7 +44,7 @@ measured NR-positioning or interference/jamming labels.
 
 | Study task | Target definition | Outputs / primary metric |
 | --- | --- | --- |
-| `nrpos-outdoor` proxy | Receiver 3-D coordinates in the factory scene, normalized per-axis to `[-1,1]` for training and decoded to scene meters for metrics | 3 / mean Euclidean distance error |
+| `nrpos-outdoor` proxy | Factory-floor receiver coordinates `(x,y,z)` with `z=1.5 m` fixed; the two varying axes are normalized to `[-1,1]` for training and decoded to scene meters | 3 outputs / mean Euclidean distance error |
 | `interference` proxy | 0 = no jammer; 1 = any jammer active | 2 / macro accuracy |
 | `jamming` proxy | 0 = no jammer; 1 = barrage; 2 = deceptive; 3 = pilot; 4 = random-hop; 5 = sweep | 6 / macro accuracy |
 
@@ -49,6 +53,23 @@ event. The six class definitions and waveform parameter ranges are fixed in
 the versioned simulator profile and copied into every manifest and result
 packet. Class-index agreement with the measured-data heads is not asserted;
 the synthetic heads are trained from scratch for these target definitions.
+
+## Pilot v1 audit and v2 localization correction
+
+The first v1 pilot is retained only as diagnostic provenance. Its legitimate
+transmitter locations were redrawn independently on every realization, which
+removed a stable reference for the absolute factory-floor coordinate target.
+The P0 full-information antenna anchor therefore had 17.39 m error versus the
+16.54 m training-centroid baseline, with a paired 95% improvement interval of
+[-1.89 m, 0.21 m]; that is a failed learnability gate, not a result to carry
+into the paired study. No formal v1 data or test result was generated.
+
+The active v2 profile fixes four access points at known factory-floor corner
+coordinates and fixes each access point's OFDMA resource-block assignment.
+This is an explicit stable-anchor localization use case. All jammer classes,
+receiver realizations, availability crops, and model comparisons share the
+same v2 master. The v1 pilot remains untouched under its separate versioned
+root; v2 will be accepted only if its pilot gates pass.
 
 ## Signal and availability representation
 
@@ -74,12 +95,14 @@ task and method. No resizing is permitted.
 
 ## Training, selection, and test protocol
 
-1. Run deterministic simulator and feature-extraction unit checks, then a
-   shared pilot. Check sample repeatability, finite values, feature shape,
-   class support, label consistency, nesting, and split disjointness. Run
-   short head-training probes to confirm each synthetic task is learnable by
-   both frozen representations. Lock the formal sample count and all random
-   seeds before formal generation.
+1. Run deterministic simulator and feature-extraction unit checks, then one
+   shared pilot. Pilot partitions are `head_train` (70%), `head_validation`
+   (15%), and an anchor holdout (the pilot manifest's `exit_selection`, 15%);
+   no pilot exit selector or test evaluation is run. Require full-information
+   L8 to beat chance (classification) or the training-centroid predictor
+   (localization) by a positive 95% bootstrap lower bound for both methods and
+   both sweeps. Lock the common formal count from the least-precise pilot
+   anchors before formal generation.
 2. For each P0/P2 × task × sweep × exit layer (`L2/L4/L6/L8`), freeze the
    encoder and train only an independent `ExitHead` using the full-information
    `head_train` split. Select head checkpoints and stopping epochs using only
@@ -93,12 +116,62 @@ task and method. No resizing is permitted.
    separate command; only after approval, evaluate every fixed exit and the
    validation-selected exit on the locked `test` IDs without rerunning any
    selector or training procedure.
-5. Use paired bootstrap resampling of realization IDs for uncertainty
-   intervals and P0-vs-P2 differences. Report performance curves, selected
+5. Test stage requires a separate `review_approval.json` that names the reviewer,
+   sets `approved: true`, and binds the exact selection artifact SHA-256. Use
+   paired bootstrap resampling of realization IDs for uncertainty intervals
+   and P0-vs-P2 differences. Report performance curves, selected
    exits, selection frequencies from repeated head seeds, L8 gaps, compute,
    and provenance. Include calibration / learnability results and any
    precision shortfall. Do not tune generation or training against test
    outcomes.
+
+## Execution commands
+
+Use the isolated `.venv-synthetic-study` for Sionna data generation and the
+repository `.venv` for model inference/training. Set `CUDA_VISIBLE_DEVICES=`
+for Sionna or model steps when the accelerator is occupied. The pilot is one
+shared master; do not make separate antenna/time files.
+
+```bash
+# Shared pilot; no test partition.
+CUDA_VISIBLE_DEVICES= .venv-synthetic-study/bin/python \
+  scripts/generate_synthetic_trained_head_master.py --mode pilot --count 512 --seed 341903
+
+# For each task (nrpos-outdoor, interference, jamming), each axis (antenna,
+# time), and each method (p0, p2), train the pilot heads and run the full-info
+# calibration anchor. Complete all 12 train/anchor pairs before count planning.
+PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+  --stage train --mode pilot --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
+  --task nrpos-outdoor --axis antenna --method both --device cpu
+PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+  --stage anchor --mode pilot --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
+  --task nrpos-outdoor --axis antenna --method both --device cpu
+
+# After all pilot anchors complete, the planner locks a count for tasks whose
+# four paired gates passed and marks blocked tasks without preventing the others.
+.venv-synthetic-study/bin/python scripts/plan_synthetic_study_count.py \
+  --pilot-run-root runs/synthetic_trained_heads/factory_ofdma_v2/pilot \
+  --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
+  --output data/synthetic_trained_heads/factory_ofdma_v2/count_plan.json
+CUDA_VISIBLE_DEVICES= .venv-synthetic-study/bin/python scripts/generate_synthetic_trained_head_master.py \
+  --mode formal --count-plan data/synthetic_trained_heads/factory_ofdma_v2/count_plan.json --seed 341904
+
+# Train/anchor all formal heads first. Selection requires passed formal anchors
+# for both methods and both sweeps of that task.
+PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+  --stage select --mode formal --master <formal-master.h5> --task nrpos-outdoor --axis antenna --method both --device cuda
+
+# Selection report only. It never reads test samples.
+.venv-synthetic-study/bin/python scripts/report_synthetic_trained_head_availability.py \
+  --mode formal --task nrpos-outdoor --axis antenna
+```
+
+Held-out test is intentionally a separate stage. After reviewing a task's P0
+and P2 `selection.json` files and paired report, create a
+`review_approval.json` in each method packet with `approved: true`, a non-empty
+`reviewer`, and `selection_sha256` equal to that method's exact selection JSON
+hash; only then run `--stage test`. The test runner does not recompute or change
+the selected exit.
 
 ## Required diagnostics
 
@@ -119,8 +192,8 @@ task and method. No resizing is permitted.
 ## Reproducibility and output tree
 
 Generated tensors and manifests live in an ignored, versioned
-`data/synthetic_trained_heads/factory_ofdma_v1/` root. Training and evaluation
-packets live under `runs/synthetic_trained_heads/factory_ofdma_v1/`. Result
+`data/synthetic_trained_heads/factory_ofdma_v2/` root. Training and evaluation
+packets live under `runs/synthetic_trained_heads/factory_ofdma_v2/`. Result
 packets mirror the original structure under
 `experiments/synthetic_data/vary_antenna/<task>/` and
 `experiments/synthetic_data/vary_time_samples/<task>/`.

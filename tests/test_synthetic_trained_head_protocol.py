@@ -7,12 +7,15 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+import torch
 
 from synthetic_study.ofdma import (
     NFFT, N_RX_ANT, N_SYMBOLS, CP_LEN,
-    _make_jammer_grid, _make_legitimate_grids, _power_normalize_grid,
+    _legitimate_positions, _make_jammer_grid, _make_legitimate_grids, _power_normalize_grid,
     balanced_jammer_labels, capture_to_feature,
 )
+from models.encoder import Encoder
+from models.exit_heads import FrozenEncoderExit
 from synthetic_study.protocol import (
     ANTENNA_LEVELS,
     ARRAY_SUBSET_ORDER,
@@ -66,7 +69,7 @@ class AvailabilityProtocolTests(unittest.TestCase):
         b = make_split_manifest(ids, labels, seed=20260925)
         self.assertEqual(a, b)
         split_ids = a["realization_ids"]
-        self.assertEqual(set(split_ids), {"head_train", "head_validation", "exit_selection", "test"})
+        self.assertEqual(set(split_ids), {"head_train", "head_validation", "calibration", "exit_selection", "test"})
         all_values = [value for values in split_ids.values() for value in values]
         self.assertEqual(len(all_values), len(set(all_values)))
         self.assertEqual(set(all_values), set(ids))
@@ -86,7 +89,7 @@ class SimulatorSignalTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.profile = yaml.safe_load(
-            (Path(__file__).resolve().parents[1] / "configs/synthetic_trained_heads/factory_ofdma_v1.yml").read_text()
+            (Path(__file__).resolve().parents[1] / "configs/synthetic_trained_heads/factory_ofdma_v2.yml").read_text()
         )
 
     def test_balanced_labels_are_reproducible_and_cover_all_modes(self):
@@ -113,6 +116,18 @@ class SimulatorSignalTests(unittest.TestCase):
             self.assertGreater(np.count_nonzero(jammer), 0)
             self.assertTrue(np.isfinite(jammer).all())
 
+
+    def test_v2_localization_anchors_and_rb_assignments_are_stable(self):
+        first = _legitimate_positions(np.random.default_rng(1), self.profile)
+        second = _legitimate_positions(np.random.default_rng(9025), self.profile)
+        self.assertTrue(np.array_equal(first, second))
+        self.assertEqual(first.tolist(), self.profile["scenario"]["legitimate_transmitters"]["fixed_positions_m"])
+        _, rb_a, _ = _make_legitimate_grids(n_tx=4, rng=np.random.default_rng(1), config=self.profile)
+        _, rb_b, _ = _make_legitimate_grids(n_tx=4, rng=np.random.default_rng(9025), config=self.profile)
+        self.assertEqual(rb_a, rb_b)
+        self.assertEqual(rb_a[0][0], 0)
+        self.assertEqual(rb_a[-1][1], 110)
+
     def test_feature_transform_emits_fixed_finite_master_shape(self):
         n_samples = N_SYMBOLS * (NFFT + CP_LEN)
         capture = np.zeros((N_RX_ANT, n_samples), dtype=np.complex64)
@@ -124,6 +139,23 @@ class SimulatorSignalTests(unittest.TestCase):
     def test_label_generator_rejects_small_unbalanced_design(self):
         with self.assertRaises(ValueError):
             balanced_jammer_labels(5, np.random.default_rng(0))
+
+
+class FrozenEncoderTapTests(unittest.TestCase):
+    def test_rectangular_token_counts_and_frozen_backbone(self):
+        encoder = Encoder(img_size=(224, 224), patch_size=16, embed_dim=32, depth=2, num_heads=4)
+        encoder.eval()
+        with torch.inference_mode():
+            rectangular = encoder(torch.randn(1, 1, 224, 32), return_layers=[1, 2])
+            square_multichannel = encoder(torch.randn(1, 3, 224, 224), return_layers=[2])
+        self.assertEqual(rectangular[1].shape, (1, 28, 32))
+        self.assertEqual(square_multichannel[2].shape, (1, 588, 32))
+        model = FrozenEncoderExit(encoder, exit_layer=2, num_outputs=3)
+        model.train()
+        logits = model(torch.randn(2, 2, 224, 32))
+        logits.square().mean().backward()
+        self.assertTrue(all(parameter.grad is None for parameter in encoder.parameters()))
+        self.assertTrue(any(parameter.grad is not None for parameter in model.head.parameters()))
 
 
 if __name__ == "__main__":

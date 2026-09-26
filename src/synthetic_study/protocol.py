@@ -117,9 +117,10 @@ def make_split_manifest(
         if pilot
         else {
             "head_train": 0.60,
-            "head_validation": 0.15,
+            "head_validation": 0.10,
+            "calibration": 0.10,
             "exit_selection": 0.10,
-            "test": 0.15,
+            "test": 0.10,
         }
     )
     rng = np.random.default_rng(seed)

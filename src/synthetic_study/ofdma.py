@@ -1,7 +1,7 @@
 """Factory/OFDMA realization generator using the pinned Sionna RT interface.
 
 The room and six obstacle meshes are vendored from the Apache-2.0 reference
-repository identified in ``configs/synthetic_trained_heads/factory_ofdma_v1.yml``.
+repository identified in ``configs/synthetic_trained_heads/factory_ofdma_v2.yml``.
 Published geometry/radio values are retained; receiver array, moving receiver,
 multi-task labels, feature raster, and waveform adapters are study extensions.
 """
@@ -66,11 +66,16 @@ def _free_xy(rng: np.random.Generator, *, margin: float = 0.75) -> tuple[float, 
     raise RuntimeError("could not sample a free factory-floor coordinate")
 
 
-def _split_resource_blocks(n_tx: int, rng: np.random.Generator) -> list[tuple[int, int]]:
-    """Partition the 110 RBs into non-overlapping contiguous user allocations."""
+def _split_resource_blocks(
+    n_tx: int, rng: np.random.Generator, *, fixed: bool = False
+) -> list[tuple[int, int]]:
+    """Partition the 110 RBs into contiguous per-transmitter allocations."""
 
     if not 1 <= n_tx <= N_RB:
         raise ValueError(f"invalid number of transmitters: {n_tx}")
+    if fixed:
+        edges = np.linspace(0, N_RB, n_tx + 1, dtype=np.int64)
+        return [(int(edges[i]), int(edges[i + 1])) for i in range(n_tx)]
     weights = rng.dirichlet(np.ones(n_tx))
     raw = weights * N_RB
     lengths = np.maximum(1, np.floor(raw).astype(int))
@@ -85,6 +90,20 @@ def _split_resource_blocks(n_tx: int, rng: np.random.Generator) -> list[tuple[in
         bounds.append((start, start + int(length)))
         start += int(length)
     return bounds
+
+
+def _legitimate_positions(rng: np.random.Generator, config: dict[str, Any]) -> np.ndarray:
+    tx_profile = config["scenario"]["legitimate_transmitters"]
+    fixed = tx_profile.get("fixed_positions_m")
+    if fixed is not None:
+        positions = np.asarray(fixed, dtype=np.float64)
+        if positions.ndim != 2 or positions.shape[1] != 3:
+            raise ValueError("fixed_positions_m must be an [n_tx, 3] array")
+        if np.any(positions[:, 0] < 0) or np.any(positions[:, 0] > 40) or np.any(positions[:, 1] < 0) or np.any(positions[:, 1] > 40):
+            raise ValueError("fixed access-point positions must lie inside the 40 m factory floor")
+        return positions
+    n_tx = int(rng.integers(tx_profile["count_inclusive"][0], tx_profile["count_inclusive"][1] + 1))
+    return np.asarray([_free_xy(rng) + (float(tx_profile["height_m"]),) for _ in range(n_tx)])
 
 
 def _qpsk(rng: np.random.Generator, shape: tuple[int, ...]) -> np.ndarray:
@@ -106,7 +125,9 @@ def _make_legitimate_grids(
     """Return [transmitter, OFDM-symbol, FFT-bin] QPSK resource grids."""
 
     grids = np.zeros((n_tx, N_SYMBOLS, NFFT), dtype=np.complex64)
-    allocations = _split_resource_blocks(n_tx, rng)
+    allocations = _split_resource_blocks(
+        n_tx, rng, fixed=bool(config["scenario"]["legitimate_transmitters"].get("fixed_resource_block_allocation", False))
+    )
     utilization = []
     bins = _occupied_fft_bins()
     for tx_idx, (rb0, rb1) in enumerate(allocations):
@@ -291,12 +312,12 @@ def received_capture(
     import sionna.rt as rt
 
     tx_profile = config["scenario"]["legitimate_transmitters"]
-    n_tx = int(rng.integers(tx_profile["count_inclusive"][0], tx_profile["count_inclusive"][1] + 1))
+    tx_positions = _legitimate_positions(rng, config)
+    n_tx = len(tx_positions)
     receiver_name = "study_rx"
     receiver_xyz = np.asarray(receiver_xyz, dtype=np.float64)
     scene.add(rt.Receiver(name=receiver_name, position=receiver_xyz.tolist()))
 
-    tx_positions = np.asarray([_free_xy(rng) + (float(tx_profile["height_m"]),) for _ in range(n_tx)])
     tx_names = [f"study_tx_{idx}" for idx in range(n_tx)]
     for name, position in zip(tx_names, tx_positions, strict=True):
         scene.add(
