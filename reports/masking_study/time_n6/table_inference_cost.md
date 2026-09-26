@@ -26,27 +26,27 @@
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | 0.052 | 0.7879 | 0.9513 | 49.5% | 34.2% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | 0.077 | 1.0136 | 1.2005 | 24.7% | 15.3% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | 0.102 | 1.1969 | 1.3786 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | 0.721 | 0.4631 | 0.5396 | 74.3% | 59.2% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | 1.416 | 0.6946 | 0.7709 | 49.5% | 38.8% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 0.9192 | 1.0527 | 24.8% | 19.0% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L8 | 2.807 | 1.1344 | 1.2625 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | 0.721 | 0.4611 | 0.5266 | 74.3% | 59.4% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L4 | 1.416 | 0.6907 | 0.7629 | 49.5% | 39.3% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L6 | 2.111 | 0.9175 | 1.0668 | 24.8% | 19.3% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L8 | 2.807 | 1.1371 | 1.2618 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | 2.635 | 0.4592 | 0.5599 | 74.4% | 61.6% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | 5.193 | 0.7036 | 0.8015 | 49.6% | 41.2% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | 7.750 | 0.9468 | 1.1245 | 24.8% | 20.8% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | 10.308 | 1.1959 | 1.3647 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | 0.721 | 0.4580 | 0.5294 | 74.3% | 59.7% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L4 | 1.416 | 0.6919 | 0.7929 | 49.5% | 39.1% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L6 | 2.111 | 0.9212 | 1.0489 | 24.8% | 18.9% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L8 | 2.807 | 1.1355 | 1.2613 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L2 | 3.828 | 0.5529 | 0.6479 | 74.5% | 64.6% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L4 | 7.553 | 0.8921 | 1.0742 | 49.7% | 42.9% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | 11.278 | 1.2237 | 1.5212 | 24.8% | 21.7% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | 15.003 | 1.5631 | 1.8933 | 0.0% | 0.0% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | 0.026 | 0.6226 | 0.6861 | 74.2% | 50.5% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | 0.052 | 0.8755 | 1.0413 | 49.5% | 30.3% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | 0.077 | 1.0986 | 1.2802 | 24.7% | 12.6% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | 0.102 | 1.2570 | 1.4723 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | 0.721 | 0.8352 | 2.5321 | 74.3% | 52.4% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | 1.416 | 1.1986 | 2.7153 | 49.5% | 31.6% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 1.4615 | 2.7603 | 24.8% | 16.6% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L8 | 2.807 | 1.7530 | 3.0962 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | 0.721 | 0.9171 | 2.5556 | 74.3% | 47.6% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L4 | 1.416 | 1.2106 | 2.7608 | 49.5% | 30.8% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L6 | 2.111 | 1.4744 | 2.8694 | 24.8% | 15.7% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L8 | 2.807 | 1.7492 | 3.0914 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | 2.635 | 0.9278 | 2.6623 | 74.4% | 55.3% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | 5.193 | 1.2912 | 2.9072 | 49.6% | 37.8% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | 7.750 | 1.6255 | 3.3916 | 24.8% | 21.6% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | 10.308 | 2.0746 | 3.6463 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | 0.721 | 0.9485 | 2.5553 | 74.3% | 45.8% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L4 | 1.416 | 1.2102 | 2.6611 | 49.5% | 30.8% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L6 | 2.111 | 1.4776 | 2.9724 | 24.8% | 15.5% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L8 | 2.807 | 1.7494 | 3.0894 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L2 | 3.828 | 0.9660 | 2.7893 | 74.5% | 61.4% |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L4 | 7.553 | 1.5646 | 3.1305 | 49.7% | 37.4% |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | 11.278 | 2.1171 | 3.6676 | 24.8% | 15.3% |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | 15.003 | 2.5004 | 4.0001 | 0.0% | 0.0% |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | 0.026 | 1.1577 | 4.7483 | 74.2% | 48.1% |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | 0.052 | 1.5087 | 4.8161 | 49.5% | 32.3% |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | 0.077 | 1.8778 | 4.9617 | 24.7% | 15.8% |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | 0.102 | 2.2290 | 5.2559 | 0.0% | 0.0% |
