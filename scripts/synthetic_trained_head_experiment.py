@@ -215,19 +215,31 @@ def save_and_train_heads(
     *, task: str, axis: str, method: str, h5: h5py.File, split: dict[str, Any],
     id_map: dict[str, int], profile: dict[str, Any], device: torch.device,
     output_dir: Path, encoder_batch_size: int, head_batch_size: int,
+    condition_level: int | None = None,
 ) -> dict[str, Any]:
     _, full_level = full_condition(task, axis)
     full_axis = axis
     train_idx = [id_map[x] for x in split["realization_ids"]["head_train"]]
     val_idx = [id_map[x] for x in split["realization_ids"]["head_validation"]]
-    mean, std = fit_normalization(h5, train_idx, task, full_axis, full_level)
+    if condition_level is None:
+        mean, std = fit_normalization(h5, train_idx, task, full_axis, full_level)
+    else:
+        if split.get("pilot"):
+            raise ValueError("condition-specific diagnostics require the formal training split")
+        reference_dir = ROOT / profile["outputs"]["run_root"] / "formal" / axis / task / method
+        reference = json.loads((reference_dir / "training_record.json").read_text())
+        fit_ids_hash = hashlib.sha256("\n".join(split["realization_ids"]["head_train"]).encode()).hexdigest()
+        if reference.get("master_sha256") != split.get("master_sha256") or reference.get("normalization_fit_ids_sha256") != fit_ids_hash:
+            raise RuntimeError("full-information reference heads do not match this formal master and training split")
+        mean, std = float(reference["normalization"]["mean"]), float(reference["normalization"]["std"])
     encoder, checkpoint = encoder_for(method, profile, device)
     encoder_hash_before = encoder_state_sha256(encoder)
     started = time.monotonic()
     cache_root = ROOT / profile["outputs"]["run_root"] / "representation_cache"
     checkpoint_hash = sha256(checkpoint)
-    train_repr = encode_cached(h5, train_idx, task=task, axis=full_axis, level=full_level, mean=mean, std=std, encoder=encoder, device=device, batch_size=encoder_batch_size, cache_root=cache_root, method=method, mode="pilot" if split.get("pilot") else "formal", checkpoint_hash=checkpoint_hash)
-    val_repr = encode_cached(h5, val_idx, task=task, axis=full_axis, level=full_level, mean=mean, std=std, encoder=encoder, device=device, batch_size=encoder_batch_size, cache_root=cache_root, method=method, mode="pilot" if split.get("pilot") else "formal", checkpoint_hash=checkpoint_hash)
+    train_level = full_level if condition_level is None else condition_level
+    train_repr = encode_cached(h5, train_idx, task=task, axis=full_axis, level=train_level, mean=mean, std=std, encoder=encoder, device=device, batch_size=encoder_batch_size, cache_root=cache_root, method=method, mode="pilot" if split.get("pilot") else "formal", checkpoint_hash=checkpoint_hash)
+    val_repr = encode_cached(h5, val_idx, task=task, axis=full_axis, level=train_level, mean=mean, std=std, encoder=encoder, device=device, batch_size=encoder_batch_size, cache_root=cache_root, method=method, mode="pilot" if split.get("pilot") else "formal", checkpoint_hash=checkpoint_hash)
     y_train_raw = task_labels(task, h5, train_idx, profile)
     y_val_raw = task_labels(task, h5, val_idx, profile)
     y_train = normalize_labels(task, y_train_raw, profile)
@@ -280,7 +292,7 @@ def save_and_train_heads(
         ckpt_path = ckpt_dir / f"L{layer}.pt"
         if ckpt_path.exists():
             raise FileExistsError(f"refusing to overwrite immutable head checkpoint {ckpt_path}")
-        torch.save({"state_dict": best_state, "task": task, "axis": axis, "method": method, "exit_layer": layer, "full_condition_level": full_level, "normalization": {"mean": mean, "std": std}, "source_checkpoint_sha256": sha256(checkpoint), "best_epoch": best_epoch, "head_validation_metric": best_metric}, ckpt_path)
+        torch.save({"state_dict": best_state, "task": task, "axis": axis, "method": method, "exit_layer": layer, "full_condition_level": full_level, "train_condition_level": train_level, "condition_specific": condition_level is not None, "normalization": {"mean": mean, "std": std}, "source_checkpoint_sha256": sha256(checkpoint), "best_epoch": best_epoch, "head_validation_metric": best_metric}, ckpt_path)
         all_records[str(layer)] = {"path": str(ckpt_path), "sha256": sha256(ckpt_path), "best_epoch": best_epoch, "head_validation_metric": best_metric}
         print(f"trained {method}/{task}/{axis} L{layer}: epoch={best_epoch}, head_validation_{profile['tasks'][task]['metric']}={best_metric:.6g}", flush=True)
     encoder_hash_after = encoder_state_sha256(encoder)
@@ -288,6 +300,7 @@ def save_and_train_heads(
         raise RuntimeError("frozen encoder weights changed during synthetic head training")
     state = {
         "method": method, "task": task, "axis": axis, "full_condition": {"axis": full_axis, "level": full_level},
+        "training_condition": {"axis": axis, "level": train_level}, "condition_specific": condition_level is not None,
         "normalization": {"mean": mean, "std": std}, "normalization_fit_ids_sha256": hashlib.sha256("\n".join(split["realization_ids"]["head_train"]).encode()).hexdigest(),
         "source_checkpoint": str(checkpoint), "source_checkpoint_sha256": sha256(checkpoint),
         "master_sha256": split["master_sha256"],
@@ -354,7 +367,7 @@ def evaluate_anchor(*, task: str, axis: str, method: str, h5: h5py.File, split: 
     if anchor_split not in split["realization_ids"]:
         raise ValueError(f"manifest has no {anchor_split} split")
     training = json.loads((base / "training_record.json").read_text())
-    encoder, heads, training = load_heads(method, task, axis, mode, profile, device)
+    encoder, heads, training = load_heads(method, task, axis, mode, profile, device, base_path=base)
     if training.get("master_sha256") not in (None, split["master_sha256"]):
         raise RuntimeError("head training record was produced from a different immutable master")
     expected_fit_ids = hashlib.sha256("\n".join(split["realization_ids"]["head_train"]).encode()).hexdigest()
@@ -415,8 +428,8 @@ def synchronized_latency(encoder: nn.Module, head: nn.Module, sample: torch.Tens
     return (time.perf_counter() - start) / repeats * 1000.0
 
 
-def load_heads(method: str, task: str, axis: str, mode: str, profile: dict[str, Any], device: torch.device) -> tuple[nn.Module, dict[int, ExitHead], dict[str, Any]]:
-    base = ROOT / profile["outputs"]["run_root"] / mode / axis / task / method
+def load_heads(method: str, task: str, axis: str, mode: str, profile: dict[str, Any], device: torch.device, base_path: Path | None = None) -> tuple[nn.Module, dict[int, ExitHead], dict[str, Any]]:
+    base = base_path or (ROOT / profile["outputs"]["run_root"] / mode / axis / task / method)
     record = json.loads((base / "training_record.json").read_text())
     encoder, checkpoint = encoder_for(method, profile, device)
     if sha256(checkpoint) != record["source_checkpoint_sha256"]:
@@ -439,10 +452,12 @@ def load_heads(method: str, task: str, axis: str, mode: str, profile: dict[str, 
 def evaluate_stage(
     *, task: str, axis: str, method: str, stage: str, h5: h5py.File,
     split: dict[str, Any], id_map: dict[str, int], profile: dict[str, Any],
-    device: torch.device, encoder_batch_size: int,
+    device: torch.device, encoder_batch_size: int, condition_level: int | None = None,
 ) -> dict[str, Any]:
     mode = "pilot" if bool(split.get("pilot")) else "formal"
     base = ROOT / profile["outputs"]["run_root"] / mode / axis / task / method
+    if condition_level is not None:
+        base = ROOT / profile["outputs"]["run_root"] / "condition_specific" / mode / axis / task / method / f"level_{condition_level}"
     selection_path = base / "selection.json"
     if stage == "select" and mode == "pilot":
         raise PermissionError("pilot data are for calibration/count planning only; formal selection starts after the locked master")
@@ -461,7 +476,7 @@ def evaluate_stage(
         selected_artifact = json.loads(selection_path.read_text())
         if selected_artifact.get("status") != "selection_complete_review_required":
             raise RuntimeError("selection artifact is incomplete or has an unexpected status")
-    encoder, heads, training = load_heads(method, task, axis, mode, profile, device)
+    encoder, heads, training = load_heads(method, task, axis, mode, profile, device, base_path=base)
     if training.get("master_sha256") not in (None, split["master_sha256"]):
         raise RuntimeError("head training record was produced from a different immutable master")
     expected_fit_ids = hashlib.sha256("\n".join(split["realization_ids"]["head_train"]).encode()).hexdigest()
@@ -479,6 +494,10 @@ def evaluate_stage(
     evaluation_idx = [id_map[value] for value in split["realization_ids"][split_name]]
     truth = task_labels(task, h5, evaluation_idx, profile)
     levels, max_channels, max_time = condition_spec(task, axis)
+    if condition_level is not None:
+        if condition_level not in levels:
+            raise ValueError(f"unsupported condition-specific level {condition_level} for {task}/{axis}")
+        levels = [condition_level]
     outputs = {}
     summaries = {}
     predictions_by_level = {}
@@ -574,7 +593,7 @@ def evaluate_stage(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("train", "anchor", "select", "test"), required=True)
+    parser.add_argument("--stage", choices=("train", "train-condition", "anchor", "select", "test"), required=True)
     parser.add_argument("--mode", choices=("pilot", "formal"), default="pilot")
     parser.add_argument("--master", type=Path, required=True)
     parser.add_argument("--manifest", type=Path)
@@ -585,7 +604,14 @@ def main() -> None:
     parser.add_argument("--device", default="auto", choices=("auto", "cpu", "cuda"))
     parser.add_argument("--encoder-batch-size", type=int, default=1)
     parser.add_argument("--head-batch-size", type=int, default=128)
+    parser.add_argument("--condition-level", type=int, help="for train-condition/select diagnostics, use a condition-specific head")
     args = parser.parse_args()
+    if args.condition_level is not None:
+        if args.stage not in ("train-condition", "select"):
+            parser.error("--condition-level is only valid with train-condition or diagnostic select")
+        valid_levels = condition_spec(args.task, args.axis)[0]
+        if args.condition_level not in valid_levels:
+            parser.error(f"condition level must be one of {valid_levels} for {args.task}/{args.axis}")
     if args.device == "cuda" and not torch.cuda.is_available():
         parser.error("CUDA requested but unavailable")
     device = torch.device("cuda" if args.device == "cuda" or (args.device == "auto" and torch.cuda.is_available()) else "cpu")
@@ -619,16 +645,37 @@ def main() -> None:
             if missing:
                 parser.error(f"manifest references missing master IDs: {missing[:3]}")
         for method in methods:
-            output_dir = ROOT / profile["outputs"]["run_root"] / args.mode / args.axis / args.task / method
-            if args.stage == "train":
+            primary_dir = ROOT / profile["outputs"]["run_root"] / args.mode / args.axis / args.task / method
+            if args.stage == "train-condition":
+                if args.condition_level is None:
+                    parser.error("train-condition requires --condition-level")
+                if args.mode != "formal":
+                    parser.error("condition-specific diagnostics are defined for the formal split only")
+                output_dir = ROOT / profile["outputs"]["run_root"] / "condition_specific" / args.mode / args.axis / args.task / method / f"level_{args.condition_level}"
+                if (output_dir / "training_record.json").exists():
+                    parser.error(f"condition-specific training record already exists; artifacts are write-once: {output_dir}")
+                output_dir.mkdir(parents=True, exist_ok=True)
+                save_and_train_heads(task=args.task, axis=args.axis, method=method, h5=h5, split=split, id_map=id_map, profile=profile, device=device, output_dir=output_dir, encoder_batch_size=args.encoder_batch_size, head_batch_size=args.head_batch_size, condition_level=args.condition_level)
+            elif args.stage == "train":
+                if args.condition_level is not None:
+                    parser.error("use --stage train-condition for condition-specific heads")
+                output_dir = primary_dir
                 if (output_dir / "training_record.json").exists():
                     parser.error(f"training record already exists; artifacts are write-once: {output_dir}")
                 output_dir.mkdir(parents=True, exist_ok=True)
                 save_and_train_heads(task=args.task, axis=args.axis, method=method, h5=h5, split=split, id_map=id_map, profile=profile, device=device, output_dir=output_dir, encoder_batch_size=args.encoder_batch_size, head_batch_size=args.head_batch_size)
             elif args.stage == "anchor":
+                if args.condition_level is not None:
+                    parser.error("calibration anchors use the full-information primary heads")
                 evaluate_anchor(task=args.task, axis=args.axis, method=method, h5=h5, split=split, id_map=id_map, profile=profile, device=device, encoder_batch_size=args.encoder_batch_size)
             else:
-                evaluate_stage(task=args.task, axis=args.axis, method=method, stage=args.stage, h5=h5, split=split, id_map=id_map, profile=profile, device=device, encoder_batch_size=args.encoder_batch_size)
+                if args.stage == "select" and args.condition_level is not None:
+                    diagnostic_dir = ROOT / profile["outputs"]["run_root"] / "condition_specific" / args.mode / args.axis / args.task / method / f"level_{args.condition_level}"
+                    if not (diagnostic_dir / "training_record.json").is_file():
+                        parser.error(f"condition-specific heads are missing: {diagnostic_dir}")
+                elif args.condition_level is not None:
+                    parser.error("--condition-level is only valid with train-condition or diagnostic select")
+                evaluate_stage(task=args.task, axis=args.axis, method=method, stage=args.stage, h5=h5, split=split, id_map=id_map, profile=profile, device=device, encoder_batch_size=args.encoder_batch_size, condition_level=args.condition_level)
 
 
 if __name__ == "__main__":
