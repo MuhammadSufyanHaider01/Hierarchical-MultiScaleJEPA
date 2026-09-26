@@ -53,6 +53,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, help="immutable output directory; defaults below profile outputs.data_root")
     parser.add_argument("--ray-count-override", type=int, help="smoke tests only; recorded and disallowed for formal mode")
     args = parser.parse_args()
+    profile_path = args.profile.resolve()
 
     if args.count is not None and args.count < 12:
         parser.error("at least 12 realizations are required for the stratified six-class splits")
@@ -77,7 +78,6 @@ def main() -> None:
         count = args.count or 512
         plan = None
 
-    profile_path = args.profile.resolve()
     profile = yaml.safe_load(profile_path.read_text())
     if not str(profile.get("study_id", "")).startswith("factory_ofdma_synthetic_trained_heads_v"):
         parser.error("unsupported or altered study profile")
