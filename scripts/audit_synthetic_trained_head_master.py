@@ -85,7 +85,7 @@ def main()->None:
             lo=min(lo,float(block.min())); hi=max(hi,float(block.max())); finite_count+=block.size
         require(finite_count==int(np.prod(expected_shape)),"not all feature values were audited")
     metadata_path=master_path.parent/"realization_metadata.jsonl"
-    require(record.get("metadata_sha256")==sha256(metadata_path),"metadata SHA-256 mismatch")
+    require(manifest.get("metadata_sha256")==sha256(metadata_path),"metadata SHA-256 mismatch")
     metadata=[]
     with metadata_path.open() as stream:
         for line in stream:
