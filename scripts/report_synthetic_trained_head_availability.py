@@ -50,6 +50,10 @@ def load_packet(run_root,mode,axis,task,method,include_test=False):
         packet_path=base/"test_metrics.json"; packet=json.loads(packet_path.read_text())
         if packet.get("status")!="test_complete" or packet.get("stage")!="test":raise ValueError(f"not a completed held-out test packet: {packet_path}")
         if packet.get("selection_artifact_sha256")!=sha(selection_path):raise ValueError(f"test packet is not bound to the current reviewed selection: {packet_path}")
+        approval_path=base/"review_approval.json"
+        approval=json.loads(approval_path.read_text())
+        if approval.get("approved") is not True or not approval.get("reviewer") or approval.get("selection_sha256")!=sha(selection_path):raise ValueError(f"review approval does not authorize this exact selection: {approval_path}")
+        if packet.get("review_approval_sha256")!=sha(approval_path):raise ValueError(f"test packet is not bound to the current approval: {packet_path}")
         preds_path=base/"test_predictions.npz"
         if packet.get("test_predictions_sha256")!=sha(preds_path):raise ValueError(f"test prediction hash mismatch: {preds_path}")
     else:
