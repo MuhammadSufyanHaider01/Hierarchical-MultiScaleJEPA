@@ -1,0 +1,11 @@
+# Study simulator environment. Sionna 2.1 uses PyTorch and supports Python 3.11+.
+# Install into an isolated venv with the CUDA-enabled PyTorch build used by the
+# project; record the resolved package freeze alongside each generated master.
+sionna==2.1.0
+
+# Study scripts and reports use the corresponding project runtime packages.
+numpy>=2.2.6
+scipy>=1.15.3
+h5py>=3.15.1
+matplotlib>=3.10.8
+PyYAML>=6.0

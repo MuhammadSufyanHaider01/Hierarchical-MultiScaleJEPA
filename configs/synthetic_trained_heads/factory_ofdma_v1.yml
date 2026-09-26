@@ -1,0 +1,188 @@
+schema_version: 1
+study_id: factory_ofdma_synthetic_trained_heads_v1
+purpose: paired_synthetic_domain_availability_study
+claim_boundary: >-
+  Supplementary synthetic-domain results only; this is not a reconstruction of
+  the physically collected LatentWave downstream datasets.
+
+reference:
+  paper: "Spectrum Anomaly Detection in OFDMA Systems: Simulation Framework and Benchmark Dataset"
+  arxiv: https://arxiv.org/abs/2606.02102
+  repository: https://github.com/akdd11/ofdma-spectrum-anomalies-simulation
+  repository_commit: 004f57aa28690bf828a5d94a8be64dd1b116e938
+  scene_path: scenes/scene0/scene.xml
+  scene_license: Apache-2.0
+  reference_sionna_version: 1.2.2
+  study_sionna_version: 2.1.0
+  note: >-
+    Physical OFDMA values and scene geometry are taken from the pinned public
+    reference. The 16-element receiver array, mobile receiver coordinates,
+    feature raster, localization labels, and paired tasks are explicit study
+    extensions.
+
+scenario:
+  scene_size_m: [40.0, 40.0, 5.0]
+  carrier_frequency_hz: 3750000000
+  bandwidth_hz: 20000000
+  subcarrier_spacing_hz: 15000
+  resource_blocks: 110
+  subcarriers_per_resource_block: 12
+  occupied_subcarriers: 1320
+  slots_per_capture: 5
+  symbols_per_slot: 14
+  symbols_per_capture: 70
+  fft_size: 2048
+  cyclic_prefix_samples: 144
+  sample_rate_hz: 30720000
+  bits_per_symbol: 2
+  pilot_slots: [2]
+  out_of_band_suppression_db: -20
+  legitimate_transmitters:
+    count_inclusive: [3, 10]
+    height_m: 1.5
+    power_dbm: 10
+    resource_utilization: [0.3, 1.0]
+    antenna_pattern: isotropic
+  jammer:
+    probability: 0.5
+    power_dbm_values: [0, 5, 10, 15, 20, 25, 30]
+    antenna_pattern: tr38901_directional
+  receiver:
+    height_m: 1.5
+    coordinate_bounds_m: [[0.0, 40.0], [0.0, 40.0], [1.5, 1.5]]
+    avoid_obstacle_interiors: true
+    array_geometry: ula
+    elements: 16
+    spacing_fraction_wavelength: 0.5
+    spacing_m: 0.0399723
+    element_axis: x
+  propagation:
+    sensing_unit_noise_figure_db: 10
+    additional_impairments_db: 15
+    ray_count_per_source: 100000
+    reflection_depth: 4
+    diffraction: true
+    refraction: true
+
+tasks:
+  nrpos-outdoor:
+    synthetic_name: factory_3d_localization
+    target_type: position
+    num_outputs: 3
+    metric: mean_distance_error_m
+    coordinate_min_m: [0.0, 0.0, 1.5]
+    coordinate_max_m: [40.0, 40.0, 1.5]
+    target_transform: per_axis_affine_to_minus1_plus1
+    constant_axis_policy: normalized_zero
+    note: >-
+      Synthetic factory localization proxy; it is not cellular NR positioning
+      and is not the measured nrpos-outdoor dataset.
+  interference:
+    synthetic_name: jammer_presence
+    target_type: classification
+    num_outputs: 2
+    metric: macro_accuracy
+    labels: {0: no_jammer, 1: jammer_present}
+    note: >-
+      New synthetic binary target. It does not assign meanings to measured
+      interference-cache labels.
+  jamming:
+    synthetic_name: factory_jammer_mode
+    target_type: classification
+    num_outputs: 6
+    metric: macro_accuracy
+    labels:
+      0: no_jammer
+      1: barrage
+      2: deceptive
+      3: pilot
+      4: random_hop
+      5: sweep
+    note: >-
+      The five jammer names follow the pinned reference repository. Their
+      feature implementations and class-index mapping are recorded by this
+      study; they are not asserted equivalent to measured jamming labels.
+
+feature:
+  master_shape: [16, 224, 896]
+  dtype: float16
+  units_before_normalization: dB
+  transform: received_ofdm_time_frequency_power
+  transform_parameters:
+    stft_fft_size: 2048
+    stft_hop_samples: 168
+    stft_boundary: null
+    time_frames_retained: 896
+    frequency_bin_policy: deterministic_evenly_spaced_224_of_1320_occupied_bins
+    spectrum_order: low_to_high_frequency
+    crop_method: ordered_index_selection_only
+  normalization:
+    mode: global_mean_std
+    fit_split: head_train
+    fit_condition: task_sweep_full_information
+    apply_per_condition: false
+    epsilon: 1.0e-6
+
+availability:
+  patch_size: 16
+  antenna_counts: [1, 2, 4, 6, 8, 10, 12, 16]
+  antenna_sweep_temporal_patches: 14
+  antenna_subset_order: [7, 8, 3, 12, 5, 10, 1, 14, 6, 9, 4, 11, 2, 13, 0, 15]
+  temporal_patches: [2, 4, 6, 8, 10, 12, 14, 18, 22, 28, 36, 44, 56]
+  temporal_sweep_fixed_antennas:
+    nrpos-outdoor: 4
+    interference: 1
+    jamming: 1
+  combined_antenna16_time56: false
+  maximum_tokens_per_condition: 3136
+
+splits:
+  schema_version: 1
+  realization_unit: independent_scene_waveform_seed
+  fractions:
+    head_train: 0.60
+    head_validation: 0.15
+    exit_selection: 0.10
+    test: 0.15
+  same_manifest_for_all_methods_tasks_sweeps: true
+  pilot_has_test_split: false
+
+models:
+  p0:
+    display_name: LatentWave + EE
+    method_config: configs/p0.yml
+    checkpoint: runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt
+    checkpoint_branch: context_encoder
+    pretrain_seed: 0
+  p2:
+    display_name: Proposed hierarchical approach
+    method_config: configs/p2.yml
+    checkpoint: runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt
+    checkpoint_branch: context_encoder
+    pretrain_seed: 0
+
+head_training:
+  exit_layers: [2, 4, 6, 8]
+  max_epochs: 200
+  early_stopping_patience: 20
+  optimizer: AdamW
+  learning_rate: 0.001
+  weight_decay: 0.05
+  same_seed_schedule_p0_p2: true
+  freeze_encoder: true
+  independent_head_per_task_sweep_layer_method: true
+  selection_tolerance: 0.05
+  selection_metric: task_primary_metric
+
+precision_targets:
+  macro_accuracy_95ci_half_width: 0.03
+  localization_error_95ci_half_width_m: 0.25
+  shared_master_sample_cap: 14000
+  lock_before_formal_selection: true
+
+outputs:
+  data_root: data/synthetic_trained_heads/factory_ofdma_v1
+  run_root: runs/synthetic_trained_heads/factory_ofdma_v1
+  experiment_root: experiments/synthetic_data
+  original_results_root: experiments/original_data
+  write_once: true

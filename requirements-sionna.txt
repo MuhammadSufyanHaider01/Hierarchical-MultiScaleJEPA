@@ -1,6 +1,0 @@
-# Use Python 3.11+ and install a CUDA-matched PyTorch 2.9+ wheel separately first.
-sionna==2.1.0
-h5py>=3.11,<4
-numpy>=2.0
-PyYAML>=6
-matplotlib>=3.9
