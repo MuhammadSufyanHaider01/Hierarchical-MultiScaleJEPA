@@ -311,6 +311,7 @@ def save_and_train_heads(
         "encoder_state_sha256_after": encoder_hash_after,
         "head_checkpoints": all_records, "train_count": len(train_idx), "head_validation_count": len(val_idx),
         "training_seconds": round(time.monotonic() - started, 3),
+        "torch_num_threads": torch.get_num_threads(),
     }
     json_write(output_dir / "training_record.json", state)
     return state
@@ -617,6 +618,7 @@ def main() -> None:
     parser.add_argument("--axis", choices=("antenna", "time"), required=True)
     parser.add_argument("--method", choices=("p0", "p2", "both"), default="both")
     parser.add_argument("--device", default="auto", choices=("auto", "cpu", "cuda"))
+    parser.add_argument("--cpu-threads", type=int, default=2, help="PyTorch CPU thread count; recorded in training provenance")
     parser.add_argument("--encoder-batch-size", type=int, default=1)
     parser.add_argument("--head-batch-size", type=int, default=128)
     parser.add_argument("--condition-level", type=int, help="for train-condition/select diagnostics, use a condition-specific head")
@@ -629,8 +631,10 @@ def main() -> None:
             parser.error(f"condition level must be one of {valid_levels} for {args.task}/{args.axis}")
     if args.device == "cuda" and not torch.cuda.is_available():
         parser.error("CUDA requested but unavailable")
+    if args.cpu_threads < 1:
+        parser.error("--cpu-threads must be at least 1")
     device = torch.device("cuda" if args.device == "cuda" or (args.device == "auto" and torch.cuda.is_available()) else "cpu")
-    torch.set_num_threads(2)
+    torch.set_num_threads(args.cpu_threads)
     profile = yaml.safe_load(args.profile.read_text())
     manifest_path = args.manifest or args.master.parent / "split_manifest.json"
     split = json.loads(manifest_path.read_text())
