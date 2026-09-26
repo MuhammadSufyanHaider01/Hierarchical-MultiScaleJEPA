@@ -41,11 +41,21 @@ def paired_bootstrap(task,truth,p0,p2,profile,seed=61025,rounds=3000):
         point=metric(task,truth,p2,profile)-metric(task,truth,p0,profile)
     lo,hi=np.quantile(diff,[.025,.975])
     return {"p2_minus_p0":float(point),"ci95":[float(lo),float(hi)],"bootstrap_replicates":rounds,"paired_n":n}
-def load_packet(run_root,mode,axis,task,method):
+def load_packet(run_root,mode,axis,task,method,include_test=False):
     base=run_root/mode/axis/task/method
-    packet_path=base/"selection.json"; packet=json.loads(packet_path.read_text())
-    if packet.get("status")!="selection_complete_review_required" or packet.get("stage")!="select":raise ValueError(f"not a finalized validation selection artifact: {packet_path}")
-    preds_path=base/"selection_predictions.npz"
+    selection_path=base/"selection.json"
+    if include_test:
+        if mode!="formal":raise ValueError("held-out test reports require formal mode")
+        selection=json.loads(selection_path.read_text())
+        packet_path=base/"test_metrics.json"; packet=json.loads(packet_path.read_text())
+        if packet.get("status")!="test_complete" or packet.get("stage")!="test":raise ValueError(f"not a completed held-out test packet: {packet_path}")
+        if packet.get("selection_artifact_sha256")!=sha(selection_path):raise ValueError(f"test packet is not bound to the current reviewed selection: {packet_path}")
+        preds_path=base/"test_predictions.npz"
+        if packet.get("test_predictions_sha256")!=sha(preds_path):raise ValueError(f"test prediction hash mismatch: {preds_path}")
+    else:
+        packet_path=selection_path; packet=json.loads(packet_path.read_text())
+        if packet.get("status")!="selection_complete_review_required" or packet.get("stage")!="select":raise ValueError(f"not a finalized validation selection artifact: {packet_path}")
+        preds_path=base/"selection_predictions.npz"
     return packet,packet_path,preds_path,base
 def plot_rows(rows,task,axis,metric_name,higher,title,path,methods):
     fig,ax=plt.subplots(figsize=(7.2,4.5))
@@ -71,17 +81,19 @@ def main():
     parser.add_argument("--run-root",type=Path)
     parser.add_argument("--output-root",type=Path)
     parser.add_argument("--bootstrap-seed",type=int,default=61025)
+    parser.add_argument("--include-test",action="store_true",help="render a separate report from already-approved formal test packets")
     args=parser.parse_args()
     profile=yaml.safe_load(args.profile.read_text())
     run_root=(ROOT/profile["outputs"]["run_root"]).resolve() if args.run_root is None else args.run_root.resolve()
     exp_root=(ROOT/profile["outputs"]["experiment_root"]).resolve() if args.output_root is None else args.output_root.resolve()
     axis_name="vary_antenna" if args.axis=="antenna" else "vary_time_samples"
     task_root=exp_root/axis_name/args.task
-    if task_root.exists() and any(task_root.iterdir()):raise FileExistsError(f"report output exists; refusing to overwrite: {task_root}")
-    task_root.mkdir(parents=True,exist_ok=True)
+    report_root=task_root/"test" if args.include_test else task_root
+    if report_root.exists() and any(report_root.iterdir()):raise FileExistsError(f"report output exists; refusing to overwrite: {report_root}")
+    report_root.mkdir(parents=True,exist_ok=True)
     packets={}; arrays={}; rows=[]
     for method in ("p0","p2"):
-        packet,path,pred_path,run_dir=load_packet(run_root,args.mode,args.axis,args.task,method)
+        packet,path,pred_path,run_dir=load_packet(run_root,args.mode,args.axis,args.task,method,args.include_test)
         packets[method]=(packet,path,pred_path,run_dir)
         with np.load(pred_path) as archive:
             for level,condition in sorted(packet["conditions"].items(), key=lambda item: int(item[0])):
@@ -101,7 +113,7 @@ def main():
         interval=paired_bootstrap(args.task,truth0,p0,p2,profile,args.bootstrap_seed+int(level))
         paired.append({"level":int(level),**interval,"p0_selected_exit":a["conditions"][level]["selected_exit"],"p2_selected_exit":b["conditions"][level]["selected_exit"],"p0_metric":a["conditions"][level]["selected_metric"],"p2_metric":b["conditions"][level]["selected_metric"]})
     for method in ("p0","p2"):
-        md=task_root/METHOD_DIR[method]; md.mkdir(parents=True,exist_ok=True)
+        md=report_root/METHOD_DIR[method]; md.mkdir(parents=True,exist_ok=True)
         subrows=[r for r in rows if r["method"]==method]
         csv_path=md/"metrics.csv"
         columns=["method","task","axis","level","channels","array_element_indices","temporal_patches","time_columns","token_count","selected_exit","selected_metric","l8_metric","l8_gap","l8_relative_gap","flops_approx","latency_ms_batch1","source_checkpoint","source_checkpoint_sha256","master_sha256","split_ids_sha256"]
@@ -115,19 +127,21 @@ def main():
         plot_rows(rows,args.task,args.axis,packets[method][0]["metric"],packets[method][0]["higher_is_better"],TASK_TITLE[args.task]+" — " + ("LatentWave + EE" if method=="p0" else "Proposed hierarchical approach"),md/"performance.png",[method])
         # This PDF is the same individual method figure as the PNG.
         plot_rows(rows,args.task,args.axis,packets[method][0]["metric"],packets[method][0]["higher_is_better"],TASK_TITLE[args.task]+" — " + ("LatentWave + EE" if method=="p0" else "Proposed hierarchical approach"),md/"performance.pdf",[method])
-    with (task_root/"paired_metrics.csv").open("x",newline="") as f:
+    with (report_root/"paired_metrics.csv").open("x",newline="") as f:
         fields=["level","p0_selected_exit","p2_selected_exit","p0_metric","p2_metric","p2_minus_p0","ci95_lower","ci95_upper","paired_n"]
         w=csv.DictWriter(f,fieldnames=fields);w.writeheader()
         for r in paired:w.writerow({"level":r["level"],"p0_selected_exit":r["p0_selected_exit"],"p2_selected_exit":r["p2_selected_exit"],"p0_metric":r["p0_metric"],"p2_metric":r["p2_metric"],"p2_minus_p0":r["p2_minus_p0"],"ci95_lower":r["ci95"][0],"ci95_upper":r["ci95"][1],"paired_n":r["paired_n"]})
-    (task_root/"paired_metrics.md").write_text("# Paired validation comparison\n\nP2 minus P0 paired bootstrap interval; for localization, negative favors P2; for accuracy, positive favors P2.\n\n| Level | P0 exit / metric | P2 exit / metric | P2 − P0 | 95% paired CI | n |\n|---:|---|---|---:|---|---:|\n"+"".join(f"| {r['level']} | L{r['p0_selected_exit']} / {r['p0_metric']:.5g} | L{r['p2_selected_exit']} / {r['p2_metric']:.5g} | {r['p2_minus_p0']:.5g} | [{r['ci95'][0]:.5g}, {r['ci95'][1]:.5g}] | {r['paired_n']} |\n" for r in paired))
-    (task_root/"paired_metrics.json").write_text(json.dumps({"task":args.task,"axis":args.axis,"metric":a["metric"],"synthetic_proxy":True,"p0_selection_sha256":sha(packets["p0"][1]),"p2_selection_sha256":sha(packets["p2"][1]),"rows":paired},indent=2,sort_keys=True)+"\n")
-    title=TASK_TITLE[args.task]
-    plot_rows(rows,args.task,args.axis,a["metric"],a["higher_is_better"],title,task_root/"comparison.png",["p0","p2"])
-    plot_rows(rows,args.task,args.axis,a["metric"],a["higher_is_better"],title,task_root/"comparison.pdf",["p0","p2"])
-    (task_root/"README.md").write_text(f"# {title} — paired synthetic availability study\n\nThis is validation-only; held-out test metrics are not included. Task definition: `{profile['tasks'][args.task]['synthetic_name']}`. The run is supplementary synthetic-domain evidence and does not recreate measured LatentWave data.\n\nP0 source: `{packets['p0'][1]}` (SHA-256 `{sha(packets['p0'][1])}`).\nP2 source: `{packets['p2'][1]}` (SHA-256 `{sha(packets['p2'][1])}`).\nMaster: `{a['master_sha256']}`; selection IDs: `{a['split_ids_sha256']}`.\n")
+    comparison_kind="held-out test" if args.include_test else "validation selection"
+    (report_root/"paired_metrics.md").write_text(f"# Paired {comparison_kind} comparison\n\nP2 minus P0 paired bootstrap interval; for localization, negative favors P2; for accuracy, positive favors P2.\n\n| Level | P0 exit / metric | P2 exit / metric | P2 − P0 | 95% paired CI | n |\n|---:|---|---|---:|---|---:|\n"+"".join(f"| {r['level']} | L{r['p0_selected_exit']} / {r['p0_metric']:.5g} | L{r['p2_selected_exit']} / {r['p2_metric']:.5g} | {r['p2_minus_p0']:.5g} | [{r['ci95'][0]:.5g}, {r['ci95'][1]:.5g}] | {r['paired_n']} |\n" for r in paired))
+    (report_root/"paired_metrics.json").write_text(json.dumps({"task":args.task,"axis":args.axis,"stage":comparison_kind,"metric":a["metric"],"synthetic_proxy":True,"p0_packet_sha256":sha(packets["p0"][1]),"p2_packet_sha256":sha(packets["p2"][1]),"rows":paired},indent=2,sort_keys=True)+"\n")
+    title=TASK_TITLE[args.task]+(" — held-out test" if args.include_test else " — validation selection")
+    plot_rows(rows,args.task,args.axis,a["metric"],a["higher_is_better"],title,report_root/"comparison.png",["p0","p2"])
+    plot_rows(rows,args.task,args.axis,a["metric"],a["higher_is_better"],title,report_root/"comparison.pdf",["p0","p2"])
+    report_label="approved held-out test" if args.include_test else "validation-only; held-out test metrics are not included"
+    (report_root/"README.md").write_text(f"# {title} — paired synthetic availability study\n\nThis is an {report_label} report. Task definition: `{profile['tasks'][args.task]['synthetic_name']}`. The run is supplementary synthetic-domain evidence and does not recreate measured LatentWave data.\n\nP0 source: `{packets['p0'][1]}` (SHA-256 `{sha(packets['p0'][1])}`).\nP2 source: `{packets['p2'][1]}` (SHA-256 `{sha(packets['p2'][1])}`).\nMaster: `{a['master_sha256']}`; evaluation IDs: `{a['split_ids_sha256']}`.\n")
     exp_root.mkdir(parents=True, exist_ok=True)
     matrix = exp_root / "README.md"
     if not matrix.exists():
         matrix.write_text("# Synthetic trained-head availability study\n\nSupplementary results in an OFDMA factory-scenario proxy domain; these do not reproduce the measured LatentWave tasks, and the measured-data experiment remains primary evidence. Each report is generated only from validation selection artifacts until a separate review approval is recorded.\n\n| Family | Task proxy | Status |\n|---|---|---|\n| Antenna channels | NR positioning / factory localization | Reported per task when selection artifacts are reviewed |\n| Antenna channels | Interference / jammer presence | Reported per task when selection artifacts are reviewed |\n| Antenna channels | Jamming / jammer mode | Reported per task when selection artifacts are reviewed |\n| Temporal patches | NR positioning / factory localization | Reported per task when selection artifacts are reviewed |\n| Temporal patches | Interference / jammer presence | Reported per task when selection artifacts are reviewed |\n| Temporal patches | Jamming / jammer mode | Reported per task when selection artifacts are reviewed |\n\nProfiles, generator code, and immutable master/manifests are versioned under `configs/synthetic_trained_heads/`, `src/synthetic_study/`, and `data/synthetic_trained_heads/` (generated data are ignored by Git).\n")
-    print(json.dumps({"output":str(task_root),"conditions":len(paired),"status":"validation_reported_test_not_run"},indent=2))
+    print(json.dumps({"output":str(report_root),"conditions":len(paired),"status":"test_reported" if args.include_test else "validation_reported_test_not_run"},indent=2))
 if __name__=="__main__":main()

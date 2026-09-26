@@ -184,7 +184,14 @@ and P2 `selection.json` files and paired report, create a
 `review_approval.json` in each method packet with `approved: true`, a non-empty
 `reviewer`, and `selection_sha256` equal to that method's exact selection JSON
 hash; only then run `--stage test`. The test runner does not recompute or change
-the selected exit.
+the selected exit; it stores fixed-exit predictions bound by SHA-256 for paired
+uncertainty reporting. After both approved test packets are complete, render a
+separate `test/` report (the validation report remains immutable):
+
+```bash
+.venv-synthetic-study/bin/python scripts/report_synthetic_trained_head_availability.py \
+  --mode formal --include-test --task nrpos-outdoor --axis antenna
+```
 
 ## Required diagnostics
 

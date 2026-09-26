@@ -462,8 +462,11 @@ def evaluate_stage(
     if stage == "select" and mode == "pilot":
         raise PermissionError("pilot data are for calibration/count planning only; formal selection starts after the locked master")
     prediction_path = base / "selection_predictions.npz"
+    test_prediction_path = base / "test_predictions.npz"
     if stage == "select" and (selection_path.exists() or prediction_path.exists()):
         raise FileExistsError(f"selection packet/predictions already exist (immutable): {base}")
+    if stage == "test" and ((base / "test_metrics.json").exists() or test_prediction_path.exists()):
+        raise FileExistsError(f"test packet/predictions already exist (immutable): {base}")
     training = json.loads((base / "training_record.json").read_text())
     selected_artifact = None
     if stage == "select":
@@ -584,6 +587,18 @@ def evaluate_stage(
         temporary_predictions.replace(prediction_path)
         json_write(selection_path, packet)
     else:
+        temporary_predictions = base / "test_predictions.tmp.npz"
+        if temporary_predictions.exists():
+            raise FileExistsError(f"temporary test predictions exist: {temporary_predictions}")
+        np.savez_compressed(temporary_predictions, **{
+            f"level_{level}_truth": truth for level in levels
+        }, **{
+            f"level_{level}_layer_{layer}": np.asarray(predictions_by_level[str(level)][str(layer)], dtype=np.float32)
+            for level in levels for layer in EXIT_LAYERS
+        })
+        temporary_predictions.replace(test_prediction_path)
+        packet["test_predictions_path"] = str(test_prediction_path)
+        packet["test_predictions_sha256"] = sha256(test_prediction_path)
         packet["selection_artifact_sha256"] = sha256(selection_path)
         packet["selection_artifact"] = str(selection_path)
         packet["review_approval_sha256"] = sha256(base / "review_approval.json")
