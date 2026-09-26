@@ -79,6 +79,9 @@ def main():
     targets={"nrpos-outdoor":float(profile["precision_targets"]["localization_error_95ci_half_width_m"]),"interference":float(profile["precision_targets"]["macro_accuracy_95ci_half_width"]),"jamming":float(profile["precision_targets"]["macro_accuracy_95ci_half_width"])}
     caps={key:int(value) for key,value in profile["precision_targets"]["source_count_caps"].items()}
     records={}; estimates=[]; passed_tasks=[]
+    test_fraction = float(profile["splits"]["fractions"]["test"])
+    if not 0 < test_fraction <= 1:
+        raise ValueError(f"invalid formal test split fraction: {test_fraction}")
     master_hash = sha(args.master)
     for task in ("nrpos-outdoor","interference","jamming"):
         target=targets[task]; task_records=[]; anchors=[]; missing=[]
@@ -103,12 +106,13 @@ def main():
             elif packet["split_ids_sha256"]!=reference_ids_hash or not np.array_equal(anchor["truth"],reference_truth):
                 raise ValueError("P0/P2 or antenna/time anchors are not paired on identical pilot IDs")
             ci=bootstrap_halfwidth(task,anchor["truth"],anchor["prediction"],profile,args.seed+len(estimates))
-            required=int(math.ceil(ci["sample_count"]*(ci["half_width_95"]/target)**2))
-            record={"task":task,"axis":packet["axis"],"method":packet["method"],"full_level":packet["condition"]["level"],"anchor_selection":str(anchor["packet_path"]),"anchor_sha256":sha(anchor["packet_path"]),"predictions_sha256":sha(anchor["prediction_path"]),"metric_ci":ci,"target_half_width":target,"estimated_count":required}
-            task_records.append(record); nvals.append(required); estimates.append(required)
-        required=max(nvals)
-        task_count=min(max(required,max(x["metric_ci"]["sample_count"] for x in task_records)),caps[task])
-        records[task]={"status":"passed","pilot_gate_passed":True,"anchors":task_records,"required_count_estimate":required,"cap":caps[task],"locked_task_count":task_count,"target_met_at_cap":required<=caps[task]}
+            required_eval=int(math.ceil(ci["sample_count"]*(ci["half_width_95"]/target)**2))
+            required_total=int(math.ceil(required_eval/test_fraction))
+            record={"task":task,"axis":packet["axis"],"method":packet["method"],"full_level":packet["condition"]["level"],"anchor_selection":str(anchor["packet_path"]),"anchor_sha256":sha(anchor["packet_path"]),"predictions_sha256":sha(anchor["prediction_path"]),"metric_ci":ci,"target_half_width":target,"required_evaluation_count_estimate":required_eval,"required_total_count_estimate":required_total}
+            task_records.append(record); nvals.append(required_total); estimates.append(required_total)
+        required_total=max(nvals)
+        task_count=min(max(required_total,512),caps[task])
+        records[task]={"status":"passed","pilot_gate_passed":True,"anchors":task_records,"required_evaluation_count_estimate":int(math.ceil(required_total*test_fraction)),"required_count_estimate":required_total,"test_split_fraction":test_fraction,"cap":caps[task],"locked_task_count":task_count,"target_met_at_cap":required_total<=caps[task]}
         passed_tasks.append(task)
     if not passed_tasks:
         raise RuntimeError("no task passed all four paired pilot anchors; no formal count/master is authorized")
@@ -116,7 +120,19 @@ def main():
     common_required=max(records[task]["required_count_estimate"] for task in passed_tasks)
     common_cap=min(caps[task] for task in passed_tasks)
     total=min(max(common_required,512),common_cap)
-    plan={"schema_version":1,"status":"locked","master":"one shared paired master for all tasks and availability sweeps","pilot_master":str(args.master.resolve()),"pilot_master_sha256":sha(args.master),"profile":str(args.profile.resolve()),"profile_sha256":sha(args.profile),"bootstrap_seed":args.seed,"formal_seed":args.formal_seed,"precision_method":"95% percentile bootstrap of the pilot selection split; classification resampled within each class","targets":targets,"per_task":records,"passed_tasks":passed_tasks,"shared_total_count":total,"total_count":total,"shared_cap":common_cap,"projected_shortfall":{task:(max(0,records[task]["required_count_estimate"]-total) if records[task]["pilot_gate_passed"] else None) for task in records},"note":"The shared count uses only tasks that passed all four pilot anchors and is capped by their strictest source-count cap. A failed task is skipped without blocking other tasks. Any precision miss is reported; the count is not extended using test data."}
+    projected_shortfall={}
+    for task, record in records.items():
+        if not record["pilot_gate_passed"]:
+            projected_shortfall[task]=None
+            continue
+        test_samples=max(1,int(math.floor(total*test_fraction)))
+        required_eval=record["required_evaluation_count_estimate"]
+        projected_width=max(
+            anchor["metric_ci"]["half_width_95"]*math.sqrt(anchor["metric_ci"]["sample_count"]/test_samples)
+            for anchor in record["anchors"]
+        )
+        projected_shortfall[task]={"test_sample_count_at_shared_total":test_samples,"required_test_sample_count":required_eval,"test_sample_shortfall":max(0,required_eval-test_samples),"projected_worst_95ci_half_width":projected_width,"target_half_width":targets[task],"target_met":projected_width<=targets[task]}
+    plan={"schema_version":2,"status":"locked","master":"one shared paired master for all tasks and availability sweeps","pilot_master":str(args.master.resolve()),"pilot_master_sha256":sha(args.master),"profile":str(args.profile.resolve()),"profile_sha256":sha(args.profile),"bootstrap_seed":args.seed,"formal_seed":args.formal_seed,"precision_method":"95% percentile bootstrap of the pilot selection split; classification resampled within each class; extrapolated from required evaluation rows to the formal test split fraction","test_split_fraction":test_fraction,"targets":targets,"per_task":records,"passed_tasks":passed_tasks,"shared_total_count":total,"total_count":total,"shared_cap":common_cap,"projected_shortfall":projected_shortfall,"note":"The locked total accounts for the formal test split fraction. Counts use only paired pilot selection predictions and source caps. A failed task is skipped without blocking other tasks. Any precision miss is reported; the count is not extended using test data."}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open("x") as f: json.dump(plan,f,indent=2,sort_keys=True); f.write("\n")
     print(json.dumps({"output":str(args.output),"shared_total_count":total,"passed_tasks":passed_tasks,"required_by_task":{t:r.get("required_count_estimate") for t,r in records.items()},"projected_shortfall":plan["projected_shortfall"]},indent=2))
