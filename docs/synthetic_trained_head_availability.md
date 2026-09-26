@@ -127,10 +127,10 @@ task and method. No resizing is permitted.
 
 ## Execution commands
 
-Use the isolated `.venv-synthetic-study` for Sionna data generation and the
-repository `.venv` for model inference/training. Set `CUDA_VISIBLE_DEVICES=`
-for Sionna or model steps when the accelerator is occupied. The pilot is one
-shared master; do not make separate antenna/time files.
+Use the isolated `.venv-synthetic-study` for Sionna generation and the paired
+model runner. Set `CUDA_VISIBLE_DEVICES=` for simulator/model steps when the
+accelerator is occupied. The pilot and formal data are each one shared master;
+do not make separate antenna/time files.
 
 ```bash
 # Shared pilot; no test partition.
@@ -140,10 +140,10 @@ CUDA_VISIBLE_DEVICES= .venv-synthetic-study/bin/python \
 # For each task (nrpos-outdoor, interference, jamming), each axis (antenna,
 # time), and each method (p0, p2), train the pilot heads and run the full-info
 # calibration anchor. Complete all 12 train/anchor pairs before count planning.
-PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+.venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
   --stage train --mode pilot --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
   --task nrpos-outdoor --axis antenna --method both --device cpu
-PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+.venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
   --stage anchor --mode pilot --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
   --task nrpos-outdoor --axis antenna --method both --device cpu
 
@@ -152,18 +152,31 @@ PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
 .venv-synthetic-study/bin/python scripts/plan_synthetic_study_count.py \
   --pilot-run-root runs/synthetic_trained_heads/factory_ofdma_v2/pilot \
   --master data/synthetic_trained_heads/factory_ofdma_v2/pilot_n512_seed341903/master.h5 \
-  --output data/synthetic_trained_heads/factory_ofdma_v2/count_plan.json
+  --output data/synthetic_trained_heads/factory_ofdma_v2/count_plan_test_fraction_v2.json
+# The test-fraction-aware lock is 7,500 total rows (the shared source cap);
+# its projected test-CI shortfall is stored in the count plan.
 CUDA_VISIBLE_DEVICES= .venv-synthetic-study/bin/python scripts/generate_synthetic_trained_head_master.py \
-  --mode formal --count-plan data/synthetic_trained_heads/factory_ofdma_v2/count_plan.json --seed 341904
+  --mode formal --count-plan data/synthetic_trained_heads/factory_ofdma_v2/count_plan_test_fraction_v2.json \
+  --seed 341902 --output data/synthetic_trained_heads/factory_ofdma_v2/formal_n7500_seed341902_countplan_v2
 
 # Train/anchor all formal heads first. Selection requires passed formal anchors
 # for both methods and both sweeps of that task.
-PYTHONPATH=src .venv/bin/python scripts/synthetic_trained_head_experiment.py \
+.venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
   --stage select --mode formal --master <formal-master.h5> --task nrpos-outdoor --axis antenna --method both --device cuda
 
 # Selection report only. It never reads test samples.
 .venv-synthetic-study/bin/python scripts/report_synthetic_trained_head_availability.py \
   --mode formal --task nrpos-outdoor --axis antenna
+
+# After primary formal heads and calibration anchors exist, the
+# condition-specific diagnostic trains a separate head quartet for one exact
+# availability level, then selects using only the same formal exit_selection IDs.
+.venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
+  --stage train-condition --mode formal --master <formal-master.h5> \
+  --task nrpos-outdoor --axis antenna --condition-level 4 --method both --device cuda
+.venv-synthetic-study/bin/python scripts/synthetic_trained_head_experiment.py \
+  --stage select --mode formal --master <formal-master.h5> \
+  --task nrpos-outdoor --axis antenna --condition-level 4 --method both --device cuda
 ```
 
 Held-out test is intentionally a separate stage. After reviewing a task's P0
