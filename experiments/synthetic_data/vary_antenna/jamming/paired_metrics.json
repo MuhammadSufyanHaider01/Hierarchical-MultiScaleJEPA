@@ -1,0 +1,123 @@
+{
+  "axis": "antenna",
+  "metric": "macro_accuracy",
+  "p0_packet_sha256": "6533716c950b5f6a1ba4fa1ee950699b36b4b891bef2f303aaadb15c480f9a5a",
+  "p2_packet_sha256": "ad40b8df718165688628fec73a0f87edb42ac031fccff4e4efe943129d84fdbc",
+  "rows": [
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.03155555555555556,
+        0.015555555555555545
+      ],
+      "level": 1,
+      "p0_metric": 0.4688888888888889,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.4608888888888889,
+      "p2_minus_p0": -0.008000000000000007,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.022222222222222254,
+        0.02756666666666676
+      ],
+      "level": 2,
+      "p0_metric": 0.4831111111111111,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.48533333333333334,
+      "p2_minus_p0": 0.0022222222222222365,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.0040000000000000036,
+        0.040011111111111185
+      ],
+      "level": 4,
+      "p0_metric": 0.49022222222222217,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.5075555555555555,
+      "p2_minus_p0": 0.017333333333333367,
+      "p2_selected_exit": 4,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.014666666666666661,
+        0.03600000000000009
+      ],
+      "level": 6,
+      "p0_metric": 0.48044444444444445,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.49066666666666664,
+      "p2_minus_p0": 0.010222222222222188,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        0.0040000000000000036,
+        0.05377777777777781
+      ],
+      "level": 8,
+      "p0_metric": 0.4884444444444444,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.5177777777777778,
+      "p2_minus_p0": 0.029333333333333378,
+      "p2_selected_exit": 4,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        0.01643333333333327,
+        0.06755555555555554
+      ],
+      "level": 10,
+      "p0_metric": 0.49288888888888877,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.5346666666666665,
+      "p2_minus_p0": 0.04177777777777775,
+      "p2_selected_exit": 4,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        0.0155555555555556,
+        0.062233333333333495
+      ],
+      "level": 12,
+      "p0_metric": 0.49466666666666664,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.5333333333333333,
+      "p2_minus_p0": 0.03866666666666668,
+      "p2_selected_exit": 4,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        0.014222222222222136,
+        0.061777777777777765
+      ],
+      "level": 16,
+      "p0_metric": 0.49466666666666664,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.5324444444444444,
+      "p2_minus_p0": 0.037777777777777743,
+      "p2_selected_exit": 4,
+      "paired_n": 750
+    }
+  ],
+  "stage": "validation selection",
+  "synthetic_proxy": true,
+  "task": "jamming"
+}

@@ -1,0 +1,794 @@
+{
+  "rows": [
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "antenna",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "antenna",
+        "channels": 1,
+        "level": 1,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 196
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6613333333333333,
+        "4": 0.6679999999999999,
+        "6": 0.6693333333333333,
+        "8": 0.6813333333333333
+      },
+      "flops_approx": 720929792,
+      "l8_gap": 0.020000000000000018,
+      "l8_metric": 0.6813333333333333,
+      "l8_relative_gap": 0.029354207436399243,
+      "latency_ms_batch1": 0.6999031989835203,
+      "level": 1,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6613333333333333,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 196
+    },
+    {
+      "array_element_indices": [
+        7,
+        8
+      ],
+      "axis": "antenna",
+      "channels": 2,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8
+        ],
+        "axis": "antenna",
+        "channels": 2,
+        "level": 2,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 392
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6773333333333333,
+        "4": 0.656,
+        "6": 0.6799999999999999,
+        "8": 0.688
+      },
+      "flops_approx": 1599210496,
+      "l8_gap": 0.010666666666666602,
+      "l8_metric": 0.688,
+      "l8_relative_gap": 0.015503875968992156,
+      "latency_ms_batch1": 0.40674810006748885,
+      "level": 2,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6773333333333333,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 392
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12
+      ],
+      "axis": "antenna",
+      "channels": 4,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12
+        ],
+        "axis": "antenna",
+        "channels": 4,
+        "level": 4,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 784
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6866666666666666,
+        "4": 0.6733333333333333,
+        "6": 0.6799999999999999,
+        "8": 0.692
+      },
+      "flops_approx": 3827827712,
+      "l8_gap": 0.005333333333333301,
+      "l8_metric": 0.692,
+      "l8_relative_gap": 0.007707129094412285,
+      "latency_ms_batch1": 0.8865057985531166,
+      "level": 4,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6866666666666666,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 784
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12,
+        5,
+        10
+      ],
+      "axis": "antenna",
+      "channels": 6,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12,
+          5,
+          10
+        ],
+        "axis": "antenna",
+        "channels": 6,
+        "level": 6,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 1176
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6866666666666666,
+        "4": 0.6786666666666668,
+        "6": 0.6839999999999999,
+        "8": 0.6906666666666667
+      },
+      "flops_approx": 6685852672,
+      "l8_gap": 0.0040000000000000036,
+      "l8_metric": 0.6906666666666667,
+      "l8_relative_gap": 0.005791505791505796,
+      "latency_ms_batch1": 2.704827699926682,
+      "level": 6,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6866666666666666,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 1176
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12,
+        5,
+        10,
+        1,
+        14
+      ],
+      "axis": "antenna",
+      "channels": 8,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12,
+          5,
+          10,
+          1,
+          14
+        ],
+        "axis": "antenna",
+        "channels": 8,
+        "level": 8,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 1568
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6813333333333333,
+        "4": 0.6773333333333333,
+        "6": 0.688,
+        "8": 0.6986666666666667
+      },
+      "flops_approx": 10173285376,
+      "l8_gap": 0.01733333333333331,
+      "l8_metric": 0.6986666666666667,
+      "l8_relative_gap": 0.02480916030534348,
+      "latency_ms_batch1": 2.0651250990340486,
+      "level": 8,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6813333333333333,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 1568
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12,
+        5,
+        10,
+        1,
+        14,
+        6,
+        9
+      ],
+      "axis": "antenna",
+      "channels": 10,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12,
+          5,
+          10,
+          1,
+          14,
+          6,
+          9
+        ],
+        "axis": "antenna",
+        "channels": 10,
+        "level": 10,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 1960
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6906666666666668,
+        "4": 0.6839999999999999,
+        "6": 0.6933333333333334,
+        "8": 0.7026666666666667
+      },
+      "flops_approx": 14290125824,
+      "l8_gap": 0.0119999999999999,
+      "l8_metric": 0.7026666666666667,
+      "l8_relative_gap": 0.017077798861479934,
+      "latency_ms_batch1": 4.844629199942574,
+      "level": 10,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6906666666666668,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 1960
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12,
+        5,
+        10,
+        1,
+        14,
+        6,
+        9,
+        4,
+        11
+      ],
+      "axis": "antenna",
+      "channels": 12,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12,
+          5,
+          10,
+          1,
+          14,
+          6,
+          9,
+          4,
+          11
+        ],
+        "axis": "antenna",
+        "channels": 12,
+        "level": 12,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 2352
+      },
+      "fixed_exit_metrics": {
+        "2": 0.6933333333333334,
+        "4": 0.6866666666666666,
+        "6": 0.688,
+        "8": 0.7053333333333334
+      },
+      "flops_approx": 19036374016,
+      "l8_gap": 0.01200000000000001,
+      "l8_metric": 0.7053333333333334,
+      "l8_relative_gap": 0.017013232514177707,
+      "latency_ms_batch1": 7.73585679999087,
+      "level": 12,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.6933333333333334,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 2352
+    },
+    {
+      "array_element_indices": [
+        7,
+        8,
+        3,
+        12,
+        5,
+        10,
+        1,
+        14,
+        6,
+        9,
+        4,
+        11,
+        2,
+        13,
+        0,
+        15
+      ],
+      "axis": "antenna",
+      "channels": 16,
+      "condition": {
+        "array_element_indices": [
+          7,
+          8,
+          3,
+          12,
+          5,
+          10,
+          1,
+          14,
+          6,
+          9,
+          4,
+          11,
+          2,
+          13,
+          0,
+          15
+        ],
+        "axis": "antenna",
+        "channels": 16,
+        "level": 16,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 3136
+      },
+      "fixed_exit_metrics": {
+        "2": 0.7013333333333334,
+        "4": 0.6853333333333333,
+        "6": 0.688,
+        "8": 0.708
+      },
+      "flops_approx": 30417093632,
+      "l8_gap": 0.006666666666666599,
+      "l8_metric": 0.708,
+      "l8_relative_gap": 0.009416195856873727,
+      "latency_ms_batch1": 12.154875800479203,
+      "level": 16,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p0",
+      "method_label": "LatentWave + EE",
+      "selected_exit": 2,
+      "selected_metric": 0.7013333333333334,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+      "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "interference",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 3136
+    }
+  ],
+  "selection": {
+    "axis": "antenna",
+    "conditions": {
+      "1": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "antenna",
+          "channels": 1,
+          "level": 1,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 196
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6613333333333333,
+          "4": 0.6679999999999999,
+          "6": 0.6693333333333333,
+          "8": 0.6813333333333333
+        },
+        "l8_gap": 0.020000000000000018,
+        "l8_relative_gap": 0.029354207436399243,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 720929792,
+        "selected_exit_latency_ms_batch1": 0.6999031989835203,
+        "selected_metric": 0.6613333333333333
+      },
+      "10": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12,
+            5,
+            10,
+            1,
+            14,
+            6,
+            9
+          ],
+          "axis": "antenna",
+          "channels": 10,
+          "level": 10,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 1960
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6906666666666668,
+          "4": 0.6839999999999999,
+          "6": 0.6933333333333334,
+          "8": 0.7026666666666667
+        },
+        "l8_gap": 0.0119999999999999,
+        "l8_relative_gap": 0.017077798861479934,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 14290125824,
+        "selected_exit_latency_ms_batch1": 4.844629199942574,
+        "selected_metric": 0.6906666666666668
+      },
+      "12": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12,
+            5,
+            10,
+            1,
+            14,
+            6,
+            9,
+            4,
+            11
+          ],
+          "axis": "antenna",
+          "channels": 12,
+          "level": 12,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 2352
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6933333333333334,
+          "4": 0.6866666666666666,
+          "6": 0.688,
+          "8": 0.7053333333333334
+        },
+        "l8_gap": 0.01200000000000001,
+        "l8_relative_gap": 0.017013232514177707,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 19036374016,
+        "selected_exit_latency_ms_batch1": 7.73585679999087,
+        "selected_metric": 0.6933333333333334
+      },
+      "16": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12,
+            5,
+            10,
+            1,
+            14,
+            6,
+            9,
+            4,
+            11,
+            2,
+            13,
+            0,
+            15
+          ],
+          "axis": "antenna",
+          "channels": 16,
+          "level": 16,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 3136
+        },
+        "fixed_exit_metrics": {
+          "2": 0.7013333333333334,
+          "4": 0.6853333333333333,
+          "6": 0.688,
+          "8": 0.708
+        },
+        "l8_gap": 0.006666666666666599,
+        "l8_relative_gap": 0.009416195856873727,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 30417093632,
+        "selected_exit_latency_ms_batch1": 12.154875800479203,
+        "selected_metric": 0.7013333333333334
+      },
+      "2": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8
+          ],
+          "axis": "antenna",
+          "channels": 2,
+          "level": 2,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 392
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6773333333333333,
+          "4": 0.656,
+          "6": 0.6799999999999999,
+          "8": 0.688
+        },
+        "l8_gap": 0.010666666666666602,
+        "l8_relative_gap": 0.015503875968992156,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 1599210496,
+        "selected_exit_latency_ms_batch1": 0.40674810006748885,
+        "selected_metric": 0.6773333333333333
+      },
+      "4": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12
+          ],
+          "axis": "antenna",
+          "channels": 4,
+          "level": 4,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 784
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6866666666666666,
+          "4": 0.6733333333333333,
+          "6": 0.6799999999999999,
+          "8": 0.692
+        },
+        "l8_gap": 0.005333333333333301,
+        "l8_relative_gap": 0.007707129094412285,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 3827827712,
+        "selected_exit_latency_ms_batch1": 0.8865057985531166,
+        "selected_metric": 0.6866666666666666
+      },
+      "6": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12,
+            5,
+            10
+          ],
+          "axis": "antenna",
+          "channels": 6,
+          "level": 6,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 1176
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6866666666666666,
+          "4": 0.6786666666666668,
+          "6": 0.6839999999999999,
+          "8": 0.6906666666666667
+        },
+        "l8_gap": 0.0040000000000000036,
+        "l8_relative_gap": 0.005791505791505796,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 6685852672,
+        "selected_exit_latency_ms_batch1": 2.704827699926682,
+        "selected_metric": 0.6866666666666666
+      },
+      "8": {
+        "condition": {
+          "array_element_indices": [
+            7,
+            8,
+            3,
+            12,
+            5,
+            10,
+            1,
+            14
+          ],
+          "axis": "antenna",
+          "channels": 8,
+          "level": 8,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 1568
+        },
+        "fixed_exit_metrics": {
+          "2": 0.6813333333333333,
+          "4": 0.6773333333333333,
+          "6": 0.688,
+          "8": 0.6986666666666667
+        },
+        "l8_gap": 0.01733333333333331,
+        "l8_relative_gap": 0.02480916030534348,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 10173285376,
+        "selected_exit_latency_ms_batch1": 2.0651250990340486,
+        "selected_metric": 0.6813333333333333
+      }
+    },
+    "higher_is_better": true,
+    "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+    "method": "p0",
+    "metric": "macro_accuracy",
+    "mode": "formal",
+    "normalization": {
+      "mean": -96.24440358199986,
+      "std": 14.169728048400993
+    },
+    "profile_sha256": "24a620335b5ae66caa80ebb4774a6ce216fedd902011da124da25d2ccb7ec02f",
+    "scene_sha256": "5fb12fbb064aceb8be7513e25ab7a25847087c22ecd5e15cb08a85e68c61df0e",
+    "schema_version": 1,
+    "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/original_latentwave/seed_000/checkpoints/last.ckpt",
+    "source_checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+    "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+    "split_manifest": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/data/synthetic_trained_heads/factory_ofdma_v2/formal_n7500_seed341902_countplan_v2/split_manifest.json",
+    "split_manifest_sha256": "a63801467c13b51f1a8d489604778ba3859bbd10f6e979e4f78c8fec93247db6",
+    "split_name": "exit_selection",
+    "stage": "select",
+    "status": "selection_complete_review_required",
+    "task": "interference",
+    "tolerance": 0.05,
+    "training_record": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/synthetic_trained_heads/factory_ofdma_v2/formal/antenna/interference/p0/training_record.json",
+    "training_record_sha256": "7af0d1d8fdc08a34a6a37f1c595923e8f282042436bfc4722e527ea6a9ce24bf"
+  }
+}

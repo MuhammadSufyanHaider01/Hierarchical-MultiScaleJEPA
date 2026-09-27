@@ -1,0 +1,123 @@
+{
+  "axis": "antenna",
+  "metric": "macro_accuracy",
+  "p0_packet_sha256": "0e3a9dbb1f03654be849b4c695a8bb59ef0e6dd806ef847d7c58bc42f09f7c76",
+  "p2_packet_sha256": "a1c0696001f5246406ed413a5b76e68cc5696276019fa0227fab9491933b2a11",
+  "rows": [
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.016000000000000014,
+        0.03200000000000003
+      ],
+      "level": 1,
+      "p0_metric": 0.6613333333333333,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6693333333333333,
+      "p2_minus_p0": 0.008000000000000007,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.01333333333333342,
+        0.03599999999999981
+      ],
+      "level": 2,
+      "p0_metric": 0.6773333333333333,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.688,
+      "p2_minus_p0": 0.010666666666666602,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.02400000000000002,
+        0.026666666666666616
+      ],
+      "level": 4,
+      "p0_metric": 0.6866666666666666,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.688,
+      "p2_minus_p0": 0.0013333333333332975,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.02533333333333332,
+        0.02400000000000002
+      ],
+      "level": 6,
+      "p0_metric": 0.6866666666666666,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6866666666666666,
+      "p2_minus_p0": 0.0,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.029333333333333322,
+        0.020000000000000018
+      ],
+      "level": 8,
+      "p0_metric": 0.6813333333333333,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6773333333333333,
+      "p2_minus_p0": -0.0040000000000000036,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.03066666666666662,
+        0.017333333333333423
+      ],
+      "level": 10,
+      "p0_metric": 0.6906666666666668,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6839999999999999,
+      "p2_minus_p0": -0.006666666666666821,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.029366666666666753,
+        0.019999999999999907
+      ],
+      "level": 12,
+      "p0_metric": 0.6933333333333334,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6880000000000001,
+      "p2_minus_p0": -0.005333333333333301,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    },
+    {
+      "bootstrap_replicates": 3000,
+      "ci95": [
+        -0.029333333333333215,
+        0.021333333333333204
+      ],
+      "level": 16,
+      "p0_metric": 0.7013333333333334,
+      "p0_selected_exit": 2,
+      "p2_metric": 0.6973333333333334,
+      "p2_minus_p0": -0.0040000000000000036,
+      "p2_selected_exit": 2,
+      "paired_n": 750
+    }
+  ],
+  "stage": "validation selection",
+  "synthetic_proxy": true,
+  "task": "interference"
+}

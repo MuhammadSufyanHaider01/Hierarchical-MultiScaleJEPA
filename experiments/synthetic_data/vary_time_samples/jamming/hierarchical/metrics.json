@@ -1,0 +1,1021 @@
+{
+  "rows": [
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 2,
+        "temporal_patches": 2,
+        "time_columns": [
+          0,
+          32
+        ],
+        "token_count": 28
+      },
+      "fixed_exit_metrics": {
+        "2": 0.2866666666666667,
+        "4": 0.3013333333333334,
+        "6": 0.27777777777777773,
+        "8": 0.2857777777777778
+      },
+      "flops_approx": 93359104,
+      "l8_gap": -0.0008888888888888835,
+      "l8_metric": 0.2857777777777778,
+      "l8_relative_gap": -0.0031104199066873837,
+      "latency_ms_batch1": 1.0668024013284594,
+      "level": 2,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.2866666666666667,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 2,
+      "time_columns": [
+        0,
+        32
+      ],
+      "token_count": 28
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 4,
+        "temporal_patches": 4,
+        "time_columns": [
+          0,
+          64
+        ],
+        "token_count": 56
+      },
+      "fixed_exit_metrics": {
+        "2": 0.28755555555555556,
+        "4": 0.31822222222222224,
+        "6": 0.2857777777777778,
+        "8": 0.304
+      },
+      "flops_approx": 372509696,
+      "l8_gap": -0.014222222222222247,
+      "l8_metric": 0.304,
+      "l8_relative_gap": -0.04678362573099423,
+      "latency_ms_batch1": 0.9517671016510576,
+      "level": 4,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.31822222222222224,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 4,
+      "time_columns": [
+        0,
+        64
+      ],
+      "token_count": 56
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 6,
+        "temporal_patches": 6,
+        "time_columns": [
+          0,
+          96
+        ],
+        "token_count": 84
+      },
+      "fixed_exit_metrics": {
+        "2": 0.3164444444444445,
+        "4": 0.3186666666666667,
+        "6": 0.28755555555555556,
+        "8": 0.30888888888888894
+      },
+      "flops_approx": 289704960,
+      "l8_gap": -0.007555555555555538,
+      "l8_metric": 0.30888888888888894,
+      "l8_relative_gap": -0.024460431654676196,
+      "latency_ms_batch1": 1.0862209019251168,
+      "level": 6,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.3164444444444445,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 6,
+      "time_columns": [
+        0,
+        96
+      ],
+      "token_count": 84
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 8,
+        "temporal_patches": 8,
+        "time_columns": [
+          0,
+          128
+        ],
+        "token_count": 112
+      },
+      "fixed_exit_metrics": {
+        "2": 0.31244444444444447,
+        "4": 0.31377777777777777,
+        "6": 0.29555555555555557,
+        "8": 0.28311111111111115
+      },
+      "flops_approx": 392694784,
+      "l8_gap": -0.029333333333333322,
+      "l8_metric": 0.28311111111111115,
+      "l8_relative_gap": -0.10361067503924641,
+      "latency_ms_batch1": 2.7570050006033853,
+      "level": 8,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.31244444444444447,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 8,
+      "time_columns": [
+        0,
+        128
+      ],
+      "token_count": 112
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 10,
+        "temporal_patches": 10,
+        "time_columns": [
+          0,
+          160
+        ],
+        "token_count": 140
+      },
+      "fixed_exit_metrics": {
+        "2": 0.32488888888888895,
+        "4": 0.32266666666666666,
+        "6": 0.29600000000000004,
+        "8": 0.28311111111111115
+      },
+      "flops_approx": 498895872,
+      "l8_gap": -0.0417777777777778,
+      "l8_metric": 0.28311111111111115,
+      "l8_relative_gap": -0.1475667189952905,
+      "latency_ms_batch1": 0.7649965002201498,
+      "level": 10,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.32488888888888895,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 10,
+      "time_columns": [
+        0,
+        160
+      ],
+      "token_count": 140
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 12,
+        "temporal_patches": 12,
+        "time_columns": [
+          0,
+          192
+        ],
+        "token_count": 168
+      },
+      "fixed_exit_metrics": {
+        "2": 0.3417777777777778,
+        "4": 0.3502222222222222,
+        "6": 0.3133333333333333,
+        "8": 0.3204444444444444
+      },
+      "flops_approx": 608308224,
+      "l8_gap": -0.02133333333333337,
+      "l8_metric": 0.3204444444444444,
+      "l8_relative_gap": -0.06657420249653272,
+      "latency_ms_batch1": 0.7065862009767443,
+      "level": 12,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.3417777777777778,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 12,
+      "time_columns": [
+        0,
+        192
+      ],
+      "token_count": 168
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 14,
+        "temporal_patches": 14,
+        "time_columns": [
+          0,
+          224
+        ],
+        "token_count": 196
+      },
+      "fixed_exit_metrics": {
+        "2": 0.35555555555555557,
+        "4": 0.37200000000000005,
+        "6": 0.33866666666666667,
+        "8": 0.3351111111111111
+      },
+      "flops_approx": 720931840,
+      "l8_gap": -0.020444444444444487,
+      "l8_metric": 0.3351111111111111,
+      "l8_relative_gap": -0.06100795755968183,
+      "latency_ms_batch1": 0.5366080993553624,
+      "level": 14,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 2,
+      "selected_metric": 0.35555555555555557,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 14,
+      "time_columns": [
+        0,
+        224
+      ],
+      "token_count": 196
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 18,
+        "temporal_patches": 18,
+        "time_columns": [
+          0,
+          288
+        ],
+        "token_count": 252
+      },
+      "fixed_exit_metrics": {
+        "2": 0.35911111111111116,
+        "4": 0.39644444444444443,
+        "6": 0.36977777777777776,
+        "8": 0.3413333333333333
+      },
+      "flops_approx": 1878592512,
+      "l8_gap": -0.05511111111111111,
+      "l8_metric": 0.3413333333333333,
+      "l8_relative_gap": -0.16145833333333334,
+      "latency_ms_batch1": 3.00816289964132,
+      "level": 18,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.39644444444444443,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 18,
+      "time_columns": [
+        0,
+        288
+      ],
+      "token_count": 252
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 22,
+        "temporal_patches": 22,
+        "time_columns": [
+          0,
+          352
+        ],
+        "token_count": 308
+      },
+      "fixed_exit_metrics": {
+        "2": 0.3831111111111111,
+        "4": 0.4217777777777778,
+        "6": 0.3888888888888889,
+        "8": 0.38622222222222224
+      },
+      "flops_approx": 2366704640,
+      "l8_gap": -0.03555555555555556,
+      "l8_metric": 0.38622222222222224,
+      "l8_relative_gap": -0.09205983889528195,
+      "latency_ms_batch1": 1.1818119004601613,
+      "level": 22,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.4217777777777778,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 22,
+      "time_columns": [
+        0,
+        352
+      ],
+      "token_count": 308
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 28,
+        "temporal_patches": 28,
+        "time_columns": [
+          0,
+          448
+        ],
+        "token_count": 392
+      },
+      "fixed_exit_metrics": {
+        "2": 0.4804444444444445,
+        "4": 0.5288888888888889,
+        "6": 0.5226666666666667,
+        "8": 0.5164444444444444
+      },
+      "flops_approx": 3147041792,
+      "l8_gap": -0.01244444444444448,
+      "l8_metric": 0.5164444444444444,
+      "l8_relative_gap": -0.02409638554216875,
+      "latency_ms_batch1": 1.670512100099586,
+      "level": 28,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.5288888888888889,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 28,
+      "time_columns": [
+        0,
+        448
+      ],
+      "token_count": 392
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 36,
+        "temporal_patches": 36,
+        "time_columns": [
+          0,
+          576
+        ],
+        "token_count": 504
+      },
+      "fixed_exit_metrics": {
+        "2": 0.5017777777777778,
+        "4": 0.5742222222222222,
+        "6": 0.5164444444444444,
+        "8": 0.5302222222222222
+      },
+      "flops_approx": 4277406720,
+      "l8_gap": -0.04400000000000004,
+      "l8_metric": 0.5302222222222222,
+      "l8_relative_gap": -0.08298407376362121,
+      "latency_ms_batch1": 2.4239057005615905,
+      "level": 36,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.5742222222222222,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 36,
+      "time_columns": [
+        0,
+        576
+      ],
+      "token_count": 504
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 44,
+        "temporal_patches": 44,
+        "time_columns": [
+          0,
+          704
+        ],
+        "token_count": 616
+      },
+      "fixed_exit_metrics": {
+        "2": 0.5231111111111111,
+        "4": 0.5702222222222223,
+        "6": 0.5355555555555557,
+        "8": 0.527111111111111
+      },
+      "flops_approx": 5510532096,
+      "l8_gap": -0.04311111111111132,
+      "l8_metric": 0.527111111111111,
+      "l8_relative_gap": -0.08178752107925844,
+      "latency_ms_batch1": 2.243310000631027,
+      "level": 44,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.5702222222222223,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 44,
+      "time_columns": [
+        0,
+        704
+      ],
+      "token_count": 616
+    },
+    {
+      "array_element_indices": [
+        7
+      ],
+      "axis": "time",
+      "channels": 1,
+      "condition": {
+        "array_element_indices": [
+          7
+        ],
+        "axis": "time",
+        "channels": 1,
+        "level": 56,
+        "temporal_patches": 56,
+        "time_columns": [
+          0,
+          896
+        ],
+        "token_count": 784
+      },
+      "fixed_exit_metrics": {
+        "2": 0.5155555555555555,
+        "4": 0.5515555555555557,
+        "6": 0.5359999999999999,
+        "8": 0.5373333333333333
+      },
+      "flops_approx": 7552896000,
+      "l8_gap": -0.014222222222222358,
+      "l8_metric": 0.5373333333333333,
+      "l8_relative_gap": -0.026468155500413818,
+      "latency_ms_batch1": 2.0504867017734796,
+      "level": 56,
+      "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+      "method": "p2",
+      "method_label": "Proposed hierarchical approach",
+      "selected_exit": 4,
+      "selected_metric": 0.5515555555555557,
+      "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+      "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+      "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+      "task": "jamming",
+      "temporal_patches": 56,
+      "time_columns": [
+        0,
+        896
+      ],
+      "token_count": 784
+    }
+  ],
+  "selection": {
+    "axis": "time",
+    "conditions": {
+      "10": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 10,
+          "temporal_patches": 10,
+          "time_columns": [
+            0,
+            160
+          ],
+          "token_count": 140
+        },
+        "fixed_exit_metrics": {
+          "2": 0.32488888888888895,
+          "4": 0.32266666666666666,
+          "6": 0.29600000000000004,
+          "8": 0.28311111111111115
+        },
+        "l8_gap": -0.0417777777777778,
+        "l8_relative_gap": -0.1475667189952905,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 498895872,
+        "selected_exit_latency_ms_batch1": 0.7649965002201498,
+        "selected_metric": 0.32488888888888895
+      },
+      "12": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 12,
+          "temporal_patches": 12,
+          "time_columns": [
+            0,
+            192
+          ],
+          "token_count": 168
+        },
+        "fixed_exit_metrics": {
+          "2": 0.3417777777777778,
+          "4": 0.3502222222222222,
+          "6": 0.3133333333333333,
+          "8": 0.3204444444444444
+        },
+        "l8_gap": -0.02133333333333337,
+        "l8_relative_gap": -0.06657420249653272,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 608308224,
+        "selected_exit_latency_ms_batch1": 0.7065862009767443,
+        "selected_metric": 0.3417777777777778
+      },
+      "14": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 14,
+          "temporal_patches": 14,
+          "time_columns": [
+            0,
+            224
+          ],
+          "token_count": 196
+        },
+        "fixed_exit_metrics": {
+          "2": 0.35555555555555557,
+          "4": 0.37200000000000005,
+          "6": 0.33866666666666667,
+          "8": 0.3351111111111111
+        },
+        "l8_gap": -0.020444444444444487,
+        "l8_relative_gap": -0.06100795755968183,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 720931840,
+        "selected_exit_latency_ms_batch1": 0.5366080993553624,
+        "selected_metric": 0.35555555555555557
+      },
+      "18": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 18,
+          "temporal_patches": 18,
+          "time_columns": [
+            0,
+            288
+          ],
+          "token_count": 252
+        },
+        "fixed_exit_metrics": {
+          "2": 0.35911111111111116,
+          "4": 0.39644444444444443,
+          "6": 0.36977777777777776,
+          "8": 0.3413333333333333
+        },
+        "l8_gap": -0.05511111111111111,
+        "l8_relative_gap": -0.16145833333333334,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 1878592512,
+        "selected_exit_latency_ms_batch1": 3.00816289964132,
+        "selected_metric": 0.39644444444444443
+      },
+      "2": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 2,
+          "temporal_patches": 2,
+          "time_columns": [
+            0,
+            32
+          ],
+          "token_count": 28
+        },
+        "fixed_exit_metrics": {
+          "2": 0.2866666666666667,
+          "4": 0.3013333333333334,
+          "6": 0.27777777777777773,
+          "8": 0.2857777777777778
+        },
+        "l8_gap": -0.0008888888888888835,
+        "l8_relative_gap": -0.0031104199066873837,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 93359104,
+        "selected_exit_latency_ms_batch1": 1.0668024013284594,
+        "selected_metric": 0.2866666666666667
+      },
+      "22": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 22,
+          "temporal_patches": 22,
+          "time_columns": [
+            0,
+            352
+          ],
+          "token_count": 308
+        },
+        "fixed_exit_metrics": {
+          "2": 0.3831111111111111,
+          "4": 0.4217777777777778,
+          "6": 0.3888888888888889,
+          "8": 0.38622222222222224
+        },
+        "l8_gap": -0.03555555555555556,
+        "l8_relative_gap": -0.09205983889528195,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 2366704640,
+        "selected_exit_latency_ms_batch1": 1.1818119004601613,
+        "selected_metric": 0.4217777777777778
+      },
+      "28": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 28,
+          "temporal_patches": 28,
+          "time_columns": [
+            0,
+            448
+          ],
+          "token_count": 392
+        },
+        "fixed_exit_metrics": {
+          "2": 0.4804444444444445,
+          "4": 0.5288888888888889,
+          "6": 0.5226666666666667,
+          "8": 0.5164444444444444
+        },
+        "l8_gap": -0.01244444444444448,
+        "l8_relative_gap": -0.02409638554216875,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 3147041792,
+        "selected_exit_latency_ms_batch1": 1.670512100099586,
+        "selected_metric": 0.5288888888888889
+      },
+      "36": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 36,
+          "temporal_patches": 36,
+          "time_columns": [
+            0,
+            576
+          ],
+          "token_count": 504
+        },
+        "fixed_exit_metrics": {
+          "2": 0.5017777777777778,
+          "4": 0.5742222222222222,
+          "6": 0.5164444444444444,
+          "8": 0.5302222222222222
+        },
+        "l8_gap": -0.04400000000000004,
+        "l8_relative_gap": -0.08298407376362121,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 4277406720,
+        "selected_exit_latency_ms_batch1": 2.4239057005615905,
+        "selected_metric": 0.5742222222222222
+      },
+      "4": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 4,
+          "temporal_patches": 4,
+          "time_columns": [
+            0,
+            64
+          ],
+          "token_count": 56
+        },
+        "fixed_exit_metrics": {
+          "2": 0.28755555555555556,
+          "4": 0.31822222222222224,
+          "6": 0.2857777777777778,
+          "8": 0.304
+        },
+        "l8_gap": -0.014222222222222247,
+        "l8_relative_gap": -0.04678362573099423,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 372509696,
+        "selected_exit_latency_ms_batch1": 0.9517671016510576,
+        "selected_metric": 0.31822222222222224
+      },
+      "44": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 44,
+          "temporal_patches": 44,
+          "time_columns": [
+            0,
+            704
+          ],
+          "token_count": 616
+        },
+        "fixed_exit_metrics": {
+          "2": 0.5231111111111111,
+          "4": 0.5702222222222223,
+          "6": 0.5355555555555557,
+          "8": 0.527111111111111
+        },
+        "l8_gap": -0.04311111111111132,
+        "l8_relative_gap": -0.08178752107925844,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 5510532096,
+        "selected_exit_latency_ms_batch1": 2.243310000631027,
+        "selected_metric": 0.5702222222222223
+      },
+      "56": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 56,
+          "temporal_patches": 56,
+          "time_columns": [
+            0,
+            896
+          ],
+          "token_count": 784
+        },
+        "fixed_exit_metrics": {
+          "2": 0.5155555555555555,
+          "4": 0.5515555555555557,
+          "6": 0.5359999999999999,
+          "8": 0.5373333333333333
+        },
+        "l8_gap": -0.014222222222222358,
+        "l8_relative_gap": -0.026468155500413818,
+        "selected_exit": 4,
+        "selected_exit_flops_approx": 7552896000,
+        "selected_exit_latency_ms_batch1": 2.0504867017734796,
+        "selected_metric": 0.5515555555555557
+      },
+      "6": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 6,
+          "temporal_patches": 6,
+          "time_columns": [
+            0,
+            96
+          ],
+          "token_count": 84
+        },
+        "fixed_exit_metrics": {
+          "2": 0.3164444444444445,
+          "4": 0.3186666666666667,
+          "6": 0.28755555555555556,
+          "8": 0.30888888888888894
+        },
+        "l8_gap": -0.007555555555555538,
+        "l8_relative_gap": -0.024460431654676196,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 289704960,
+        "selected_exit_latency_ms_batch1": 1.0862209019251168,
+        "selected_metric": 0.3164444444444445
+      },
+      "8": {
+        "condition": {
+          "array_element_indices": [
+            7
+          ],
+          "axis": "time",
+          "channels": 1,
+          "level": 8,
+          "temporal_patches": 8,
+          "time_columns": [
+            0,
+            128
+          ],
+          "token_count": 112
+        },
+        "fixed_exit_metrics": {
+          "2": 0.31244444444444447,
+          "4": 0.31377777777777777,
+          "6": 0.29555555555555557,
+          "8": 0.28311111111111115
+        },
+        "l8_gap": -0.029333333333333322,
+        "l8_relative_gap": -0.10361067503924641,
+        "selected_exit": 2,
+        "selected_exit_flops_approx": 392694784,
+        "selected_exit_latency_ms_batch1": 2.7570050006033853,
+        "selected_metric": 0.31244444444444447
+      }
+    },
+    "higher_is_better": true,
+    "master_sha256": "e228979706684d6374b689fe1b4f630cc05b01ae34c027a6fd4accb7c6096778",
+    "method": "p2",
+    "metric": "macro_accuracy",
+    "mode": "formal",
+    "normalization": {
+      "mean": -95.88132365246209,
+      "std": 14.237529391631233
+    },
+    "profile_sha256": "24a620335b5ae66caa80ebb4774a6ce216fedd902011da124da25d2ccb7ec02f",
+    "scene_sha256": "5fb12fbb064aceb8be7513e25ab7a25847087c22ecd5e15cb08a85e68c61df0e",
+    "schema_version": 1,
+    "source_checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/time_n6/proposed_hierarchical_performance/seed_000/checkpoints/epoch=epoch=029-step=step=6780.ckpt",
+    "source_checkpoint_sha256": "d10e4132deb81b741cb548b5324ba20d38bc8e146dd3a1ef123e5e4ca2c93267",
+    "split_ids_sha256": "d4563a159343be3efcca0c2b9471150f041bb745893e14f0756716e5eccebaa5",
+    "split_manifest": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/data/synthetic_trained_heads/factory_ofdma_v2/formal_n7500_seed341902_countplan_v2/split_manifest.json",
+    "split_manifest_sha256": "a63801467c13b51f1a8d489604778ba3859bbd10f6e979e4f78c8fec93247db6",
+    "split_name": "exit_selection",
+    "stage": "select",
+    "status": "selection_complete_review_required",
+    "task": "jamming",
+    "tolerance": 0.05,
+    "training_record": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/synthetic_trained_heads/factory_ofdma_v2/formal/time/jamming/p2/training_record.json",
+    "training_record_sha256": "9790aed810ec890154ce50bb54ad9d36fb56abbdef6099ed416a2bc9901a5dc1"
+  }
+}
