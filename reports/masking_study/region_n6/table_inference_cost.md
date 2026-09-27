@@ -26,6 +26,30 @@
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | 0.052 | 0.8241 | 0.8939 | 49.5% | 34.4% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | 0.077 | 1.0366 | 1.1626 | 24.7% | 17.4% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | 0.102 | 1.2556 | 1.3944 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | RF sensing | L2 | 0.721 | 0.4509 | 0.4844 | 74.3% | 58.9% |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | 1.416 | 0.6742 | 0.6855 | 49.5% | 38.6% |
+| Same-scale Multi-depth JEPA | RF sensing | L6 | 2.111 | 0.8783 | 0.9020 | 24.8% | 20.0% |
+| Same-scale Multi-depth JEPA | RF sensing | L8 | 2.807 | 1.0981 | 1.1954 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | 0.721 | 0.4403 | 0.4629 | 74.3% | 59.7% |
+| Same-scale Multi-depth JEPA | Jamming classification | L4 | 1.416 | 0.6550 | 0.6869 | 49.5% | 40.1% |
+| Same-scale Multi-depth JEPA | Jamming classification | L6 | 2.111 | 0.8768 | 0.9461 | 24.8% | 19.8% |
+| Same-scale Multi-depth JEPA | Jamming classification | L8 | 2.807 | 1.0937 | 1.1360 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | 2.635 | 0.4563 | 0.4555 | 74.4% | 61.3% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L4 | 5.193 | 0.6922 | 0.6885 | 49.6% | 41.3% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L6 | 7.750 | 0.9386 | 0.9344 | 24.8% | 20.5% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L8 | 10.308 | 1.1800 | 1.1767 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | 0.721 | 0.4509 | 0.4593 | 74.3% | 58.9% |
+| Same-scale Multi-depth JEPA | Interference classification | L4 | 1.416 | 0.6644 | 0.6785 | 49.5% | 39.5% |
+| Same-scale Multi-depth JEPA | Interference classification | L6 | 2.111 | 0.8790 | 0.9048 | 24.8% | 20.0% |
+| Same-scale Multi-depth JEPA | Interference classification | L8 | 2.807 | 1.0981 | 1.1746 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | NR positioning | L2 | 3.828 | 0.5431 | 0.5460 | 74.5% | 64.6% |
+| Same-scale Multi-depth JEPA | NR positioning | L4 | 7.553 | 0.8711 | 0.8734 | 49.7% | 43.2% |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | 11.278 | 1.1942 | 1.1946 | 24.8% | 22.1% |
+| Same-scale Multi-depth JEPA | NR positioning | L8 | 15.003 | 1.5327 | 1.5290 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | 0.026 | 0.5739 | 0.5849 | 74.2% | 52.2% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L4 | 0.052 | 0.7966 | 0.8066 | 49.5% | 33.7% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L6 | 0.077 | 0.9974 | 1.0167 | 24.7% | 17.0% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L8 | 0.102 | 1.2012 | 1.2282 | 0.0% | 0.0% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | 0.721 | 0.4542 | 0.4795 | 74.3% | 63.8% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | 1.416 | 0.6617 | 0.7098 | 49.5% | 47.3% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 0.9112 | 0.9645 | 24.8% | 27.4% |

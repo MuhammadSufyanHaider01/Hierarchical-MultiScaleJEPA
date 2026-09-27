@@ -26,6 +26,30 @@
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | Macro accuracy | 39.38% | 42.24% | 33 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | Macro accuracy | 41.46% | 43.85% | 34 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | Macro accuracy | 39.09% | 41.59% | 54 |
+| Same-scale Multi-depth JEPA | RF sensing | L2 | Macro accuracy | 75.93% | 78.13% | 113 |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | Macro accuracy | 82.56% | 82.35% | 102 |
+| Same-scale Multi-depth JEPA | RF sensing | L6 | Macro accuracy | 73.88% | 78.04% | 88 |
+| Same-scale Multi-depth JEPA | RF sensing | L8 | Macro accuracy | 78.19% | 76.02% | 94 |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | Macro accuracy | 87.33% | 87.47% | 69 |
+| Same-scale Multi-depth JEPA | Jamming classification | L4 | Macro accuracy | 86.93% | 86.53% | 54 |
+| Same-scale Multi-depth JEPA | Jamming classification | L6 | Macro accuracy | 86.13% | 87.73% | 70 |
+| Same-scale Multi-depth JEPA | Jamming classification | L8 | Macro accuracy | 86.67% | 89.33% | 51 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | Macro accuracy | 95.83% | 98.33% | 24 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L4 | Macro accuracy | 96.67% | 100.00% | 13 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L6 | Macro accuracy | 99.17% | 100.00% | 19 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L8 | Macro accuracy | 100.00% | 100.00% | 37 |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | Macro accuracy | 73.00% | 71.93% | 61 |
+| Same-scale Multi-depth JEPA | Interference classification | L4 | Macro accuracy | 74.71% | 73.29% | 51 |
+| Same-scale Multi-depth JEPA | Interference classification | L6 | Macro accuracy | 74.36% | 73.21% | 24 |
+| Same-scale Multi-depth JEPA | Interference classification | L8 | Macro accuracy | 74.50% | 73.14% | 23 |
+| Same-scale Multi-depth JEPA | NR positioning | L2 | Mean distance error (m) | 3.259 m | 3.229 m | 61 |
+| Same-scale Multi-depth JEPA | NR positioning | L4 | Mean distance error (m) | 2.945 m | 2.964 m | 82 |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | Mean distance error (m) | 2.785 m | 2.825 m | 92 |
+| Same-scale Multi-depth JEPA | NR positioning | L8 | Mean distance error (m) | 2.694 m | 2.713 m | 75 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | Macro accuracy | 49.27% | 47.26% | 66 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L4 | Macro accuracy | 43.47% | 45.00% | 30 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L6 | Macro accuracy | 45.00% | 43.98% | 34 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L8 | Macro accuracy | 42.04% | 44.00% | 35 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | Macro accuracy | 67.92% | 72.81% | 84 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | Macro accuracy | 75.34% | 78.65% | 141 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | Macro accuracy | 75.40% | 81.36% | 114 |

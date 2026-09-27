@@ -1,27 +1,36 @@
-# Region-masking single-seed comparison packet
+# Region-masking comparison
 
 This directory contains the submission-oriented result tables and figures for
 the completed single-seed pilot. It is an aggregation of recorded
 artifacts, not a statistical claim. The report was generated from repository
-revision `c4bc99187c694263c7ef800a3ffda7c4775f0975`.
+revision `e5c47a838162bc8dfce3ffbfbe159bc6c3abc2bb`.
 
 ## Scope and comparability
 
 | Approach | Pretraining | Downstream representation | Role |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Original LatentWave | Original LatentWave training | Frozen context encoder, full-input L8 | Full-depth baseline |
 | LatentWave with Post-hoc Frozen Early Exits | Reuses the Original LatentWave checkpoint | Frozen context encoder at L2/L4/L6/L8 | Early-exit baseline |
+| Same-scale Multi-depth JEPA | P1 pretraining with same-scale intermediate targets | Frozen context encoder at L2/L4/L6/L8 | Same-scale auxiliary-loss control |
 | Proposed Hierarchical Multi-Scale JEPA | Separately pretrained hierarchical JEPA | Frozen context encoder at L2/L4/L6/L8 | Proposed method |
 
 All rows use independent frozen task heads, the same persisted 80/10/10
 split, and validation-only head/exit selection. Original LatentWave is the
 P0 context encoder evaluated at L8; the post-hoc early-exit baseline reuses
-that exact P0 checkpoint at L2/L4/L6/L8. Therefore the three approaches are
+that exact P0 checkpoint at L2/L4/L6/L8. Therefore the included approaches are
 directly comparable for this single-seed packet.
 
 All values are single-seed pilot point estimates.
 
+
+
 ## Task-suite note
+
+## P1 checkpoint provenance
+
+Same-scale Multi-depth JEPA checkpoint: `/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/region_n6/p1_same_scale_region_p2matched/seed_000/checkpoints/last.ckpt`.
+
+Pretraining experiment metadata: `/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/region_n6/p1_same_scale_region_p2matched/seed_000/experiment.json`.
 
 This packet covers **Region masking (N_m=6)** and the following downstream task suite:
 RF sensing, Jamming classification, Human activity sensing, Interference classification, NR positioning, DeepMIMO beam. Jamming and interference
@@ -31,27 +40,33 @@ for pretraining.
 ## All-approach headline downstream comparison
 
 The deployment rows use full-depth L8 Original LatentWave and the
-earliest exit within 5% of validation-best for the two exit approaches.
+earliest exit within 5% of validation-best for the exit approaches.
 
 | Approach | Task | Exit | Selection | Test value |
 | --- | --- | --- | --- | --- |
 | Original LatentWave | RF sensing | L8 | full-depth L8 | 78.97% |
 | LatentWave with Post-hoc Frozen Early Exits | RF sensing | L4 | earliest within 5% of validation best | 75.16% |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | earliest within 5% of validation best | 82.56% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | earliest within 5% of validation best | 75.40% |
 | Original LatentWave | Jamming classification | L8 | full-depth L8 | 85.47% |
 | LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L6 | earliest within 5% of validation best | 87.60% |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | earliest within 5% of validation best | 87.33% |
 | Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | earliest within 5% of validation best | 88.40% |
 | Original LatentWave | Human activity sensing | L8 | full-depth L8 | 96.67% |
 | LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L2 | earliest within 5% of validation best | 97.50% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | earliest within 5% of validation best | 95.83% |
 | Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | earliest within 5% of validation best | 97.50% |
 | Original LatentWave | Interference classification | L8 | full-depth L8 | 71.29% |
 | LatentWave with Post-hoc Frozen Early Exits | Interference classification | L2 | earliest within 5% of validation best | 73.43% |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | earliest within 5% of validation best | 73.00% |
 | Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | earliest within 5% of validation best | 74.00% |
 | Original LatentWave | NR positioning | L8 | full-depth L8 | 2.939 m |
 | LatentWave with Post-hoc Frozen Early Exits | NR positioning | L6 | earliest within 5% of validation best | 3.012 m |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | earliest within 5% of validation best | 2.785 m |
 | Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | earliest within 5% of validation best | 2.759 m |
 | Original LatentWave | DeepMIMO beam | L8 | full-depth L8 | 39.09% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L2 | earliest within 5% of validation best | 42.52% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | earliest within 5% of validation best | 49.27% |
 | Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | earliest within 5% of validation best | 44.46% |
 
 ## All-approach headline inference comparison
@@ -60,21 +75,27 @@ earliest exit within 5% of validation-best for the two exit approaches.
 | --- | --- | --- | --- | --- | --- |
 | Original LatentWave | RF sensing | L8 | 2.807 | 1.2750 | 1.4085 |
 | LatentWave with Post-hoc Frozen Early Exits | RF sensing | L4 | 1.416 | 0.7627 | 0.7963 |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | 1.416 | 0.6742 | 0.6855 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 0.9112 | 0.9645 |
 | Original LatentWave | Jamming classification | L8 | 2.807 | 1.1578 | 1.2586 |
 | LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L6 | 2.111 | 0.9318 | 1.0112 |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | 0.721 | 0.4403 | 0.4629 |
 | Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | 0.721 | 0.5394 | 1.2924 |
 | Original LatentWave | Human activity sensing | L8 | 10.308 | 1.2174 | 1.3959 |
 | LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L2 | 2.635 | 0.4697 | 0.6069 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | 2.635 | 0.4563 | 0.4555 |
 | Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | 2.635 | 0.4440 | 0.4584 |
 | Original LatentWave | Interference classification | L8 | 2.807 | 1.1557 | 1.2556 |
 | LatentWave with Post-hoc Frozen Early Exits | Interference classification | L2 | 0.721 | 0.4762 | 0.5561 |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | 0.721 | 0.4509 | 0.4593 |
 | Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | 0.721 | 0.4551 | 0.4799 |
 | Original LatentWave | NR positioning | L8 | 15.003 | 1.5557 | 1.7371 |
 | LatentWave with Post-hoc Frozen Early Exits | NR positioning | L6 | 11.278 | 1.2303 | 1.4191 |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | 11.278 | 1.1942 | 1.1946 |
 | Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | 15.003 | 1.5602 | 2.1005 |
 | Original LatentWave | DeepMIMO beam | L8 | 0.102 | 1.2556 | 1.3944 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L2 | 0.026 | 0.6012 | 0.7444 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | 0.026 | 0.5739 | 0.5849 |
 | Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | 0.026 | 0.5712 | 0.6024 |
 
 ## Original LatentWave full-depth context-encoder reference
@@ -119,6 +140,30 @@ validation column is included for auditability; it is not a test result.
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | Macro accuracy | 39.38% | 42.24% | 33 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | Macro accuracy | 41.46% | 43.85% | 34 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | Macro accuracy | 39.09% | 41.59% | 54 |
+| Same-scale Multi-depth JEPA | RF sensing | L2 | Macro accuracy | 75.93% | 78.13% | 113 |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | Macro accuracy | 82.56% | 82.35% | 102 |
+| Same-scale Multi-depth JEPA | RF sensing | L6 | Macro accuracy | 73.88% | 78.04% | 88 |
+| Same-scale Multi-depth JEPA | RF sensing | L8 | Macro accuracy | 78.19% | 76.02% | 94 |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | Macro accuracy | 87.33% | 87.47% | 69 |
+| Same-scale Multi-depth JEPA | Jamming classification | L4 | Macro accuracy | 86.93% | 86.53% | 54 |
+| Same-scale Multi-depth JEPA | Jamming classification | L6 | Macro accuracy | 86.13% | 87.73% | 70 |
+| Same-scale Multi-depth JEPA | Jamming classification | L8 | Macro accuracy | 86.67% | 89.33% | 51 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | Macro accuracy | 95.83% | 98.33% | 24 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L4 | Macro accuracy | 96.67% | 100.00% | 13 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L6 | Macro accuracy | 99.17% | 100.00% | 19 |
+| Same-scale Multi-depth JEPA | Human activity sensing | L8 | Macro accuracy | 100.00% | 100.00% | 37 |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | Macro accuracy | 73.00% | 71.93% | 61 |
+| Same-scale Multi-depth JEPA | Interference classification | L4 | Macro accuracy | 74.71% | 73.29% | 51 |
+| Same-scale Multi-depth JEPA | Interference classification | L6 | Macro accuracy | 74.36% | 73.21% | 24 |
+| Same-scale Multi-depth JEPA | Interference classification | L8 | Macro accuracy | 74.50% | 73.14% | 23 |
+| Same-scale Multi-depth JEPA | NR positioning | L2 | Mean distance error (m) | 3.259 m | 3.229 m | 61 |
+| Same-scale Multi-depth JEPA | NR positioning | L4 | Mean distance error (m) | 2.945 m | 2.964 m | 82 |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | Mean distance error (m) | 2.785 m | 2.825 m | 92 |
+| Same-scale Multi-depth JEPA | NR positioning | L8 | Mean distance error (m) | 2.694 m | 2.713 m | 75 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | Macro accuracy | 49.27% | 47.26% | 66 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L4 | Macro accuracy | 43.47% | 45.00% | 30 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L6 | Macro accuracy | 45.00% | 43.98% | 34 |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L8 | Macro accuracy | 42.04% | 44.00% | 35 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | Macro accuracy | 67.92% | 72.81% | 84 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | Macro accuracy | 75.34% | 78.65% | 141 |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | Macro accuracy | 75.40% | 81.36% | 114 |
@@ -164,6 +209,18 @@ accuracy is better.
 | LatentWave with Post-hoc Frozen Early Exits | NR positioning | earliest within tolerance | L6 | 3.012 m |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | best validation | L6 | 41.46% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | earliest within tolerance | L2 | 42.52% |
+| Same-scale Multi-depth JEPA | RF sensing | best validation | L4 | 82.56% |
+| Same-scale Multi-depth JEPA | RF sensing | earliest within tolerance | L4 | 82.56% |
+| Same-scale Multi-depth JEPA | Jamming classification | best validation | L8 | 86.67% |
+| Same-scale Multi-depth JEPA | Jamming classification | earliest within tolerance | L2 | 87.33% |
+| Same-scale Multi-depth JEPA | Human activity sensing | best validation | L4 | 96.67% |
+| Same-scale Multi-depth JEPA | Human activity sensing | earliest within tolerance | L2 | 95.83% |
+| Same-scale Multi-depth JEPA | Interference classification | best validation | L4 | 74.71% |
+| Same-scale Multi-depth JEPA | Interference classification | earliest within tolerance | L2 | 73.00% |
+| Same-scale Multi-depth JEPA | NR positioning | best validation | L8 | 2.694 m |
+| Same-scale Multi-depth JEPA | NR positioning | earliest within tolerance | L6 | 2.785 m |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | best validation | L2 | 49.27% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | earliest within tolerance | L2 | 49.27% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | best validation | L8 | 76.30% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | earliest within tolerance | L6 | 75.40% |
 | Proposed Hierarchical Multi-Scale JEPA | Jamming classification | best validation | L4 | 86.27% |
@@ -208,6 +265,30 @@ RTX 5070 Ti. Savings are relative to the same method/task at L8.
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | 0.052 | 0.8241 | 0.8939 | 49.5% | 34.4% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | 0.077 | 1.0366 | 1.1626 | 24.7% | 17.4% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | 0.102 | 1.2556 | 1.3944 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | RF sensing | L2 | 0.721 | 0.4509 | 0.4844 | 74.3% | 58.9% |
+| Same-scale Multi-depth JEPA | RF sensing | L4 | 1.416 | 0.6742 | 0.6855 | 49.5% | 38.6% |
+| Same-scale Multi-depth JEPA | RF sensing | L6 | 2.111 | 0.8783 | 0.9020 | 24.8% | 20.0% |
+| Same-scale Multi-depth JEPA | RF sensing | L8 | 2.807 | 1.0981 | 1.1954 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Jamming classification | L2 | 0.721 | 0.4403 | 0.4629 | 74.3% | 59.7% |
+| Same-scale Multi-depth JEPA | Jamming classification | L4 | 1.416 | 0.6550 | 0.6869 | 49.5% | 40.1% |
+| Same-scale Multi-depth JEPA | Jamming classification | L6 | 2.111 | 0.8768 | 0.9461 | 24.8% | 19.8% |
+| Same-scale Multi-depth JEPA | Jamming classification | L8 | 2.807 | 1.0937 | 1.1360 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L2 | 2.635 | 0.4563 | 0.4555 | 74.4% | 61.3% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L4 | 5.193 | 0.6922 | 0.6885 | 49.6% | 41.3% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L6 | 7.750 | 0.9386 | 0.9344 | 24.8% | 20.5% |
+| Same-scale Multi-depth JEPA | Human activity sensing | L8 | 10.308 | 1.1800 | 1.1767 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | Interference classification | L2 | 0.721 | 0.4509 | 0.4593 | 74.3% | 58.9% |
+| Same-scale Multi-depth JEPA | Interference classification | L4 | 1.416 | 0.6644 | 0.6785 | 49.5% | 39.5% |
+| Same-scale Multi-depth JEPA | Interference classification | L6 | 2.111 | 0.8790 | 0.9048 | 24.8% | 20.0% |
+| Same-scale Multi-depth JEPA | Interference classification | L8 | 2.807 | 1.0981 | 1.1746 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | NR positioning | L2 | 3.828 | 0.5431 | 0.5460 | 74.5% | 64.6% |
+| Same-scale Multi-depth JEPA | NR positioning | L4 | 7.553 | 0.8711 | 0.8734 | 49.7% | 43.2% |
+| Same-scale Multi-depth JEPA | NR positioning | L6 | 11.278 | 1.1942 | 1.1946 | 24.8% | 22.1% |
+| Same-scale Multi-depth JEPA | NR positioning | L8 | 15.003 | 1.5327 | 1.5290 | 0.0% | 0.0% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | 0.026 | 0.5739 | 0.5849 | 74.2% | 52.2% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L4 | 0.052 | 0.7966 | 0.8066 | 49.5% | 33.7% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L6 | 0.077 | 0.9974 | 1.0167 | 24.7% | 17.0% |
+| Same-scale Multi-depth JEPA | DeepMIMO beam | L8 | 0.102 | 1.2012 | 1.2282 | 0.0% | 0.0% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | 0.721 | 0.4542 | 0.4795 | 74.3% | 63.8% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | 1.416 | 0.6617 | 0.7098 | 49.5% | 47.3% |
 | Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 0.9112 | 0.9645 | 24.8% | 27.4% |
@@ -254,7 +335,5 @@ The PNG files are 300-DPI raster exports and the PDF files are vector exports.
 
 ## Exclusions
 
-Diagnostic early-stopped pretraining runs, the same-scale auxiliary JEPA
-ablation, extra transfer datasets, extra seeds, and alternate masking regimes
-are excluded.
-They require separate approval and are not part of this primary pilot packet.
+Diagnostic early-stopped pretraining runs, extra transfer datasets, extra
+seeds, and alternate masking regimes are excluded. The same-scale auxiliary JEPA control is included when its completed P1 artifacts are supplied.
