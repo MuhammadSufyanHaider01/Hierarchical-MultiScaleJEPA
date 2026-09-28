@@ -12,3 +12,5 @@ Supplementary results in an OFDMA factory-scenario proxy domain; these do not re
 | Temporal patches | Jamming / jammer mode | Reported per task when selection artifacts are reviewed |
 
 Profiles, generator code, and immutable master/manifests are versioned under `configs/synthetic_trained_heads/`, `src/synthetic_study/`, and `data/synthetic_trained_heads/` (generated data are ignored by Git).
+
+The locked formal sample count and pilot-projected test-precision shortfalls are documented in [sample_count_precision.md](sample_count_precision.md). Test execution remains gated on manual review of the validation-only selection packets.
