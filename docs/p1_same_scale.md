@@ -46,14 +46,25 @@ Training logs include the anchor loss, each auxiliary loss, effective
 hierarchy weight, valid target-token count, target and predictor RMS, auxiliary
 predictor gradient norms, and EMA momentum.
 
-If the P1/B2 ablation is approved, it uses the same fixed 60-epoch pilot horizon
-with no raw latent-loss early stopping. The source-faithful 240-epoch schedule
-remains a separate reproduction option. Its default RTX 5070 Ti profile is
-FP32, microbatch 4, accumulation 16, effective batch 64, and
-`PYTORCH_ALLOC_CONF=expandable_segments:True` set before Python starts. A
-separate `--throughput-safe` experiment may use microbatch 8, accumulation 8,
-and at least eight workers; see [`throughput_profile.md`](throughput_profile.md).
-Neither profile changes the effective batch or optimizer-step schedule.
+The approved masking-study P1 runs use the same fixed 60-epoch maximum as the
+matching P2 condition, with no raw latent-loss early stopping. To keep the
+masking comparison controlled, each P1 run matches its corresponding P2
+runtime profile, including precision, fused-attention setting, effective batch
+size, HDF5 worker allocation, and prefetching. The region P1 run uses BF16
+mixed precision, fused attention, microbatch 16, accumulation 4 (effective
+batch 64), 12 HDF5 workers per cache (48 total), and prefetch factor 4, matching
+the saved region P2 metadata. Time and frequency P2 use the balanced 12-total
+worker profile (3 per cache), BF16 mixed precision, fused attention, microbatch
+16, accumulation 4, and prefetch factor 4. The historical M-block P2 run used
+FP32, microbatch 4, accumulation 16 (effective batch 64), four workers per
+cache, and the DataLoader default prefetch factor (2); its archived runtime
+metadata does not explicitly record an attention backend, so P1 should use the
+implementation's math-attention default for that condition unless the original
+run configuration establishes otherwise. The other mask conditions must use
+the runtime recorded for their matching P2 run; do not introduce a P1-only
+throughput variant. This supersedes the older FP32/microbatch-4 default
+described for a standalone P1 ablation. A separate source-faithful 240-epoch
+LatentWave reproduction schedule remains unrelated.
 
 ## Gradient contract
 

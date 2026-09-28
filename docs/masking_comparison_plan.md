@@ -255,3 +255,26 @@ For every mask condition and every GPU command:
 
 No formal training, evaluation, benchmark, resume, or ablation job is queued
 automatically.
+
+## Approved same-scale P1 follow-on (current execution order)
+
+The user has now explicitly authorized sequential P1 runs and downstream
+evaluation for the existing region, time, frequency, and multi-block
+span-time conditions. This newer instruction supersedes the earlier P1
+deferral and the per-job approval gate for this matrix only. Process masks in
+this order: region `N_m=6` → time `N_m=6` → frequency `N_m=6` → multi-block
+span-time `N_m=6`.
+
+For each condition, reuse the completed P0 and P2 results and run only the
+missing P1 pretraining (seed 0, maximum 60 epochs), then frozen-head selection
+on validation for all six primary tasks and L2/L4/L6/L8, a single held-out
+test evaluation, and the matched synchronized batch-1 FLOPs/latency benchmark.
+Keep the matching P2 runtime and shared split manifest. Regenerate the
+condition's existing report folder in place with all methods and checkpoint
+provenance; do not discard or replace valid baseline results.
+
+Random 75%, extra seeds, and unrelated ablations are not included in this
+authorized follow-on.
+provenance; do not discard or replace valid baseline results.
+
+Random 75%, extra seeds, and unrelated ablations are not included in this

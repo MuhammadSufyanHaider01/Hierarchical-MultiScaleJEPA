@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create a fair, single-seed masking-condition comparison result packet.
 
-All three manuscript rows use frozen context-encoder representations and the
+All exit-method manuscript rows use frozen context-encoder representations and the
 same persisted 80/10/10 downstream split.  The original LatentWave row is its
 full-depth L8 context representation; the post-hoc early-exit row reuses that
 same P0 checkpoint, and the hierarchical row uses its own P2 checkpoint.
@@ -40,16 +40,19 @@ METHODS = ("b1", "p2")
 METHOD_LABELS = {
     "b0": "Original LatentWave",
     "b1": "LatentWave with Post-hoc Frozen Early Exits",
+    "p1": "Same-scale Multi-depth JEPA",
     "p2": "Proposed Hierarchical Multi-Scale JEPA",
 }
 FIGURE_METHOD_LABELS = {
     "b0": "Original LatentWave (full-depth)",
     "b1": "LatentWave with Post-hoc Frozen Early Exits",
+    "p1": "Same-scale Multi-depth JEPA",
     "p2": "Proposed Hierarchical Multi-Scale JEPA",
 }
 FIGURE_METHOD_SHORT = {
     "b0": "Original\nLatentWave",
     "b1": "LatentWave\nfrozen early exits",
+    "p1": "Same-scale\nmulti-depth JEPA",
     "p2": "Proposed\nhierarchical JEPA",
 }
 TASK_LABELS = {
@@ -90,6 +93,15 @@ def _arguments() -> argparse.Namespace:
             "checkpoint was evaluated in a separate, checkpoint-specific run root."
         ),
     )
+    parser.add_argument(
+        "--p1-run-root",
+        type=Path,
+        default=None,
+        help=(
+            "Optional root containing p1/seed_000 artifacts. When supplied, the "
+            "same-scale multi-depth JEPA control is included in all unified figures and tables."
+        ),
+    )
     parser.add_argument("--source-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_pilot")
     parser.add_argument("--output-dir", type=Path, default=REPOSITORY_ROOT / "reports/phase5_primary")
     parser.add_argument(
@@ -124,17 +136,43 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
-def _discover_tasks(p0_run_root: Path, p2_run_root: Path) -> tuple[str, ...]:
-    """Require P0 and P2 to contain exactly the same recognised task suite."""
+def _split_manifest_signature(path: str) -> str:
+    """Compare split assignments while ignoring machine-specific dataset paths."""
+
+    manifest_path = Path(path)
+    if not manifest_path.is_absolute():
+        manifest_path = REPOSITORY_ROOT / manifest_path
+    manifest = _read(manifest_path)
+    for task_record in manifest.get("tasks", {}).values():
+        spec = task_record.get("spec", {})
+        if isinstance(spec, dict):
+            spec.pop("path", None)
+    return json.dumps(manifest, sort_keys=True, separators=(",", ":"))
+
+
+def _discover_tasks(
+    p0_run_root: Path,
+    p2_run_root: Path,
+    p1_run_root: Path | None = None,
+) -> tuple[str, ...]:
+    """Require all included methods to contain the same recognised task suite."""
 
     packets = {
         "p0": _read(p0_run_root / "p0/seed_000/downstream/exit_metrics.json"),
         "p2": _read(p2_run_root / "p2/seed_000/downstream/exit_metrics.json"),
     }
+    if p1_run_root is not None:
+        packets["p1"] = _read(p1_run_root / "p1/seed_000/downstream/exit_metrics.json")
     task_sets = {method: set(packet.get("tasks", {})) for method, packet in packets.items()}
-    if task_sets["p0"] != task_sets["p2"]:
-        raise ValueError(f"P0/P2 downstream task suites differ: {task_sets}")
+    if len(set(map(frozenset, task_sets.values()))) != 1:
+        raise ValueError(f"included methods have different downstream task suites: {task_sets}")
     unknown = task_sets["p0"].difference(TASK_ORDER)
+    split_manifests = {method: packet.get("split_manifest") for method, packet in packets.items()}
+    if None in split_manifests.values():
+        raise ValueError(f"included methods are missing a persisted split manifest: {split_manifests}")
+    split_signatures = {method: _split_manifest_signature(path) for method, path in split_manifests.items()}
+    if len(set(split_signatures.values())) != 1:
+        raise ValueError(f"included methods have different persisted split assignments: {split_manifests}")
     if unknown:
         raise ValueError(f"report does not recognise downstream tasks: {sorted(unknown)}")
     tasks = tuple(task for task in TASK_ORDER if task in task_sets["p0"])
@@ -293,7 +331,7 @@ def _load_exit_results(
     *,
     source_method: str | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    source_method = source_method or ("p0" if method == "b1" else "p2")
+    source_method = source_method or {"b1": "p0", "p1": "p1", "p2": "p2"}[method]
     base = run_root / source_method / "seed_000"
     metrics_path = base / "downstream/exit_metrics.json"
     benchmark_path = base / "benchmarks.json"
@@ -410,7 +448,7 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p2": "#D55E00"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
     paths = []
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
@@ -469,7 +507,7 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p2": "#D55E00"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
     hatches = {"best_validation": "", "earliest_within_tolerance": "//"}
     labels = {"best_validation": "Best validation", "earliest_within_tolerance": "Earliest within 5%"}
     rows_count, columns_count = _task_grid()
@@ -525,7 +563,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b1": "#0072B2", "p2": "#D55E00"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.6 * len(TASKS), 6.3), squeeze=False)
     for column, task in enumerate(TASKS):
         for method in METHODS:
@@ -537,7 +575,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
                 marker="o",
                 linewidth=2,
                 color=colors[method],
-                linestyle="-" if method == "b1" else "--",
+                linestyle={"b1": "-", "p1": ":", "p2": "--"}[method],
                 label=FIGURE_METHOD_LABELS[method],
             )
             axes[1, column].plot(
@@ -682,7 +720,7 @@ def _plot_all_method_performance(
     source_rows: list[dict[str, Any]],
     comparable_rows: list[dict[str, Any]],
 ) -> list[str]:
-    """Plot all three approaches in one downstream-performance figure."""
+    """Plot the full-depth reference and all included exit approaches."""
 
     import matplotlib
 
@@ -690,7 +728,7 @@ def _plot_all_method_performance(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
@@ -737,8 +775,8 @@ def _plot_all_method_performance(
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
     handles, labels = axes.flat[0].get_legend_handles_labels()
     _hide_unused_axes(axes, len(TASKS))
-    fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
-    fig.suptitle("Downstream performance across the three approaches", fontsize=14, weight="bold", y=1.045)
+    fig.legend(handles, labels, loc="upper center", ncol=len(METHODS) + 1, frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
+    fig.suptitle("Downstream performance across the approaches", fontsize=14, weight="bold", y=1.045)
     fig.text(
         0.5,
         -0.012,
@@ -757,7 +795,7 @@ def _plot_all_method_performance(
 
 
 def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, Any]]) -> list[str]:
-    """Plot the headline deployment choice for all three approaches."""
+    """Plot the headline deployment choice for all included approaches."""
 
     import matplotlib
 
@@ -765,8 +803,8 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
-    methods = ("b0", "b1", "p2")
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    methods = ("b0", *METHODS)
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
@@ -801,9 +839,9 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
     handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in methods]
     _hide_unused_axes(axes, len(TASKS))
-    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
+    fig.legend(handles=handles, loc="upper center", ncol=len(methods), frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
     fig.suptitle("Headline downstream result at each approach's deployment choice", fontsize=14, weight="bold", y=1.045)
-    fig.text(0.5, -0.012, "Layer labels show full-depth L8 for Original LatentWave and the earliest exit within 5% of validation-best for the two exit methods.", ha="center", fontsize=8.5)
+    fig.text(0.5, -0.012, "Layer labels show full-depth L8 for Original LatentWave and the earliest exit within 5% of validation-best for exit methods.", ha="center", fontsize=8.5)
     fig.tight_layout(rect=(0, 0.025, 1, 0.93))
     paths = []
     for suffix, kwargs in (("png", {"dpi": 300}), ("pdf", {})):
@@ -815,15 +853,15 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
 
 
 def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, Any]]) -> list[str]:
-    """Plot one inference-cost comparison containing all three approaches."""
+    """Plot one inference-cost comparison containing all included approaches."""
 
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p2": "#D55E00"}
-    methods = ("b0", "b1", "p2")
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    methods = ("b0", *METHODS)
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.45 * len(TASKS), 7.1), squeeze=False)
     for column, task in enumerate(TASKS):
         task_rows = [row for row in headline_rows if row["task"] == task]
@@ -859,7 +897,7 @@ def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, A
                     fontsize=7.5,
                 )
     handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in methods]
-    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.01), fontsize=9)
+    fig.legend(handles=handles, loc="upper center", ncol=len(methods), frameon=False, bbox_to_anchor=(0.5, 1.01), fontsize=9)
     fig.suptitle("Inference cost comparison at each approach's deployment choice", fontsize=14, weight="bold", y=1.065)
     fig.text(0.5, 0.03, "Batch-1 synchronized CUDA timing on the RTX 5070 Ti; lower is better. Layer labels are printed below each method.", ha="center", fontsize=8.5)
     fig.tight_layout(rect=(0, 0.07, 1, 0.96), h_pad=2.2, w_pad=1.3)
@@ -885,8 +923,10 @@ def _build_report(
     report_title: str,
     masking_label: str,
     provenance_note: str | None,
+    p1_packet: dict[str, Any] | None = None,
 ) -> None:
-    comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
+    packets = [b1_packet] + ([p1_packet] if p1_packet is not None else []) + [p2_packet]
+    comparable_rows = [row for packet in packets for row in packet["metric_rows"]]
     detailed_benchmark_rows = [row for row in benchmark_rows if row["method"] in METHODS]
     fixed_rows = [row for row in comparable_rows if row["evaluation"] == "fixed_exit"]
     selected_rows = [row for row in comparable_rows if row["evaluation"] != "fixed_exit"]
@@ -952,6 +992,13 @@ def _build_report(
                 f"{row['latency_savings_vs_l8'] * 100:.1f}%",
             ]
         )
+    approach_scope = [
+        ["Original LatentWave", "Original LatentWave training", "Frozen context encoder, full-input L8", "Full-depth baseline"],
+        ["LatentWave with Post-hoc Frozen Early Exits", "Reuses the Original LatentWave checkpoint", "Frozen context encoder at L2/L4/L6/L8", "Early-exit baseline"],
+    ]
+    if p1_packet is not None:
+        approach_scope.append(["Same-scale Multi-depth JEPA", "P1 pretraining with same-scale intermediate targets", "Frozen context encoder at L2/L4/L6/L8", "Same-scale auxiliary-loss control"])
+    approach_scope.append(["Proposed Hierarchical Multi-Scale JEPA", "Separately pretrained hierarchical JEPA", "Frozen context encoder at L2/L4/L6/L8", "Proposed method"])
     report = f"""# {report_title}
 
 This directory contains the submission-oriented result tables and figures for
@@ -961,16 +1008,12 @@ revision `{_git_revision()}`.
 
 ## Scope and comparability
 
-| Approach | Pretraining | Downstream representation | Role |
-|---|---|---|---|
-| Original LatentWave | Original LatentWave training | Frozen context encoder, full-input L8 | Full-depth baseline |
-| LatentWave with Post-hoc Frozen Early Exits | Reuses the Original LatentWave checkpoint | Frozen context encoder at L2/L4/L6/L8 | Early-exit baseline |
-| Proposed Hierarchical Multi-Scale JEPA | Separately pretrained hierarchical JEPA | Frozen context encoder at L2/L4/L6/L8 | Proposed method |
+{_markdown_table(['Approach', 'Pretraining', 'Downstream representation', 'Role'], approach_scope)}
 
 All rows use independent frozen task heads, the same persisted 80/10/10
 split, and validation-only head/exit selection. Original LatentWave is the
 P0 context encoder evaluated at L8; the post-hoc early-exit baseline reuses
-that exact P0 checkpoint at L2/L4/L6/L8. Therefore the three approaches are
+that exact P0 checkpoint at L2/L4/L6/L8. Therefore the included approaches are
 directly comparable for this single-seed packet.
 
 All values are single-seed pilot point estimates.
@@ -979,6 +1022,7 @@ All values are single-seed pilot point estimates.
 
 ## Task-suite note
 
+{f"## P1 checkpoint provenance\n\nSame-scale Multi-depth JEPA checkpoint: `{p1_packet['checkpoint']}`.\n\nPretraining experiment metadata: `{Path(p1_packet['checkpoint']).parents[1] / 'experiment.json'}`.\n" if p1_packet is not None else ""}
 This packet covers **{masking_label}** and the following downstream task suite:
 {", ".join(TASK_LABELS[task] for task in TASKS)}. Jamming and interference
 are labelled frozen-head tasks only; none of the six downstream caches is used
@@ -987,7 +1031,7 @@ for pretraining.
 ## All-approach headline downstream comparison
 
 The deployment rows use full-depth L8 Original LatentWave and the
-earliest exit within 5% of validation-best for the two exit approaches.
+earliest exit within 5% of validation-best for the exit approaches.
 
 {_markdown_table(['Approach', 'Task', 'Exit', 'Selection', 'Test value'], headline_table)}
 
@@ -1029,10 +1073,8 @@ The PNG files are 300-DPI raster exports and the PDF files are vector exports.
 
 ## Exclusions
 
-Diagnostic early-stopped pretraining runs, the same-scale auxiliary JEPA
-ablation, extra transfer datasets, extra seeds, and alternate masking regimes
-are excluded.
-They require separate approval and are not part of this primary pilot packet.
+Diagnostic early-stopped pretraining runs, extra transfer datasets, extra
+seeds, and alternate masking regimes are excluded. The same-scale auxiliary JEPA control is included when its completed P1 artifacts are supplied.
 """
     (output_dir / "README.md").write_text(report)
 
@@ -1099,18 +1141,21 @@ def main() -> int:
     args = _arguments()
     run_root = _repo_path(args.run_root)
     p2_run_root = _repo_path(args.p2_run_root) if args.p2_run_root is not None else run_root
+    p1_run_root = _repo_path(args.p1_run_root) if args.p1_run_root is not None else None
     source_root = _repo_path(args.source_root)
     output_dir = _repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
-    global TASKS
-    TASKS = _discover_tasks(run_root, p2_run_root)
+    global TASKS, METHODS
+    METHODS = ("b1", "p1", "p2") if p1_run_root is not None else ("b1", "p2")
+    TASKS = _discover_tasks(run_root, p2_run_root, p1_run_root)
 
     b1_packet, _ = _load_exit_results(run_root, "b1")
     source_reference, source_rows = _load_context_l8_reference(b1_packet)
     p2_packet, _ = _load_exit_results(p2_run_root, "p2")
+    p1_packet = _load_exit_results(p1_run_root, "p1")[0] if p1_run_root is not None else None
     figure_paths = []
-    comparable_rows = b1_packet["metric_rows"] + p2_packet["metric_rows"]
+    comparable_rows = b1_packet["metric_rows"] + (p1_packet["metric_rows"] if p1_packet is not None else []) + p2_packet["metric_rows"]
     b0_benchmark_rows = []
     for row in b1_packet["benchmark_rows"]:
         if row["exit_layer"] != 8:
@@ -1120,7 +1165,7 @@ def main() -> int:
         b0_row["method_label"] = METHOD_LABELS["b0"]
         b0_row["protocol"] = "Original LatentWave frozen context encoder, full-depth L8 benchmark"
         b0_benchmark_rows.append(b0_row)
-    benchmark_rows = b0_benchmark_rows + b1_packet["benchmark_rows"] + p2_packet["benchmark_rows"]
+    benchmark_rows = b0_benchmark_rows + b1_packet["benchmark_rows"] + (p1_packet["benchmark_rows"] if p1_packet is not None else []) + p2_packet["benchmark_rows"]
     headline_rows = _build_headline_rows(source_rows, comparable_rows, benchmark_rows)
     figure_paths.extend(_plot_all_method_performance(output_dir, source_rows, comparable_rows))
     figure_paths.extend(_plot_all_method_selected(output_dir, headline_rows))
@@ -1141,15 +1186,19 @@ def main() -> int:
         report_title=args.report_title,
         masking_label=args.masking_label,
         provenance_note=args.provenance_note,
+        p1_packet=p1_packet,
     )
     manifest = {
         "report": "phase5_primary_single_seed",
         "git_revision": _git_revision(),
         "run_root": str(run_root),
         "p2_run_root": str(p2_run_root),
+        "p1_checkpoint": p1_packet.get("checkpoint") if p1_packet is not None else None,
+        "p1_pretraining_experiment": str(Path(p1_packet["checkpoint"]).parents[1] / "experiment.json") if p1_packet is not None else None,
+        "p1_run_root": str(p1_run_root) if p1_run_root is not None else None,
         "source_root": None,
         "output_dir": str(output_dir),
-        "methods": [METHOD_LABELS[method] for method in ("b0", "b1", "p2")],
+        "methods": [METHOD_LABELS[method] for method in ("b0", *METHODS)],
         "seed": 0,
         "masking": args.masking_label,
         "task_suite": list(TASKS),
@@ -1159,11 +1208,14 @@ def main() -> int:
             "b1_benchmark": str(run_root / "p0/seed_000/benchmarks.json"),
             "p2_metrics": str(p2_run_root / "p2/seed_000/downstream/exit_metrics.json"),
             "p2_benchmark": str(p2_run_root / "p2/seed_000/benchmarks.json"),
+            **({
+                "p1_metrics": str(p1_run_root / "p1/seed_000/downstream/exit_metrics.json"),
+                "p1_benchmark": str(p1_run_root / "p1/seed_000/benchmarks.json"),
+            } if p1_run_root is not None else {}),
         },
         "excluded": [
             "EMA-teacher source-style probe (archived provenance only)",
             "diagnostic early-stopped runs",
-            "same-scale auxiliary JEPA control ablation",
             "extra transfer datasets",
             "seeds 1 and 2",
             "alternate masking regimes",

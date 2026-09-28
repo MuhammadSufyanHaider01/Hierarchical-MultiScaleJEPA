@@ -376,3 +376,29 @@ For every phase:
   define the primary experiment; HAS, jamming, and interference caches remain
   one directory above the repository and are not committed.
 - Large HDF5 files remain local and ignored by Git.
+
+## User-approved P1 masking-study extension
+
+This execution directive supersedes the older statements above that defer P1
+or require a new approval for each job. Run P1 (same-scale multi-depth JEPA)
+for the existing masking conditions in this order: region `N_m=6`, time
+`N_m=6`, frequency `N_m=6`, then multi-block span-time `N_m=6`. Use seed 0 and
+the matching P2 condition's 60-epoch maximum, mask profile, optimizer schedule,
+effective batch size, precision, attention backend, loader, and worker settings.
+Do not retrain the already completed P0 or P2 conditions for this extension.
+
+For each mask, complete the sequence before advancing: (1) P1 pretraining;
+(2) validation-only frozen-head training at L2/L4/L6/L8 for RF sensing,
+jamming, human activity sensing, interference, NR positioning, and DeepMIMO
+beam prediction; (3) one held-out test evaluation; (4) matched batch-1 FLOPs
+and synchronized latency benchmark; and (5) regenerate that mask's existing
+report folder, figures, and tables with P1 added while retaining verified P0,
+post-hoc-exit, and P2 results. Reuse the persisted split for that mask and
+never select heads or exits from test metrics.
+
+The explicit user authorization applies to this P1 sequence for these four
+conditions; unrelated random-75% jobs, extra seeds, and other ablations remain
+out of scope. Each report must identify P1's checkpoint, configuration,
+masking, seed, split, and benchmark protocol in its manifest.
+post-hoc-exit, and P2 results. Reuse the persisted split for that mask and
+never select heads or exits from test metrics.

@@ -509,10 +509,10 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             )
         if args.precision != "bf16-mixed":
             raise ValueError("--performance-safe requires --precision bf16-mixed")
-        if args.num_workers != 3 or args.prefetch_factor != 4:
-            raise ValueError("--performance-safe requires --num-workers 3 --prefetch-factor 4")
-        if args.hdf5_worker_budget != 12:
-            raise ValueError("--performance-safe requires --hdf5-worker-budget 12")
+        balanced_loader = args.num_workers == 3 and args.hdf5_worker_budget == 12
+        p2_compatible_loader = args.num_workers == 12 and args.hdf5_worker_budget is None
+        if args.prefetch_factor != 4 or not (balanced_loader or p2_compatible_loader):
+            raise ValueError("--performance-safe requires prefetch factor 4 and either the balanced 12-total-worker profile or the P2-compatible 12-workers-per-cache profile")
         if not args.epoch_metrics_only:
             raise ValueError("--performance-safe requires --epoch-metrics-only")
         if args.attention_backend != "fused":
