@@ -1,0 +1,521 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "source": {
+      "name": "latent-wave",
+      "repository": "https://github.com/AhmedEssam19/latent-wave",
+      "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd"
+    },
+    "git_revision": "04f39d49efe22326d499d53406f5c31b87c5a5e9",
+    "source_tree": {
+      "available": true,
+      "file_count": 429,
+      "sha256": "0f7aaacb42e3b1e3de46c1da9f2e146ac91b9b94e914ab6e55695e66a61b9e4c"
+    },
+    "seed": 0,
+    "config_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/configs/p2_reverse.yml",
+    "config": {
+      "encoder": {
+        "img_size": [
+          224,
+          224
+        ],
+        "patch_size": 16,
+        "embed_dim": 256,
+        "depth": 8,
+        "num_heads": 8
+      },
+      "predictor": {
+        "embed_dim": 128,
+        "depth": 4,
+        "num_heads": 4
+      },
+      "wandb": {
+        "project_name": "latent-wfm",
+        "key": "offline"
+      },
+      "data": {
+        "pretrain_datasets": [
+          {
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "key": "spectrogram"
+          },
+          {
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "key": "normalized_spectrograms"
+          },
+          {
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "key": "normalized_csi"
+          },
+          {
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "key": "normalized_csi"
+          }
+        ],
+        "rfs_path": "data/downstream/rfs.h5",
+        "pos_path": "data/downstream/nrpos-outdoor.h5",
+        "beam_path": "data/downstream/deepmimo.h5",
+        "batch_size": 16,
+        "num_workers": 3,
+        "pin_mem": true
+      },
+      "masks": {
+        "type": "multi_block",
+        "multi_block": {
+          "allow_overlap": false,
+          "aspect_ratio_type": "span_time",
+          "aspect_ratio": [
+            0.75,
+            1.5
+          ],
+          "enc_mask_scale": [
+            1.0,
+            1.0
+          ],
+          "min_keep": 10,
+          "num_enc_masks": 1,
+          "num_pred_masks": 6,
+          "pred_mask_scale": [
+            0.15,
+            0.2
+          ]
+        },
+        "random": {
+          "ratios": [
+            0.7,
+            0.8
+          ]
+        }
+      },
+      "optimization": {
+        "ema": [
+          0.996,
+          1.0
+        ],
+        "epochs": 50,
+        "warmup": 12,
+        "start_lr": 1e-06,
+        "ref_lr": 0.001,
+        "final_lr": 1e-06,
+        "ref_weight_decay": 0.04,
+        "final_weight_decay": 0.04,
+        "grad_clip": null
+      },
+      "checkpoint": {
+        "dir": "runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/checkpoints",
+        "every_n_epochs": 5
+      },
+      "seed": 0,
+      "hierarchy": {
+        "enabled": true,
+        "mode": "mask_relative_coarse_to_fine",
+        "layers": [
+          2,
+          4,
+          6
+        ],
+        "lambda_h": 1.0,
+        "warmup_epochs": 12,
+        "include_l8_coarse": false
+      }
+    },
+    "dataset_manifest": [
+      {
+        "role": "pretraining",
+        "name": "spectrogram",
+        "path": "data/pretraining/spectrogram-pretrain.h5",
+        "key": "spectrogram",
+        "exists": true,
+        "size_bytes": 719779464,
+        "keys": [
+          "source_file",
+          "spectrogram"
+        ],
+        "shape": [
+          3332,
+          1,
+          224,
+          224
+        ],
+        "dtype": "float32",
+        "count": 3332
+      },
+      {
+        "role": "pretraining",
+        "name": "rfp",
+        "path": "data/pretraining/rfp.h5",
+        "key": "normalized_spectrograms",
+        "exists": true,
+        "size_bytes": 8716134794,
+        "keys": [
+          "center_freq",
+          "day",
+          "frequencies",
+          "iq_samples",
+          "labels",
+          "location",
+          "normalized_spectrograms",
+          "original_sample_rate",
+          "protocol",
+          "set",
+          "spectrograms",
+          "times"
+        ],
+        "shape": [
+          5932,
+          1,
+          224,
+          224
+        ],
+        "dtype": "float32",
+        "count": 5932
+      },
+      {
+        "role": "pretraining",
+        "name": "wifi-csi",
+        "path": "data/pretraining/wifi-csi.h5",
+        "key": "normalized_csi",
+        "exists": true,
+        "size_bytes": 2019529306,
+        "keys": [
+          "csi",
+          "normalized_csi"
+        ],
+        "shape": [
+          840,
+          3,
+          224,
+          224
+        ],
+        "dtype": "float32",
+        "count": 840
+      },
+      {
+        "role": "pretraining",
+        "name": "nrpos-indoor",
+        "path": "data/pretraining/nrpos-indoor.h5",
+        "key": "normalized_csi",
+        "exists": true,
+        "size_bytes": 30678353236,
+        "keys": [
+          "csi",
+          "normalized_csi"
+        ],
+        "shape": [
+          14448,
+          5,
+          224,
+          224
+        ],
+        "dtype": "float64",
+        "count": 14448
+      },
+      {
+        "role": "downstream",
+        "name": "rfs",
+        "path": "data/downstream/rfs.h5",
+        "key": "image",
+        "exists": true,
+        "size_bytes": 822309480,
+        "keys": [
+          "image",
+          "label",
+          "source_file"
+        ],
+        "shape": [
+          3624,
+          1,
+          224,
+          224
+        ],
+        "dtype": "float32",
+        "count": 3624
+      },
+      {
+        "role": "downstream",
+        "name": "position",
+        "path": "data/downstream/nrpos-outdoor.h5",
+        "key": "features",
+        "exists": true,
+        "size_bytes": 9454674408,
+        "keys": [
+          "features",
+          "label",
+          "source_file"
+        ],
+        "shape": [
+          11628,
+          4,
+          224,
+          224
+        ],
+        "dtype": "float32",
+        "count": 11628
+      },
+      {
+        "role": "downstream",
+        "name": "deepmimo",
+        "path": "data/downstream/deepmimo.h5",
+        "key": "sample",
+        "exists": true,
+        "size_bytes": 126874880,
+        "keys": [
+          "label_beam_16",
+          "label_los",
+          "sample",
+          "scenario"
+        ],
+        "shape": [
+          14840,
+          2,
+          32,
+          32
+        ],
+        "dtype": "float32",
+        "count": 14840
+      }
+    ],
+    "environment": {
+      "python": "3.13.15 (main, Sep 24 2026, 17:55:50) [Clang 22.1.3 ]",
+      "platform": "Linux-4.18.0-553.144.1.el8_10.x86_64-x86_64-with-glibc2.28",
+      "machine": "x86_64",
+      "torch": "2.10.0+cu126",
+      "torch_cuda_runtime": "12.6",
+      "cuda_available": true,
+      "cuda_device_count": 1,
+      "nvidia_smi": {
+        "available": true,
+        "gpus": [
+          {
+            "name": "NVIDIA A100-PCIE-40GB",
+            "driver_version": "560.35.03",
+            "memory_total_mib": "40960"
+          }
+        ]
+      },
+      "cuda_devices": [
+        {
+          "index": 0,
+          "name": "NVIDIA A100-PCIE-40GB",
+          "capability": [
+            8,
+            0
+          ]
+        }
+      ]
+    },
+    "phase5": {
+      "phase": 5,
+      "method": "p2_reverse",
+      "run_name": "p2_reverse",
+      "run_kind": "formal",
+      "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+      "seed": 0,
+      "config_path": "configs/p2_reverse.yml",
+      "microbatch_size": 16,
+      "accumulate_grad_batches": 4,
+      "effective_batch_size": 64,
+      "microbatches_per_epoch": 903,
+      "optimizer_steps_per_epoch": 226,
+      "max_epochs": 50,
+      "precision": "bf16-mixed",
+      "attention_backend": "fused",
+      "epoch_metrics_only": true,
+      "cuda_allocator_conf": "expandable_segments:True",
+      "memory_safe": false,
+      "throughput_safe": false,
+      "performance_safe": true,
+      "data_loader_workers": 3,
+      "hdf5_worker_budget": 12,
+      "data_loader_workers_per_cache": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "total_data_loader_workers": 12,
+      "data_loader_prefetch_factor": 4,
+      "log_every_n_steps": 1,
+      "progress_every_n_batches": 25,
+      "limit_train_batches": 1.0,
+      "limit_val_batches": 1.0,
+      "validate_every": 0,
+      "hierarchy_lambda_override": null,
+      "include_l8_coarse": false,
+      "early_stopping": false,
+      "validation_fraction": null,
+      "validation_seed": null,
+      "early_stopping_patience": null,
+      "early_stopping_min_delta": null,
+      "mask_profile": {
+        "name": "frequency_n6",
+        "path": "configs/masking_study/frequency_n6.yml",
+        "sha256": "7bfdef7f060629f79304e3a541dc6130366aef2417778469b009eaefa16f2b5c",
+        "overrides": {
+          "type": "multi_block",
+          "multi_block": {
+            "aspect_ratio_type": "span_time",
+            "num_pred_masks": 6
+          }
+        },
+        "resolved": {
+          "type": "multi_block",
+          "multi_block": {
+            "allow_overlap": false,
+            "aspect_ratio_type": "span_time",
+            "aspect_ratio": [
+              0.75,
+              1.5
+            ],
+            "enc_mask_scale": [
+              1.0,
+              1.0
+            ],
+            "min_keep": 10,
+            "num_enc_masks": 1,
+            "num_pred_masks": 6,
+            "pred_mask_scale": [
+              0.15,
+              0.2
+            ]
+          },
+          "random": {
+            "ratios": [
+              0.7,
+              0.8
+            ]
+          }
+        }
+      }
+    },
+    "mask_profile": {
+      "name": "frequency_n6",
+      "path": "configs/masking_study/frequency_n6.yml",
+      "sha256": "7bfdef7f060629f79304e3a541dc6130366aef2417778469b009eaefa16f2b5c",
+      "overrides": {
+        "type": "multi_block",
+        "multi_block": {
+          "aspect_ratio_type": "span_time",
+          "num_pred_masks": 6
+        }
+      },
+      "resolved": {
+        "type": "multi_block",
+        "multi_block": {
+          "allow_overlap": false,
+          "aspect_ratio_type": "span_time",
+          "aspect_ratio": [
+            0.75,
+            1.5
+          ],
+          "enc_mask_scale": [
+            1.0,
+            1.0
+          ],
+          "min_keep": 10,
+          "num_enc_masks": 1,
+          "num_pred_masks": 6,
+          "pred_mask_scale": [
+            0.15,
+            0.2
+          ]
+        },
+        "random": {
+          "ratios": [
+            0.7,
+            0.8
+          ]
+        }
+      }
+    }
+  },
+  "runtime": {
+    "phase": 5,
+    "method": "p2_reverse",
+    "run_name": "p2_reverse",
+    "run_kind": "formal",
+    "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+    "seed": 0,
+    "config_path": "configs/p2_reverse.yml",
+    "microbatch_size": 16,
+    "accumulate_grad_batches": 4,
+    "effective_batch_size": 64,
+    "microbatches_per_epoch": 903,
+    "optimizer_steps_per_epoch": 226,
+    "max_epochs": 50,
+    "precision": "bf16-mixed",
+    "attention_backend": "fused",
+    "epoch_metrics_only": true,
+    "cuda_allocator_conf": "expandable_segments:True",
+    "memory_safe": false,
+    "throughput_safe": false,
+    "performance_safe": true,
+    "data_loader_workers": 3,
+    "hdf5_worker_budget": 12,
+    "data_loader_workers_per_cache": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "total_data_loader_workers": 12,
+    "data_loader_prefetch_factor": 4,
+    "log_every_n_steps": 1,
+    "progress_every_n_batches": 25,
+    "limit_train_batches": 1.0,
+    "limit_val_batches": 1.0,
+    "validate_every": 0,
+    "hierarchy_lambda_override": null,
+    "include_l8_coarse": false,
+    "early_stopping": false,
+    "validation_fraction": null,
+    "validation_seed": null,
+    "early_stopping_patience": null,
+    "early_stopping_min_delta": null,
+    "mask_profile": {
+      "name": "frequency_n6",
+      "path": "configs/masking_study/frequency_n6.yml",
+      "sha256": "7bfdef7f060629f79304e3a541dc6130366aef2417778469b009eaefa16f2b5c",
+      "overrides": {
+        "type": "multi_block",
+        "multi_block": {
+          "aspect_ratio_type": "span_time",
+          "num_pred_masks": 6
+        }
+      },
+      "resolved": {
+        "type": "multi_block",
+        "multi_block": {
+          "allow_overlap": false,
+          "aspect_ratio_type": "span_time",
+          "aspect_ratio": [
+            0.75,
+            1.5
+          ],
+          "enc_mask_scale": [
+            1.0,
+            1.0
+          ],
+          "min_keep": 10,
+          "num_enc_masks": 1,
+          "num_pred_masks": 6,
+          "pred_mask_scale": [
+            0.15,
+            0.2
+          ]
+        },
+        "random": {
+          "ratios": [
+            0.7,
+            0.8
+          ]
+        }
+      }
+    }
+  }
+}

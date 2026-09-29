@@ -1,0 +1,637 @@
+{
+  "checkpoint": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/frequency_n6/proposed_hierarchical/seed_000/checkpoints/last.ckpt",
+  "dataset_suite": "primary",
+  "head_seed": 2025,
+  "method": "p2_reverse",
+  "ood_root": null,
+  "pretrain_seed": 0,
+  "protocol": {
+    "batch_limits": {
+      "test": null,
+      "train": null,
+      "validation": null
+    },
+    "head_early_stopping": {
+      "enabled": true,
+      "min_delta": 0.0,
+      "monitor": "task-specific validation metric",
+      "patience": 20
+    },
+    "head_max_epochs": 200,
+    "selection_uses": "validation_only",
+    "test_evaluation": true,
+    "test_evaluation_mode": "post_selection_saved_heads",
+    "tolerance": 0.05
+  },
+  "split_manifest": "runs/masking_study/frequency_n6/p2_reverse_downstream/splits_seed_2025_primary_v3.json",
+  "tasks": {
+    "deepmimo-beam": {
+      "exits": {
+        "2": {
+          "best_epoch": 50,
+          "epochs_completed": 70,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/deepmimo-beam/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.48148148148148145,
+            "loss": 1.6645476272210529,
+            "macro_accuracy": 0.45804518461227417
+          },
+          "validation": {
+            "accuracy": 0.48148148148148145,
+            "loss": 1.6677860203014079,
+            "macro_accuracy": 0.458737313747406
+          }
+        },
+        "4": {
+          "best_epoch": 58,
+          "epochs_completed": 78,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/deepmimo-beam/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.47003367003367,
+            "loss": 1.6508603834543967,
+            "macro_accuracy": 0.45436689257621765
+          },
+          "validation": {
+            "accuracy": 0.46936026936026937,
+            "loss": 1.665604468066283,
+            "macro_accuracy": 0.4572564363479614
+          }
+        },
+        "6": {
+          "best_epoch": 69,
+          "epochs_completed": 89,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/deepmimo-beam/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.4498316498316498,
+            "loss": 1.6622783903321032,
+            "macro_accuracy": 0.428680419921875
+          },
+          "validation": {
+            "accuracy": 0.4781144781144781,
+            "loss": 1.6583320410564693,
+            "macro_accuracy": 0.4611212909221649
+          }
+        },
+        "8": {
+          "best_epoch": 22,
+          "epochs_completed": 42,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/deepmimo-beam/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.4404040404040404,
+            "loss": 1.7054441462462198,
+            "macro_accuracy": 0.4227841794490814
+          },
+          "validation": {
+            "accuracy": 0.45252525252525255,
+            "loss": 1.701773973105331,
+            "macro_accuracy": 0.4349329471588135
+          }
+        }
+      },
+      "selected_exit_best_validation": 6,
+      "selected_exit_earliest_within_tolerance": 2,
+      "selected_test_best_validation": {
+        "accuracy": 0.4498316498316498,
+        "loss": 1.6622783903321032,
+        "macro_accuracy": 0.428680419921875
+      },
+      "selected_test_earliest_within_tolerance": {
+        "accuracy": 0.48148148148148145,
+        "loss": 1.6645476272210529,
+        "macro_accuracy": 0.45804518461227417
+      },
+      "spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "deepmimo-beam",
+        "num_outputs": 15,
+        "path": "data/downstream/deepmimo.h5",
+        "sample_shape": [
+          2,
+          32,
+          32
+        ],
+        "target_type": "classification"
+      },
+      "split_counts": {
+        "test": 1485,
+        "train": 11870,
+        "validation": 1485
+      }
+    },
+    "human-activity": {
+      "exits": {
+        "2": {
+          "best_epoch": 25,
+          "epochs_completed": 45,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/human-activity/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.975,
+            "loss": 0.22190620402495068,
+            "macro_accuracy": 0.9750000834465027
+          },
+          "validation": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.21762582858403523,
+            "macro_accuracy": 0.9916666746139526
+          }
+        },
+        "4": {
+          "best_epoch": 29,
+          "epochs_completed": 49,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/human-activity/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.10805682688951493,
+            "macro_accuracy": 0.9916666746139526
+          },
+          "validation": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.10265026787916819,
+            "macro_accuracy": 0.9916666746139526
+          }
+        },
+        "6": {
+          "best_epoch": 15,
+          "epochs_completed": 35,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/human-activity/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.9583333333333334,
+            "loss": 0.1827009439468384,
+            "macro_accuracy": 0.9583333730697632
+          },
+          "validation": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.15031297107537586,
+            "macro_accuracy": 0.9916666746139526
+          }
+        },
+        "8": {
+          "best_epoch": 50,
+          "epochs_completed": 70,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/human-activity/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.05522979224721591,
+            "macro_accuracy": 0.9916666746139526
+          },
+          "validation": {
+            "accuracy": 0.9916666666666667,
+            "loss": 0.05448303570350011,
+            "macro_accuracy": 0.9916666746139526
+          }
+        }
+      },
+      "selected_exit_best_validation": 2,
+      "selected_exit_earliest_within_tolerance": 2,
+      "selected_test_best_validation": {
+        "accuracy": 0.975,
+        "loss": 0.22190620402495068,
+        "macro_accuracy": 0.9750000834465027
+      },
+      "selected_test_earliest_within_tolerance": {
+        "accuracy": 0.975,
+        "loss": 0.22190620402495068,
+        "macro_accuracy": 0.9750000834465027
+      },
+      "spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "human-activity",
+        "num_outputs": 6,
+        "path": "/home/muhammadsufyan.haide/has.h5",
+        "sample_shape": [
+          3,
+          224,
+          224
+        ],
+        "target_type": "classification"
+      },
+      "split_counts": {
+        "test": 120,
+        "train": 960,
+        "validation": 120
+      }
+    },
+    "interference": {
+      "exits": {
+        "2": {
+          "best_epoch": 17,
+          "epochs_completed": 37,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/interference/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7264285714285714,
+            "loss": 0.5487906072820936,
+            "macro_accuracy": 0.7264285683631897
+          },
+          "validation": {
+            "accuracy": 0.7185714285714285,
+            "loss": 0.5616421614374433,
+            "macro_accuracy": 0.7185714244842529
+          }
+        },
+        "4": {
+          "best_epoch": 49,
+          "epochs_completed": 69,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/interference/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7357142857142858,
+            "loss": 0.5269110264096941,
+            "macro_accuracy": 0.735714316368103
+          },
+          "validation": {
+            "accuracy": 0.7371428571428571,
+            "loss": 0.5285683809007917,
+            "macro_accuracy": 0.7371428608894348
+          }
+        },
+        "6": {
+          "best_epoch": 34,
+          "epochs_completed": 54,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/interference/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7307142857142858,
+            "loss": 0.5307591675009047,
+            "macro_accuracy": 0.7307143211364746
+          },
+          "validation": {
+            "accuracy": 0.7307142857142858,
+            "loss": 0.5432679145676749,
+            "macro_accuracy": 0.7307143211364746
+          }
+        },
+        "8": {
+          "best_epoch": 18,
+          "epochs_completed": 38,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/interference/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7392857142857143,
+            "loss": 0.5232563311713082,
+            "macro_accuracy": 0.7392857074737549
+          },
+          "validation": {
+            "accuracy": 0.7314285714285714,
+            "loss": 0.5367958842005048,
+            "macro_accuracy": 0.7314285635948181
+          }
+        }
+      },
+      "selected_exit_best_validation": 4,
+      "selected_exit_earliest_within_tolerance": 2,
+      "selected_test_best_validation": {
+        "accuracy": 0.7357142857142858,
+        "loss": 0.5269110264096941,
+        "macro_accuracy": 0.735714316368103
+      },
+      "selected_test_earliest_within_tolerance": {
+        "accuracy": 0.7264285714285714,
+        "loss": 0.5487906072820936,
+        "macro_accuracy": 0.7264285683631897
+      },
+      "spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "interference",
+        "num_outputs": 2,
+        "path": "/home/muhammadsufyan.haide/interference.h5",
+        "sample_shape": [
+          1,
+          224,
+          224
+        ],
+        "target_type": "classification"
+      },
+      "split_counts": {
+        "test": 1400,
+        "train": 11200,
+        "validation": 1400
+      }
+    },
+    "jamming": {
+      "exits": {
+        "2": {
+          "best_epoch": 69,
+          "epochs_completed": 89,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/jamming/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.8453333333333334,
+            "loss": 0.4493140827814738,
+            "macro_accuracy": 0.8453333377838135
+          },
+          "validation": {
+            "accuracy": 0.836,
+            "loss": 0.4786946806907654,
+            "macro_accuracy": 0.8359999656677246
+          }
+        },
+        "4": {
+          "best_epoch": 60,
+          "epochs_completed": 80,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/jamming/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.836,
+            "loss": 0.455677268187205,
+            "macro_accuracy": 0.8359999656677246
+          },
+          "validation": {
+            "accuracy": 0.8413333333333334,
+            "loss": 0.4897436802387238,
+            "macro_accuracy": 0.8413333296775818
+          }
+        },
+        "6": {
+          "best_epoch": 97,
+          "epochs_completed": 117,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/jamming/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.848,
+            "loss": 0.4312147790590922,
+            "macro_accuracy": 0.8480000495910645
+          },
+          "validation": {
+            "accuracy": 0.8586666666666667,
+            "loss": 0.42675032194455464,
+            "macro_accuracy": 0.8586667776107788
+          }
+        },
+        "8": {
+          "best_epoch": 40,
+          "epochs_completed": 60,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/jamming/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.8773333333333333,
+            "loss": 0.36322085110346475,
+            "macro_accuracy": 0.8773333430290222
+          },
+          "validation": {
+            "accuracy": 0.8986666666666666,
+            "loss": 0.33368736815452577,
+            "macro_accuracy": 0.8986667394638062
+          }
+        }
+      },
+      "selected_exit_best_validation": 8,
+      "selected_exit_earliest_within_tolerance": 6,
+      "selected_test_best_validation": {
+        "accuracy": 0.8773333333333333,
+        "loss": 0.36322085110346475,
+        "macro_accuracy": 0.8773333430290222
+      },
+      "selected_test_earliest_within_tolerance": {
+        "accuracy": 0.848,
+        "loss": 0.4312147790590922,
+        "macro_accuracy": 0.8480000495910645
+      },
+      "spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "jamming",
+        "num_outputs": 6,
+        "path": "/home/muhammadsufyan.haide/jamming.h5",
+        "sample_shape": [
+          1,
+          224,
+          224
+        ],
+        "target_type": "classification"
+      },
+      "split_counts": {
+        "test": 750,
+        "train": 6000,
+        "validation": 750
+      }
+    },
+    "nrpos-outdoor": {
+      "exits": {
+        "2": {
+          "best_epoch": 37,
+          "epochs_completed": 57,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/nrpos-outdoor/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "loss": 0.005392981087348503,
+            "mean_distance_error": 3.5469090938568115,
+            "median_distance_error": 3.107757091522217
+          },
+          "validation": {
+            "loss": 0.005092116657353022,
+            "mean_distance_error": 3.484954357147217,
+            "median_distance_error": 3.0376245975494385
+          }
+        },
+        "4": {
+          "best_epoch": 68,
+          "epochs_completed": 88,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/nrpos-outdoor/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "loss": 0.004539996190180783,
+            "mean_distance_error": 3.2453815937042236,
+            "median_distance_error": 2.855207681655884
+          },
+          "validation": {
+            "loss": 0.004529254893777909,
+            "mean_distance_error": 3.2385470867156982,
+            "median_distance_error": 2.862523317337036
+          }
+        },
+        "6": {
+          "best_epoch": 61,
+          "epochs_completed": 81,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/nrpos-outdoor/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "loss": 0.003927148809906349,
+            "mean_distance_error": 3.010350227355957,
+            "median_distance_error": 2.5989315509796143
+          },
+          "validation": {
+            "loss": 0.003987598599688257,
+            "mean_distance_error": 3.028533697128296,
+            "median_distance_error": 2.71336030960083
+          }
+        },
+        "8": {
+          "best_epoch": 58,
+          "epochs_completed": 78,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/nrpos-outdoor/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "loss": 0.0036735699363116907,
+            "mean_distance_error": 2.876753807067871,
+            "median_distance_error": 2.5000076293945312
+          },
+          "validation": {
+            "loss": 0.0036482856236958777,
+            "mean_distance_error": 2.8597075939178467,
+            "median_distance_error": 2.446566343307495
+          }
+        }
+      },
+      "selected_exit_best_validation": 8,
+      "selected_exit_earliest_within_tolerance": 8,
+      "selected_test_best_validation": {
+        "loss": 0.0036735699363116907,
+        "mean_distance_error": 2.876753807067871,
+        "median_distance_error": 2.5000076293945312
+      },
+      "selected_test_earliest_within_tolerance": {
+        "loss": 0.0036735699363116907,
+        "mean_distance_error": 2.876753807067871,
+        "median_distance_error": 2.5000076293945312
+      },
+      "spec": {
+        "coord_max": [
+          80.0,
+          60.0,
+          40.0
+        ],
+        "coord_min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "higher_is_better": false,
+        "metric_name": "mean_distance_error",
+        "name": "nrpos-outdoor",
+        "num_outputs": 3,
+        "path": "data/downstream/nrpos-outdoor.h5",
+        "sample_shape": [
+          4,
+          224,
+          224
+        ],
+        "target_type": "position"
+      },
+      "split_counts": {
+        "test": 1163,
+        "train": 9302,
+        "validation": 1163
+      }
+    },
+    "rfs": {
+      "exits": {
+        "2": {
+          "best_epoch": 127,
+          "epochs_completed": 147,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/rfs/L2.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7071823204419889,
+            "loss": 1.0236712075070122,
+            "macro_accuracy": 0.6646933555603027
+          },
+          "validation": {
+            "accuracy": 0.7237569060773481,
+            "loss": 1.0897789679838148,
+            "macro_accuracy": 0.6881282925605774
+          }
+        },
+        "4": {
+          "best_epoch": 101,
+          "epochs_completed": 121,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/rfs/L4.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7044198895027625,
+            "loss": 0.9585215373592482,
+            "macro_accuracy": 0.6653710007667542
+          },
+          "validation": {
+            "accuracy": 0.7486187845303868,
+            "loss": 1.0418842471106935,
+            "macro_accuracy": 0.706505537033081
+          }
+        },
+        "6": {
+          "best_epoch": 44,
+          "epochs_completed": 64,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/rfs/L6.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.6988950276243094,
+            "loss": 0.9562331912267273,
+            "macro_accuracy": 0.6632198691368103
+          },
+          "validation": {
+            "accuracy": 0.7209944751381215,
+            "loss": 1.0135225841353612,
+            "macro_accuracy": 0.6937554478645325
+          }
+        },
+        "8": {
+          "best_epoch": 114,
+          "epochs_completed": 134,
+          "head_path": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/heads/rfs/L8.pt",
+          "stopped_early": true,
+          "test": {
+            "accuracy": 0.7679558011049724,
+            "loss": 0.853928724705185,
+            "macro_accuracy": 0.6991831660270691
+          },
+          "validation": {
+            "accuracy": 0.7624309392265194,
+            "loss": 0.925252158009545,
+            "macro_accuracy": 0.7629651427268982
+          }
+        }
+      },
+      "selected_exit_best_validation": 8,
+      "selected_exit_earliest_within_tolerance": 8,
+      "selected_test_best_validation": {
+        "accuracy": 0.7679558011049724,
+        "loss": 0.853928724705185,
+        "macro_accuracy": 0.6991831660270691
+      },
+      "selected_test_earliest_within_tolerance": {
+        "accuracy": 0.7679558011049724,
+        "loss": 0.853928724705185,
+        "macro_accuracy": 0.6991831660270691
+      },
+      "spec": {
+        "coord_max": null,
+        "coord_min": null,
+        "higher_is_better": true,
+        "metric_name": "macro_accuracy",
+        "name": "rfs",
+        "num_outputs": 20,
+        "path": "data/downstream/rfs.h5",
+        "sample_shape": [
+          1,
+          224,
+          224
+        ],
+        "target_type": "classification"
+      },
+      "split_counts": {
+        "test": 362,
+        "train": 2900,
+        "validation": 362
+      }
+    }
+  }
+}
