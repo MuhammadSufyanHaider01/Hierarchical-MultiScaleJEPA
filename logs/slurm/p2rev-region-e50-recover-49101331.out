@@ -1,0 +1,17 @@
+┏━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name            ┃ Type       ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ context_encoder │ Encoder    │  6.4 M │ train │     0 │
+│ 1 │ target_encoder  │ Encoder    │  6.4 M │ train │     0 │
+│ 2 │ predictor       │ Predictor  │  882 K │ train │     0 │
+│ 3 │ aux_predictors  │ ModuleDict │  2.6 M │ train │     0 │
+│ 4 │ loss            │ MSELoss    │      0 │ train │     0 │
+└───┴─────────────────┴────────────┴────────┴───────┴───────┘
+Trainable params: 9.8 M                                                         
+Non-trainable params: 6.6 M                                                     
+Total params: 16.4 M                                                            
+Total estimated model params size (MB): 65                                      
+Modules in train mode: 480                                                      
+Modules in eval mode: 0                                                         
+Total FLOPs: 0                                                                  
+[progress epoch 046] [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 000/903 batches optimizer_step=10170[progress epoch 046] [█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 025/903 batches optimizer_step=10176[progress epoch 046] [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 050/903 batches optimizer_step=10182[progress epoch 046] [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 075/903 batches optimizer_step=10188[progress epoch 046] [███░░░░░░░░░░░░░░░░░░░░░░░░░░░] 100/903 batches optimizer_step=10195[progress epoch 046] [████░░░░░░░░░░░░░░░░░░░░░░░░░░] 125/903 batches optimizer_step=10201[progress epoch 046] [█████░░░░░░░░░░░░░░░░░░░░░░░░░] 150/903 batches optimizer_step=10207[progress epoch 046] [██████░░░░░░░░░░░░░░░░░░░░░░░░] 175/903 batches optimizer_step=10213[progress epoch 046] [███████░░░░░░░░░░░░░░░░░░░░░░░] 200/903 batches optimizer_step=10220
