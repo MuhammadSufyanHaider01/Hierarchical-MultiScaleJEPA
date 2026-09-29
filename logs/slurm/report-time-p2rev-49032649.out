@@ -1,0 +1,8 @@
+{
+  "output_dir": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/available_methods_p2_reverse",
+  "methods": [
+    "p0",
+    "p2",
+    "p2_reverse"
+  ]
+}

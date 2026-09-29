@@ -1,0 +1,12 @@
+{
+  "metrics": "runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/downstream/exit_metrics.json",
+  "tasks": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ],
+  "mode": "test_only"
+}
