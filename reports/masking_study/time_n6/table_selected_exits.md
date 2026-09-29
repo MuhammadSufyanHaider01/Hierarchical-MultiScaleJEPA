@@ -14,15 +14,15 @@
 | LatentWave with Post-hoc Frozen Early Exits | NR positioning | earliest within tolerance | L4 | 3.408 m |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | best validation | L2 | 41.71% |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | earliest within tolerance | L2 | 41.71% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | best validation | L6 | 72.41% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | earliest within tolerance | L2 | 71.24% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | best validation | L4 | 90.27% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | earliest within tolerance | L2 | 89.87% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | best validation | L2 | 99.17% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | earliest within tolerance | L2 | 99.17% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | best validation | L6 | 73.29% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | earliest within tolerance | L2 | 74.50% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | best validation | L8 | 3.104 m |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | earliest within tolerance | L6 | 3.167 m |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | best validation | L4 | 39.16% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | earliest within tolerance | L2 | 41.03% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | best validation | L4 | 74.48% |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | earliest within tolerance | L4 | 74.48% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | best validation | L4 | 87.87% |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | earliest within tolerance | L2 | 86.93% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | best validation | L2 | 98.33% |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | earliest within tolerance | L2 | 98.33% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | best validation | L6 | 76.21% |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | earliest within tolerance | L2 | 74.64% |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | best validation | L6 | 3.032 m |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | earliest within tolerance | L6 | 3.032 m |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | best validation | L2 | 42.62% |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | earliest within tolerance | L2 | 42.62% |

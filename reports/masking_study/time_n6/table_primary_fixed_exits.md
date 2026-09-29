@@ -26,27 +26,27 @@
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | Macro accuracy | 39.41% | 43.33% | 43 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | Macro accuracy | 43.03% | 41.04% | 31 |
 | LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | Macro accuracy | 35.24% | 39.43% | 14 |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | Macro accuracy | 71.24% | 72.14% | 146 |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | Macro accuracy | 69.60% | 71.59% | 73 |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | Macro accuracy | 72.41% | 73.35% | 130 |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L8 | Macro accuracy | 68.31% | 71.29% | 79 |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | Macro accuracy | 89.87% | 87.87% | 73 |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L4 | Macro accuracy | 90.27% | 90.13% | 104 |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L6 | Macro accuracy | 89.87% | 89.47% | 96 |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L8 | Macro accuracy | 88.13% | 88.13% | 58 |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | Macro accuracy | 99.17% | 100.00% | 22 |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | Macro accuracy | 100.00% | 100.00% | 13 |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | Macro accuracy | 99.17% | 100.00% | 8 |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | Macro accuracy | 98.33% | 100.00% | 10 |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | Macro accuracy | 74.50% | 72.29% | 37 |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L4 | Macro accuracy | 73.43% | 72.57% | 20 |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L6 | Macro accuracy | 73.29% | 73.00% | 22 |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L8 | Macro accuracy | 72.71% | 71.07% | 39 |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L2 | Mean distance error (m) | 3.613 m | 3.626 m | 61 |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L4 | Mean distance error (m) | 3.262 m | 3.338 m | 49 |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | Mean distance error (m) | 3.167 m | 3.144 m | 76 |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | Mean distance error (m) | 3.104 m | 3.123 m | 63 |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | Macro accuracy | 41.03% | 42.43% | 38 |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | Macro accuracy | 39.16% | 42.56% | 61 |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | Macro accuracy | 38.23% | 41.72% | 32 |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | Macro accuracy | 39.67% | 41.07% | 51 |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | Macro accuracy | 69.87% | 66.89% | 27 |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | Macro accuracy | 74.48% | 79.14% | 101 |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | Macro accuracy | 71.50% | 75.35% | 62 |
+| Proposed Hierarchical Multi-Scale JEPA | RF sensing | L8 | Macro accuracy | 73.44% | 74.44% | 118 |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | Macro accuracy | 86.93% | 86.67% | 71 |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L4 | Macro accuracy | 87.87% | 88.40% | 22 |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L6 | Macro accuracy | 86.93% | 87.33% | 44 |
+| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L8 | Macro accuracy | 86.27% | 84.53% | 65 |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | Macro accuracy | 98.33% | 100.00% | 14 |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | Macro accuracy | 100.00% | 100.00% | 16 |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | Macro accuracy | 98.33% | 100.00% | 33 |
+| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | Macro accuracy | 97.50% | 100.00% | 32 |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | Macro accuracy | 74.64% | 73.07% | 70 |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L4 | Macro accuracy | 75.07% | 76.07% | 27 |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L6 | Macro accuracy | 76.21% | 76.14% | 65 |
+| Proposed Hierarchical Multi-Scale JEPA | Interference classification | L8 | Macro accuracy | 73.50% | 74.36% | 31 |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L2 | Mean distance error (m) | 3.547 m | 3.515 m | 61 |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L4 | Mean distance error (m) | 3.245 m | 3.285 m | 74 |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | Mean distance error (m) | 3.032 m | 3.088 m | 59 |
+| Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | Mean distance error (m) | 3.099 m | 3.120 m | 61 |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | Macro accuracy | 42.62% | 45.86% | 79 |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | Macro accuracy | 40.40% | 44.24% | 20 |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | Macro accuracy | 43.99% | 44.39% | 21 |
+| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | Macro accuracy | 41.71% | 44.02% | 93 |
