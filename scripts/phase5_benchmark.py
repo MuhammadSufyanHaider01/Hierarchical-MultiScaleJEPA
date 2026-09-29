@@ -37,7 +37,7 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p1", "p2"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
@@ -47,6 +47,8 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--warmup-iterations", type=int, default=50)
     parser.add_argument("--measure-iterations", type=int, default=200)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--flops-only", action="store_true", help="Count FLOPs without measuring latency")
+    parser.add_argument("--output", type=Path, default=None, help="Optional output JSON path")
     return parser.parse_args()
 
 
@@ -137,21 +139,25 @@ def main() -> int:
         sample = torch.randn((1, *spec.sample_shape), generator=generator, device=device, dtype=torch.float32)
         for exit_layer in EXIT_LAYERS:
             model = FrozenEncoderExit(encoder, exit_layer=exit_layer, num_outputs=spec.num_outputs).to(device).eval()
-            entries.append({
+            entry = {
                 "task": task_name,
                 "sample_shape": list(spec.sample_shape),
                 "exit_layer": exit_layer,
                 "flops": _measure_flops(model, sample, device),
-                "latency": _measure_latency(
+            }
+            if not args.flops_only:
+                entry["latency"] = _measure_latency(
                     model,
                     sample,
                     device,
                     warmup_iterations=args.warmup_iterations,
                     measure_iterations=args.measure_iterations,
-                ),
-            })
+                )
+            entries.append(entry)
 
-    output = args.run_root / args.method / f"seed_{args.pretrain_seed:03d}" / "benchmarks.json"
+    output = args.output or args.run_root / args.method / f"seed_{args.pretrain_seed:03d}" / "benchmarks.json"
+    if not output.is_absolute():
+        output = REPOSITORY_ROOT / output
     output.parent.mkdir(parents=True, exist_ok=True)
     result = {
         "method": args.method,
@@ -162,6 +168,8 @@ def main() -> int:
         "ood_root": str(args.ood_root.resolve()) if args.dataset_suite == "ood" else None,
         "device": str(device),
         "precision": "float32 with torch.set_float32_matmul_precision('high')",
+        "operation_count_only": args.flops_only,
+        "flops_protocol": "torch.utils.flop_counter.FlopCounterMode; batch-1 float32 sample; frozen encoder through exit plus task mean-pool/LayerNorm/linear head; supported PyTorch operations only",
         "batch_size": 1,
         "warmup_iterations": args.warmup_iterations,
         "measure_iterations": args.measure_iterations,

@@ -1,0 +1,37 @@
+{
+  "methods_added": [
+    "p1",
+    "p2_reverse"
+  ],
+  "new_run_inputs": {
+    "p1": "runs/masking_study/multi_block_n6/hierarchy_ablation/p1/seed_000/downstream/exit_metrics.json",
+    "p2_reverse": "runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/downstream/exit_metrics.json"
+  },
+  "pretrain_seed": 0,
+  "head_split_seed": 2025,
+  "split_protocol": "80/10/10; regenerated from current dataset checkout",
+  "limitation": "Historical P0/P2 split manifest and checkpoints are absent; exact split-hash equivalence with historical tables cannot be verified.",
+  "historical_p0_p2_retrained": false,
+  "inference_artifacts_modified": false,
+  "updated_outputs": [
+    "all_methods_downstream_performance.pdf",
+    "all_methods_downstream_performance.png",
+    "all_methods_selected_performance.pdf",
+    "all_methods_selected_performance.png",
+    "early_exit_performance.pdf",
+    "early_exit_performance.png",
+    "hierarchy_ablation_provenance.json",
+    "selected_exit_performance.pdf",
+    "selected_exit_performance.png",
+    "table_all_methods_downstream.csv",
+    "table_all_methods_downstream.md",
+    "table_primary_fixed_exits.csv",
+    "table_primary_fixed_exits.md",
+    "table_selected_exits.csv",
+    "table_selected_exits.md"
+  ],
+  "flops_source": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/flops_primary.json",
+  "flops_source_sha256": "c0424ff1c567ad8ba746b9f61e9dc4a8d375ffa185d1088a00b332da9769d22b",
+  "flops_protocol": "torch.utils.flop_counter.FlopCounterMode; batch-1 float32 sample; frozen encoder through exit plus task mean-pool/LayerNorm/linear head; supported PyTorch operations only",
+  "flops_interpretation": "Per-example frozen inference operations at matched task and exit; identical encoder/head graph across masking approaches, so counts do not imply latency or training compute."
+}

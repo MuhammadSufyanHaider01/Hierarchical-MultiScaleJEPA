@@ -1,0 +1,13 @@
+method,task,evaluation,exit_layer,metric,value,higher_is_better,flops
+p2_reverse,deepmimo-beam,best_validation,6,macro_accuracy,0.428680419921875,True,76946944
+p2_reverse,deepmimo-beam,earliest_within_tolerance,2,macro_accuracy,0.45804518461227417,True,26353152
+p2_reverse,human-activity,best_validation,2,macro_accuracy,0.9750000834465027,True,2634845184
+p2_reverse,human-activity,earliest_within_tolerance,2,macro_accuracy,0.9750000834465027,True,2634845184
+p2_reverse,interference,best_validation,4,macro_accuracy,0.735714316368103,True,1416168448
+p2_reverse,interference,earliest_within_tolerance,2,macro_accuracy,0.7264285683631897,True,720929792
+p2_reverse,jamming,best_validation,8,macro_accuracy,0.8773333430290222,True,2806647808
+p2_reverse,jamming,earliest_within_tolerance,6,macro_accuracy,0.8480000495910645,True,2111409152
+p2_reverse,nrpos-outdoor,best_validation,8,mean_distance_error,2.876753807067871,False,15003026944
+p2_reverse,nrpos-outdoor,earliest_within_tolerance,8,mean_distance_error,2.876753807067871,False,15003026944
+p2_reverse,rfs,best_validation,8,macro_accuracy,0.6991831660270691,True,2806654976
+p2_reverse,rfs,earliest_within_tolerance,8,macro_accuracy,0.6991831660270691,True,2806654976

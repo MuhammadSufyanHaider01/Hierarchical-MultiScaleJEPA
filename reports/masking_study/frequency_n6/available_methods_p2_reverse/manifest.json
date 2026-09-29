@@ -1,0 +1,27 @@
+{
+  "report": "masking_study_available_methods_downstream",
+  "masking": "frequency_n6",
+  "methods_included": [
+    "p2_reverse"
+  ],
+  "method_labels": {
+    "p2_reverse": "P2-Reverse \u2014 Coarse-to-Fine JEPA"
+  },
+  "methods_omitted_for_missing_complete_downstream_results": [
+    "p0",
+    "p2",
+    "p1",
+    "b1"
+  ],
+  "p2_reverse_metrics": "runs/masking_study/frequency_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/exit_metrics.json",
+  "p2_reverse_metrics_sha256": "b6ff1ac1bfa77cf060a7bfa6645ef1f4f4fe5a841807b502a99201076b42f7b6",
+  "historical_report_dir": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/frequency_n6",
+  "historical_sources_used": [],
+  "flops_source": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/flops_primary.json",
+  "flops_source_sha256": "c0424ff1c567ad8ba746b9f61e9dc4a8d375ffa185d1088a00b332da9769d22b",
+  "flops_protocol": "torch.utils.flop_counter.FlopCounterMode; batch-1 float32 sample; frozen encoder through exit plus task mean-pool/LayerNorm/linear head; supported PyTorch operations only",
+  "historical_source_sha256": {},
+  "protocol": "single-seed downstream comparison; validation-only selection; held-out test after selection",
+  "inference_benchmarks": "not included; no P2-Reverse inference run is part of this packet",
+  "output_dir": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/frequency_n6/available_methods_p2_reverse"
+}

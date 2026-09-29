@@ -1,0 +1,7 @@
+method,method_label,task,exit_layer,selection,metric,value,protocol,flops
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.45804518461227417,frozen context; validation-only selection; held-out test after selection,26353152
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9750000834465027,frozen context; validation-only selection; held-out test after selection,2634845184
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7264285683631897,frozen context; validation-only selection; held-out test after selection,720929792
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,jamming,6,earliest within 5% of validation best,macro_accuracy,0.8480000495910645,frozen context; validation-only selection; held-out test after selection,2111409152
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,nrpos-outdoor,8,earliest within 5% of validation best,mean_distance_error,2.876753807067871,frozen context; validation-only selection; held-out test after selection,15003026944
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,rfs,8,earliest within 5% of validation best,macro_accuracy,0.6991831660270691,frozen context; validation-only selection; held-out test after selection,2806654976

@@ -1,19 +1,31 @@
-method,method_label,task,exit_layer,selection,metric,value,protocol
-b0,Original LatentWave,rfs,8,full-depth L8,macro_accuracy,0.694596529006958,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,rfs,4,earliest within 5% of validation best,macro_accuracy,0.6330236196517944,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,rfs,6,earliest within 5% of validation best,macro_accuracy,0.7408782839775085,"frozen context encoder, shared 80/10/10 split"
-b0,Original LatentWave,jamming,8,full-depth L8,macro_accuracy,0.8799999952316284,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,jamming,8,earliest within 5% of validation best,macro_accuracy,0.8799999952316284,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,jamming,6,earliest within 5% of validation best,macro_accuracy,0.8653333187103271,"frozen context encoder, shared 80/10/10 split"
-b0,Original LatentWave,human-activity,8,full-depth L8,macro_accuracy,0.9833333492279053,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9583333730697632,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,1.0,"frozen context encoder, shared 80/10/10 split"
-b0,Original LatentWave,interference,8,full-depth L8,macro_accuracy,0.7478571534156799,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,interference,2,earliest within 5% of validation best,macro_accuracy,0.7164285778999329,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7528571486473083,"frozen context encoder, shared 80/10/10 split"
-b0,Original LatentWave,nrpos-outdoor,8,full-depth L8,mean_distance_error,3.0250096321105957,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,3.103659152984619,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,2.760051965713501,"frozen context encoder, shared 80/10/10 split"
-b0,Original LatentWave,deepmimo-beam,8,full-depth L8,macro_accuracy,0.457409143447876,"frozen context encoder, shared 80/10/10 split"
-b1,LatentWave with Post-hoc Frozen Early Exits,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.42720386385917664,"frozen context encoder, shared 80/10/10 split"
-p2,Proposed Hierarchical Multi-Scale JEPA,deepmimo-beam,4,earliest within 5% of validation best,macro_accuracy,0.43465596437454224,"frozen context encoder, shared 80/10/10 split"
+method,method_label,task,exit_layer,selection,metric,value,protocol,flops
+b0,Original LatentWave,rfs,8,full-depth L8,macro_accuracy,0.694596529006958,"frozen context encoder, shared 80/10/10 split",2806654976
+b1,LatentWave with Post-hoc Frozen Early Exits,rfs,4,earliest within 5% of validation best,macro_accuracy,0.6330236196517944,"frozen context encoder, shared 80/10/10 split",1416177664
+p2,Proposed Hierarchical Multi-Scale JEPA,rfs,6,earliest within 5% of validation best,macro_accuracy,0.7408782839775085,"frozen context encoder, shared 80/10/10 split",2111416320
+b0,Original LatentWave,jamming,8,full-depth L8,macro_accuracy,0.8799999952316284,"frozen context encoder, shared 80/10/10 split",2806647808
+b1,LatentWave with Post-hoc Frozen Early Exits,jamming,8,earliest within 5% of validation best,macro_accuracy,0.8799999952316284,"frozen context encoder, shared 80/10/10 split",2806647808
+p2,Proposed Hierarchical Multi-Scale JEPA,jamming,6,earliest within 5% of validation best,macro_accuracy,0.8653333187103271,"frozen context encoder, shared 80/10/10 split",2111409152
+b0,Original LatentWave,human-activity,8,full-depth L8,macro_accuracy,0.9833333492279053,"frozen context encoder, shared 80/10/10 split",10308160512
+b1,LatentWave with Post-hoc Frozen Early Exits,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9583333730697632,"frozen context encoder, shared 80/10/10 split",2634845184
+p2,Proposed Hierarchical Multi-Scale JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,1.0,"frozen context encoder, shared 80/10/10 split",2634845184
+b0,Original LatentWave,interference,8,full-depth L8,macro_accuracy,0.7478571534156799,"frozen context encoder, shared 80/10/10 split",2806645760
+b1,LatentWave with Post-hoc Frozen Early Exits,interference,2,earliest within 5% of validation best,macro_accuracy,0.7164285778999329,"frozen context encoder, shared 80/10/10 split",720929792
+p2,Proposed Hierarchical Multi-Scale JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7528571486473083,"frozen context encoder, shared 80/10/10 split",720929792
+b0,Original LatentWave,nrpos-outdoor,8,full-depth L8,mean_distance_error,3.0250096321105957,"frozen context encoder, shared 80/10/10 split",15003026944
+b1,LatentWave with Post-hoc Frozen Early Exits,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,3.103659152984619,"frozen context encoder, shared 80/10/10 split",11277960704
+p2,Proposed Hierarchical Multi-Scale JEPA,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,2.760051965713501,"frozen context encoder, shared 80/10/10 split",11277960704
+b0,Original LatentWave,deepmimo-beam,8,full-depth L8,macro_accuracy,0.457409143447876,"frozen context encoder, shared 80/10/10 split",102243840
+b1,LatentWave with Post-hoc Frozen Early Exits,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.42720386385917664,"frozen context encoder, shared 80/10/10 split",26353152
+p2,Proposed Hierarchical Multi-Scale JEPA,deepmimo-beam,4,earliest within 5% of validation best,macro_accuracy,0.43465596437454224,"frozen context encoder, shared 80/10/10 split",51650048
+p1,P1 Same-scale Intermediate Supervision,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.4338372051715851,frozen context; seed-2025 split regenerated for hierarchy ablation,26353152
+p1,P1 Same-scale Intermediate Supervision,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9916666746139526,frozen context; seed-2025 split regenerated for hierarchy ablation,2634845184
+p1,P1 Same-scale Intermediate Supervision,interference,2,earliest within 5% of validation best,macro_accuracy,0.7421428561210632,frozen context; seed-2025 split regenerated for hierarchy ablation,720929792
+p1,P1 Same-scale Intermediate Supervision,jamming,4,earliest within 5% of validation best,macro_accuracy,0.8586666584014893,frozen context; seed-2025 split regenerated for hierarchy ablation,1416170496
+p1,P1 Same-scale Intermediate Supervision,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,3.0587894916534424,frozen context; seed-2025 split regenerated for hierarchy ablation,11277960704
+p1,P1 Same-scale Intermediate Supervision,rfs,4,earliest within 5% of validation best,macro_accuracy,0.675300121307373,frozen context; seed-2025 split regenerated for hierarchy ablation,1416177664
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.4084385633468628,frozen context; seed-2025 split regenerated for hierarchy ablation,26353152
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9750000834465027,frozen context; seed-2025 split regenerated for hierarchy ablation,2634845184
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7228571176528931,frozen context; seed-2025 split regenerated for hierarchy ablation,720929792
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,jamming,6,earliest within 5% of validation best,macro_accuracy,0.8573333621025085,frozen context; seed-2025 split regenerated for hierarchy ablation,2111409152
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,nrpos-outdoor,8,earliest within 5% of validation best,mean_distance_error,2.873737335205078,frozen context; seed-2025 split regenerated for hierarchy ablation,15003026944
+p2_reverse,P2-Reverse Coarse-to-Fine JEPA,rfs,6,earliest within 5% of validation best,macro_accuracy,0.718097448348999,frozen context; seed-2025 split regenerated for hierarchy ablation,2111416320

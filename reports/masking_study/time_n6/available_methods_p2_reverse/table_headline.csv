@@ -1,0 +1,19 @@
+method,method_label,task,exit_layer,selection,metric,value,protocol,flops
+p0,P0 — Original LatentWave (L8),rfs,8,full-depth L8,macro_accuracy,0.7275857329368591,"frozen context encoder, full-input L8, shared 80/10/10 split",2806654976
+p0,P0 — Original LatentWave (L8),jamming,8,full-depth L8,macro_accuracy,0.8680000305175781,"frozen context encoder, full-input L8, shared 80/10/10 split",2806647808
+p0,P0 — Original LatentWave (L8),human-activity,8,full-depth L8,macro_accuracy,0.9916666746139526,"frozen context encoder, full-input L8, shared 80/10/10 split",10308160512
+p0,P0 — Original LatentWave (L8),interference,8,full-depth L8,macro_accuracy,0.7014285326004028,"frozen context encoder, full-input L8, shared 80/10/10 split",2806645760
+p0,P0 — Original LatentWave (L8),nrpos-outdoor,8,full-depth L8,mean_distance_error,3.3183515071868896,"frozen context encoder, full-input L8, shared 80/10/10 split",15003026944
+p0,P0 — Original LatentWave (L8),deepmimo-beam,8,full-depth L8,macro_accuracy,0.3524077236652374,"frozen context encoder, full-input L8, shared 80/10/10 split",102243840
+p2,P2 — Hierarchical Multi-Scale JEPA,rfs,2,earliest within 5% of validation best,macro_accuracy,0.7123818397521973,"frozen context encoder, shared 80/10/10 split",720939008
+p2,P2 — Hierarchical Multi-Scale JEPA,jamming,2,earliest within 5% of validation best,macro_accuracy,0.8986667394638062,"frozen context encoder, shared 80/10/10 split",720931840
+p2,P2 — Hierarchical Multi-Scale JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9916666746139526,"frozen context encoder, shared 80/10/10 split",2634845184
+p2,P2 — Hierarchical Multi-Scale JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7450000047683716,"frozen context encoder, shared 80/10/10 split",720929792
+p2,P2 — Hierarchical Multi-Scale JEPA,nrpos-outdoor,6,earliest within 5% of validation best,mean_distance_error,3.1671366691589355,"frozen context encoder, shared 80/10/10 split",11277960704
+p2,P2 — Hierarchical Multi-Scale JEPA,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.4102822244167328,"frozen context encoder, shared 80/10/10 split",26353152
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,deepmimo-beam,2,earliest within 5% of validation best,macro_accuracy,0.4110841453075409,frozen context; validation-only selection; held-out test after selection,26353152
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,human-activity,2,earliest within 5% of validation best,macro_accuracy,0.9916666746139526,frozen context; validation-only selection; held-out test after selection,2634845184
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,interference,2,earliest within 5% of validation best,macro_accuracy,0.7549999952316284,frozen context; validation-only selection; held-out test after selection,720929792
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,jamming,2,earliest within 5% of validation best,macro_accuracy,0.8760000467300415,frozen context; validation-only selection; held-out test after selection,720931840
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,nrpos-outdoor,4,earliest within 5% of validation best,mean_distance_error,3.346201181411743,frozen context; validation-only selection; held-out test after selection,7552894464
+p2_reverse,P2-Reverse — Coarse-to-Fine JEPA,rfs,4,earliest within 5% of validation best,macro_accuracy,0.7375330328941345,frozen context; validation-only selection; held-out test after selection,1416177664

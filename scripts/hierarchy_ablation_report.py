@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "reports/masking_study/multi_block_n6"
+FLOPS_FILE = ROOT / "reports/masking_study/flops_primary.json"
 TASK_LABELS = {
     "rfs": "RF sensing",
     "jamming": "Jamming classification",
@@ -184,6 +185,12 @@ def plot_downstream(report_dir: Path, fixed: list[dict], selected: list[dict], h
 
 
 def update(report_dir: Path, p1_path: Path, reverse_path: Path) -> None:
+    flop_data = json.loads(FLOPS_FILE.read_text())
+    if not flop_data.get("operation_count_only") or flop_data.get("dataset_suite") != "primary":
+        raise ValueError(f"{FLOPS_FILE} is not a primary FLOPs-only result")
+    flop_lookup = {(row["task"], int(row["exit_layer"])): int(row["flops"]) for row in flop_data["entries"]}
+    if len(flop_lookup) != len(TASK_LABELS) * len(EXIT_LAYERS):
+        raise ValueError("FLOPs file must contain all six tasks at L2/L4/L6/L8")
     p1, reverse = load_run(p1_path, "p1"), load_run(reverse_path, "p2_reverse")
     new_fixed, new_selected, new_headline = [], [], []
     for run in (p1, reverse):
@@ -194,19 +201,22 @@ def update(report_dir: Path, p1_path: Path, reverse_path: Path) -> None:
     fixed = [r for r in read_csv(paths["table_primary_fixed_exits.csv"]) if r["method"] not in {"p1", "p2_reverse"}] + new_fixed
     selected = [r for r in read_csv(paths["table_selected_exits.csv"]) if r["method"] not in {"p1", "p2_reverse"}] + new_selected
     headline = [r for r in read_csv(paths["table_all_methods_downstream.csv"]) if r["method"] not in {"p1", "p2_reverse"}] + new_headline
+    for rows in (fixed, selected, headline):
+        for row in rows:
+            row["flops"] = flop_lookup[(row["task"], int(row["exit_layer"]))]
     if not any(r["method"] == "b0" for r in headline):
         raise ValueError("historical downstream table is missing the Original LatentWave L8 reference")
     before = {p.name: file_hash(p) for p in report_dir.iterdir() if p.is_file()}
 
-    write_csv(paths["table_primary_fixed_exits.csv"], fixed, ["method", "task", "exit_layer", "metric", "value", "validation_value", "best_epoch", "head_epochs_completed", "head_stopped_early"])
-    write_csv(paths["table_selected_exits.csv"], selected, ["method", "task", "evaluation", "exit_layer", "metric", "value", "higher_is_better"])
-    write_csv(paths["table_all_methods_downstream.csv"], headline, ["method", "method_label", "task", "exit_layer", "selection", "metric", "value", "protocol"])
-    fixed_md = [[METHOD_LABELS.get(r["method"], r["method"]), TASK_LABELS[r["task"]], f"L{r['exit_layer']}", r["metric"], r["value"], r["validation_value"], r["best_epoch"]] for r in fixed]
-    selected_md = [[METHOD_LABELS.get(r["method"], r["method"]), TASK_LABELS[r["task"]], r["evaluation"], f"L{r['exit_layer']}", r["value"]] for r in selected]
-    headline_md = [[r["method_label"], TASK_LABELS[r["task"]], f"L{r['exit_layer']}", r["selection"], r["value"]] for r in headline]
-    (report_dir / "table_primary_fixed_exits.md").write_text("# Detailed frozen-exit downstream metrics\n\nValidation is used for head and exit selection; test is evaluated after selection.\n\n" + markdown_table(["Method", "Task", "Exit", "Metric", "Test", "Validation", "Best epoch"], fixed_md) + "\n")
-    (report_dir / "table_selected_exits.md").write_text("# Detailed selected exits\n\n" + markdown_table(["Method", "Task", "Policy", "Exit", "Test value"], selected_md) + "\n")
-    (report_dir / "table_all_methods_downstream.md").write_text("# All-method headline downstream comparison\n\n" + markdown_table(["Method", "Task", "Exit", "Selection", "Test value"], headline_md) + "\n")
+    write_csv(paths["table_primary_fixed_exits.csv"], fixed, ["method", "task", "exit_layer", "metric", "value", "validation_value", "best_epoch", "head_epochs_completed", "head_stopped_early", "flops"])
+    write_csv(paths["table_selected_exits.csv"], selected, ["method", "task", "evaluation", "exit_layer", "metric", "value", "higher_is_better", "flops"])
+    write_csv(paths["table_all_methods_downstream.csv"], headline, ["method", "method_label", "task", "exit_layer", "selection", "metric", "value", "protocol", "flops"])
+    fixed_md = [[METHOD_LABELS.get(r["method"], r["method"]), TASK_LABELS[r["task"]], f"L{r['exit_layer']}", r["metric"], r["value"], r["validation_value"], r["best_epoch"], r["flops"]] for r in fixed]
+    selected_md = [[METHOD_LABELS.get(r["method"], r["method"]), TASK_LABELS[r["task"]], r["evaluation"], f"L{r['exit_layer']}", r["value"], r["flops"]] for r in selected]
+    headline_md = [[r["method_label"], TASK_LABELS[r["task"]], f"L{r['exit_layer']}", r["selection"], r["value"], r["flops"]] for r in headline]
+    (report_dir / "table_primary_fixed_exits.md").write_text("# Detailed frozen-exit downstream metrics\n\nValidation is used for head and exit selection; test is evaluated after selection. FLOPs are per example for the encoder through the listed exit and that task's head.\n\n" + markdown_table(["Method", "Task", "Exit", "Metric", "Test", "Validation", "Best epoch", "FLOPs/example"], fixed_md) + "\n")
+    (report_dir / "table_selected_exits.md").write_text("# Detailed selected exits\n\nFLOPs are per example; latency is hardware-dependent and not reported here.\n\n" + markdown_table(["Method", "Task", "Policy", "Exit", "Test value", "FLOPs/example"], selected_md) + "\n")
+    (report_dir / "table_all_methods_downstream.md").write_text("# All-method headline downstream comparison\n\nFLOPs are per example; latency is hardware-dependent and not reported here.\n\n" + markdown_table(["Method", "Task", "Exit", "Selection", "Test value", "FLOPs/example"], headline_md) + "\n")
     plot_downstream(report_dir, fixed, selected, headline)
     provenance = {
         "methods_added": ["p1", "p2_reverse"],
@@ -216,6 +226,9 @@ def update(report_dir: Path, p1_path: Path, reverse_path: Path) -> None:
         "limitation": "Historical P0/P2 split manifest and checkpoints are absent; exact split-hash equivalence with historical tables cannot be verified.",
         "historical_p0_p2_retrained": False, "inference_artifacts_modified": False,
         "updated_outputs": sorted(OUTPUTS),
+        "flops_source": str(FLOPS_FILE), "flops_source_sha256": file_hash(FLOPS_FILE),
+        "flops_protocol": flop_data["flops_protocol"],
+        "flops_interpretation": "Per-example frozen inference operations at matched task and exit; identical encoder/head graph across masking approaches, so counts do not imply latency or training compute.",
     }
     (report_dir / "hierarchy_ablation_provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
     after = {p.name: file_hash(p) for p in report_dir.iterdir() if p.is_file()}

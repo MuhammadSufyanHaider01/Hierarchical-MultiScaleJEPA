@@ -1,0 +1,39 @@
+{
+  "report": "masking_study_available_methods_downstream",
+  "masking": "time_n6",
+  "methods_included": [
+    "p0",
+    "p2",
+    "p2_reverse"
+  ],
+  "method_labels": {
+    "p0": "P0 \u2014 Original LatentWave (L8)",
+    "p2": "P2 \u2014 Hierarchical Multi-Scale JEPA",
+    "p2_reverse": "P2-Reverse \u2014 Coarse-to-Fine JEPA"
+  },
+  "methods_omitted_for_missing_complete_downstream_results": [
+    "p1",
+    "b1"
+  ],
+  "p2_reverse_metrics": "runs/masking_study/time_n6/p2_reverse_downstream/p2_reverse/seed_000/downstream/exit_metrics.json",
+  "p2_reverse_metrics_sha256": "a6565fdef9000ad489d735578739ace9e0e7cd3df722c8bb46f28e759210f243",
+  "historical_report_dir": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6",
+  "historical_sources_used": [
+    "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/table_b0_context_l8_reference.csv",
+    "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/table_primary_fixed_exits.csv",
+    "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/table_selected_exits.csv",
+    "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/table_all_methods_downstream.csv"
+  ],
+  "flops_source": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/flops_primary.json",
+  "flops_source_sha256": "c0424ff1c567ad8ba746b9f61e9dc4a8d375ffa185d1088a00b332da9769d22b",
+  "flops_protocol": "torch.utils.flop_counter.FlopCounterMode; batch-1 float32 sample; frozen encoder through exit plus task mean-pool/LayerNorm/linear head; supported PyTorch operations only",
+  "historical_source_sha256": {
+    "table_b0_context_l8_reference.csv": "07a09b4b925b223c609776508c88f5961bceb85d081d3849b5f462182e35a0a2",
+    "table_primary_fixed_exits.csv": "35fd471892840a86591f79ef4025a0782b9e810c15bc1b88543f17504e856c3b",
+    "table_selected_exits.csv": "99c54e613ba4cfbde363e5a5b0d78fe7571e983b24cb73c25c34cc2b70020f00",
+    "table_all_methods_downstream.csv": "fa73b7dacb8ea1e734b9ab8380956cb9f80f83bad449686695b4a4f197e3b52e"
+  },
+  "protocol": "single-seed downstream comparison; validation-only selection; held-out test after selection",
+  "inference_benchmarks": "not included; no P2-Reverse inference run is part of this packet",
+  "output_dir": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/reports/masking_study/time_n6/available_methods_p2_reverse"
+}
