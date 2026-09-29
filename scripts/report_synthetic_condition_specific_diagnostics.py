@@ -53,7 +53,9 @@ def main()->None:
     run=(ROOT/profile["outputs"]["run_root"]).resolve() if args.run_root is None else args.run_root.resolve()
     exp=(ROOT/profile["outputs"]["experiment_root"]).resolve() if args.output_root is None else args.output_root.resolve()
     axis_dir="vary_antenna" if args.axis=="antenna" else "vary_time_samples"
-    root=exp/axis_dir/args.task/"condition_specific"
+    # Keep condition-specific synthetic diagnostics in their own experiment family,
+    # parallel to original_data and synthetic_data, rather than nested in the latter.
+    root=exp.parent/"condition_specific"/axis_dir/args.task
     if root.exists() and any(root.iterdir()): raise FileExistsError(f"diagnostic report is immutable and already exists: {root}")
     levels=condition_spec(args.task,args.axis)[0]
     packets={}; archives={}; rows=[]
