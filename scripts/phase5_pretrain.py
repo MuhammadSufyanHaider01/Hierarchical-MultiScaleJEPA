@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one reproducible Phase 5 P0, P1, or P2 pretraining job.
+"""Run one reproducible Phase 5 P0, P1, P2, or P2-Reverse pretraining job.
 
 Formal jobs use a fixed 60-epoch Phase 5 pilot horizon and the complete
 four-cache pretraining set. The pinned LatentWave 240-epoch source schedule is
@@ -55,6 +55,7 @@ METHOD_CONFIGS = {
     "p0": REPOSITORY_ROOT / "configs/p0.yml",
     "p1": REPOSITORY_ROOT / "configs/p1.yml",
     "p2": REPOSITORY_ROOT / "configs/p2.yml",
+    "p2_reverse": REPOSITORY_ROOT / "configs/p2_reverse.yml",
 }
 FORMAL_EPOCHS = 60
 
@@ -442,7 +443,7 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.early_stopping and args.validate_every:
         raise ValueError("--validate-every downstream probing cannot be combined with latent early stopping")
     if args.hierarchy_lambda is not None and (args.method == "p0" or args.hierarchy_lambda < 0):
-        raise ValueError("hierarchy-lambda must be non-negative and is only valid for P1/P2")
+        raise ValueError("hierarchy-lambda must be non-negative and is only valid for hierarchical methods")
     if args.include_l8_coarse and args.method != "p2":
         raise ValueError("include-l8-coarse is only valid for the P2 ablation")
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -467,8 +468,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.memory_safe:
         if args.throughput_safe or args.performance_safe:
             raise ValueError("--memory-safe cannot be combined with another execution profile")
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--memory-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse"}:
+            raise ValueError("--memory-safe is only defined for hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
             raise ValueError("--memory-safe requires --device cuda --batch-size 4 --accumulate-grad-batches 16")
         if args.precision != "32-true":
@@ -480,8 +481,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.throughput_safe:
         if args.performance_safe:
             raise ValueError("--throughput-safe and --performance-safe are mutually exclusive")
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--throughput-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse"}:
+            raise ValueError("--throughput-safe is only defined for hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
             raise ValueError(
                 "--throughput-safe requires --device cuda --batch-size 8 "
@@ -500,8 +501,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
                 "reduce workers only in a separately documented contention test"
             )
     if args.performance_safe:
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--performance-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse"}:
+            raise ValueError("--performance-safe is only defined for hierarchical jobs")
         if args.device != "cuda" or args.batch_size != 16 or args.accumulate_grad_batches != 4:
             raise ValueError(
                 "--performance-safe requires --device cuda --batch-size 16 "

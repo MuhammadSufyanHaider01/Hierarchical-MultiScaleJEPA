@@ -29,7 +29,7 @@ def main() -> int:
     _run("NVIDIA driver visibility", ["nvidia-smi"])
     _run("project CUDA kernel", [python, "scripts/check_cuda.py"])
     _run("primary HDF5 schema and finite-value audit", [python, "scripts/audit_hdf5.py", "--scan-finite"])
-    for method in ("p0", "p1", "p2"):
+    for method in ("p0", "p1", "p2", "p2_reverse"):
         _run(f"{method.upper()} CUDA smoke", [python, f"scripts/{method}_smoke.py", "--device", "cuda", "--steps", "2"])
     print("\nGPU preflight passed. No formal experiment was launched.")
     return 0

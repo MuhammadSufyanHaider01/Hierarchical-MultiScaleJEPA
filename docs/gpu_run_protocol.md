@@ -30,7 +30,7 @@ PYTHONPATH=src .venv/bin/python scripts/gpu_preflight.py
 The gate runs `nvidia-smi`, verifies a CUDA matrix multiplication in the
 project environment, fully audits all ten primary HDF5 inputs once the
 six-task registry update is implemented, and runs two
-finite real-data CUDA smoke steps for P0, P1, and P2. It never launches a
+finite real-data CUDA smoke steps for P0, P1, P2, and P2-Reverse. It never launches a
 formal Phase 5 or Phase 6 run and does not create checkpoints, split
 manifests, metrics, or benchmarks.
 
