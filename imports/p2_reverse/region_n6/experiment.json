@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "run_kind": "p2_reverse_downstream_evaluation",
+  "method": "p2_reverse",
+  "masking": "region_n6",
+  "dataset_suite": "primary",
+  "pretrain_seed": 0,
+  "head_seed": 2025,
+  "pretraining_epoch": 44,
+  "pretraining_checkpoint": "runs/masking_study/region_n6/proposed_hierarchical/seed_000/checkpoints/epoch=epoch=044-step=step=10170.ckpt",
+  "pretraining_experiment": "runs/masking_study/region_n6/proposed_hierarchical/seed_000/experiment.json",
+  "evaluation_config": "configs/p2_reverse.yml",
+  "split_manifest": "runs/masking_study/region_n6/p2_reverse_downstream/splits_seed_2025_primary_v3.json",
+  "selection": {
+    "uses": "validation_only",
+    "tolerance": 0.05,
+    "head_early_stopping": true,
+    "patience": 20,
+    "head_max_epochs": 200
+  },
+  "test_evaluation": {
+    "completed": true,
+    "mode": "post_selection_saved_heads"
+  },
+  "slurm_jobs": {
+    "head_selection": {
+      "job_id": 49108317,
+      "state": "COMPLETED",
+      "exit_code": "0:0"
+    },
+    "test_evaluation": {
+      "job_id": 49108357,
+      "state": "COMPLETED",
+      "exit_code": "0:0"
+    },
+    "benchmark": {
+      "job_id": 49108358,
+      "state": "COMPLETED",
+      "exit_code": "0:0"
+    }
+  }
+}

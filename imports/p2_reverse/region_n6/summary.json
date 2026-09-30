@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "summary_scope": "downstream_evaluation",
+  "status": "completed",
+  "method": "p2_reverse",
+  "masking": "region_n6",
+  "dataset_suite": "primary",
+  "pretrain_seed": 0,
+  "head_seed": 2025,
+  "pretraining_epoch": 44,
+  "tasks": [
+    "deepmimo-beam",
+    "human-activity",
+    "interference",
+    "jamming",
+    "nrpos-outdoor",
+    "rfs"
+  ],
+  "selection_policy": "earliest exit within 5% of validation-selected best; validation only",
+  "test_evaluation": {
+    "completed": true,
+    "mode": "post_selection_saved_heads",
+    "metrics": "imports/p2_reverse/region_n6/downstream/exit_metrics.json"
+  },
+  "inference_benchmarks": {
+    "available": true,
+    "path": "imports/p2_reverse/region_n6/benchmarks.json",
+    "device": "NVIDIA H200 NVL"
+  },
+  "job_ids": {
+    "head_selection": 49108317,
+    "test_evaluation": 49108357,
+    "benchmark": 49108358,
+    "report_generation": 49108362
+  },
+  "note": "This summarizes the completed downstream evaluation. A separate pretraining summary.json was not emitted for the Region run."
+}
