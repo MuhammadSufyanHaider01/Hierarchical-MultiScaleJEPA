@@ -1,0 +1,60 @@
+# Fixed-exit downstream results
+
+Validation results are shown only where available; test values are from the held-out split. FLOPs are per example through the listed exit and task head.
+
+| Method | Task | Exit | Metric | Test | Validation | FLOPs/example |
+| --- | --- | --- | --- | --- | --- | --- |
+| P0 — Original LatentWave (L8) | RF sensing | L8 | macro_accuracy | 0.7896893620491028 |  | 2806654976 |
+| P0 — Original LatentWave (L8) | Jamming classification | L8 | macro_accuracy | 0.8546666502952576 |  | 2806647808 |
+| P0 — Original LatentWave (L8) | Human activity sensing | L8 | macro_accuracy | 0.9666666984558105 |  | 10308160512 |
+| P0 — Original LatentWave (L8) | Interference classification | L8 | macro_accuracy | 0.7128571271896362 |  | 2806645760 |
+| P0 — Original LatentWave (L8) | NR positioning | L8 | mean_distance_error | 2.93912935256958 |  | 15003026944 |
+| P0 — Original LatentWave (L8) | DeepMIMO beam | L8 | macro_accuracy | 0.3909437656402588 |  | 102243840 |
+| P2 — Hierarchical Multi-Scale JEPA | RF sensing | L2 | macro_accuracy | 0.6791592836380005 | 0.7281145453453064 | 720939008 |
+| P2 — Hierarchical Multi-Scale JEPA | RF sensing | L4 | macro_accuracy | 0.7533671259880066 | 0.7865440249443054 | 1416177664 |
+| P2 — Hierarchical Multi-Scale JEPA | RF sensing | L6 | macro_accuracy | 0.7540153861045837 | 0.8136248588562012 | 2111416320 |
+| P2 — Hierarchical Multi-Scale JEPA | RF sensing | L8 | macro_accuracy | 0.7629625797271729 | 0.8280391693115234 | 2806654976 |
+| P2 — Hierarchical Multi-Scale JEPA | Jamming classification | L2 | macro_accuracy | 0.8840000033378601 | 0.8600000143051147 | 720931840 |
+| P2 — Hierarchical Multi-Scale JEPA | Jamming classification | L4 | macro_accuracy | 0.8626666069030762 | 0.8760000467300415 | 1416170496 |
+| P2 — Hierarchical Multi-Scale JEPA | Jamming classification | L6 | macro_accuracy | 0.8560000658035278 | 0.871999979019165 | 2111409152 |
+| P2 — Hierarchical Multi-Scale JEPA | Jamming classification | L8 | macro_accuracy | 0.8666666746139526 | 0.8706666827201843 | 2806647808 |
+| P2 — Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | macro_accuracy | 0.9750000834465027 | 1.0 | 2634845184 |
+| P2 — Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | macro_accuracy | 0.9916666746139526 | 0.9916666746139526 | 5192616960 |
+| P2 — Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | macro_accuracy | 0.9916666746139526 | 1.0 | 7750388736 |
+| P2 — Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | macro_accuracy | 0.9916666746139526 | 1.0 | 10308160512 |
+| P2 — Hierarchical Multi-Scale JEPA | Interference classification | L2 | macro_accuracy | 0.7400000095367432 | 0.7335714101791382 | 720929792 |
+| P2 — Hierarchical Multi-Scale JEPA | Interference classification | L4 | macro_accuracy | 0.7257143259048462 | 0.7214285135269165 | 1416168448 |
+| P2 — Hierarchical Multi-Scale JEPA | Interference classification | L6 | macro_accuracy | 0.7492856979370117 | 0.7492856979370117 | 2111407104 |
+| P2 — Hierarchical Multi-Scale JEPA | Interference classification | L8 | macro_accuracy | 0.735714316368103 | 0.7492856979370117 | 2806645760 |
+| P2 — Hierarchical Multi-Scale JEPA | NR positioning | L2 | mean_distance_error | 3.3322408199310303 | 3.286895275115967 | 3827828224 |
+| P2 — Hierarchical Multi-Scale JEPA | NR positioning | L4 | mean_distance_error | 3.003390312194824 | 3.121800422668457 | 7552894464 |
+| P2 — Hierarchical Multi-Scale JEPA | NR positioning | L6 | mean_distance_error | 2.8774964809417725 | 3.037356376647949 | 11277960704 |
+| P2 — Hierarchical Multi-Scale JEPA | NR positioning | L8 | mean_distance_error | 2.759456157684326 | 2.8736352920532227 | 15003026944 |
+| P2 — Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | macro_accuracy | 0.44455403089523315 | 0.4448063373565674 | 26353152 |
+| P2 — Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | macro_accuracy | 0.4319617748260498 | 0.43976062536239624 | 51650048 |
+| P2 — Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | macro_accuracy | 0.43010687828063965 | 0.4298865795135498 | 76946944 |
+| P2 — Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | macro_accuracy | 0.4252111613750458 | 0.41899436712265015 | 102243840 |
+| P2-Reverse — Coarse-to-Fine JEPA | DeepMIMO beam | L2 | macro_accuracy | 0.4441002905368805 | 0.4513622522354126 | 26353152 |
+| P2-Reverse — Coarse-to-Fine JEPA | DeepMIMO beam | L4 | macro_accuracy | 0.4336267411708832 | 0.426594614982605 | 51650048 |
+| P2-Reverse — Coarse-to-Fine JEPA | DeepMIMO beam | L6 | macro_accuracy | 0.42255938053131104 | 0.42468103766441345 | 76946944 |
+| P2-Reverse — Coarse-to-Fine JEPA | DeepMIMO beam | L8 | macro_accuracy | 0.40920260548591614 | 0.40103307366371155 | 102243840 |
+| P2-Reverse — Coarse-to-Fine JEPA | Human activity sensing | L2 | macro_accuracy | 0.9750000834465027 | 0.9916666746139526 | 2634845184 |
+| P2-Reverse — Coarse-to-Fine JEPA | Human activity sensing | L4 | macro_accuracy | 0.9750000238418579 | 0.9916666746139526 | 5192616960 |
+| P2-Reverse — Coarse-to-Fine JEPA | Human activity sensing | L6 | macro_accuracy | 0.9916666746139526 | 0.9916666746139526 | 7750388736 |
+| P2-Reverse — Coarse-to-Fine JEPA | Human activity sensing | L8 | macro_accuracy | 0.9916666746139526 | 0.9916666746139526 | 10308160512 |
+| P2-Reverse — Coarse-to-Fine JEPA | Interference classification | L2 | macro_accuracy | 0.7335714101791382 | 0.7264285683631897 | 720929792 |
+| P2-Reverse — Coarse-to-Fine JEPA | Interference classification | L4 | macro_accuracy | 0.743571400642395 | 0.7314286231994629 | 1416168448 |
+| P2-Reverse — Coarse-to-Fine JEPA | Interference classification | L6 | macro_accuracy | 0.7064285278320312 | 0.7221428751945496 | 2111407104 |
+| P2-Reverse — Coarse-to-Fine JEPA | Interference classification | L8 | macro_accuracy | 0.7285714149475098 | 0.7257143259048462 | 2806645760 |
+| P2-Reverse — Coarse-to-Fine JEPA | Jamming classification | L2 | macro_accuracy | 0.8720000982284546 | 0.8666666746139526 | 720931840 |
+| P2-Reverse — Coarse-to-Fine JEPA | Jamming classification | L4 | macro_accuracy | 0.8733333349227905 | 0.8813333511352539 | 1416170496 |
+| P2-Reverse — Coarse-to-Fine JEPA | Jamming classification | L6 | macro_accuracy | 0.8813333511352539 | 0.8880000114440918 | 2111409152 |
+| P2-Reverse — Coarse-to-Fine JEPA | Jamming classification | L8 | macro_accuracy | 0.874666690826416 | 0.8653334379196167 | 2806647808 |
+| P2-Reverse — Coarse-to-Fine JEPA | NR positioning | L2 | mean_distance_error | 3.345067024230957 | 3.332103729248047 | 3827828224 |
+| P2-Reverse — Coarse-to-Fine JEPA | NR positioning | L4 | mean_distance_error | 2.951751947402954 | 2.922565221786499 | 7552894464 |
+| P2-Reverse — Coarse-to-Fine JEPA | NR positioning | L6 | mean_distance_error | 2.8929450511932373 | 2.9000165462493896 | 11277960704 |
+| P2-Reverse — Coarse-to-Fine JEPA | NR positioning | L8 | mean_distance_error | 2.7760162353515625 | 2.8326263427734375 | 15003026944 |
+| P2-Reverse — Coarse-to-Fine JEPA | RF sensing | L2 | macro_accuracy | 0.7301745414733887 | 0.7466819882392883 | 720939008 |
+| P2-Reverse — Coarse-to-Fine JEPA | RF sensing | L4 | macro_accuracy | 0.7751945853233337 | 0.7849594950675964 | 1416177664 |
+| P2-Reverse — Coarse-to-Fine JEPA | RF sensing | L6 | macro_accuracy | 0.7576022148132324 | 0.8100417256355286 | 2111416320 |
+| P2-Reverse — Coarse-to-Fine JEPA | RF sensing | L8 | macro_accuracy | 0.8133180737495422 | 0.8027824759483337 | 2806654976 |

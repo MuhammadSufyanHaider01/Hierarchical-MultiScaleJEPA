@@ -1,0 +1,431 @@
+{
+  "batch_size": 1,
+  "checkpoint": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/frequency_n6/proposed_hierarchical/seed_000/checkpoints/last.ckpt",
+  "config": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/configs/p2_reverse.yml",
+  "dataset_suite": "primary",
+  "device": "cuda",
+  "entries": [
+    {
+      "exit_layer": 2,
+      "flops": 720939008,
+      "latency": {
+        "mean_ms": 1.2470857,
+        "median_ms": 1.246062,
+        "p95_ms": 1.259278,
+        "standard_deviation_ms": 0.006920210718027992
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "rfs"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 1416177664,
+      "latency": {
+        "mean_ms": 1.91013327,
+        "median_ms": 1.9097705,
+        "p95_ms": 1.92142,
+        "standard_deviation_ms": 0.006492139330183271
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "rfs"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 2111416320,
+      "latency": {
+        "mean_ms": 2.57685353,
+        "median_ms": 2.5747685000000002,
+        "p95_ms": 2.593783,
+        "standard_deviation_ms": 0.01174126515826482
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "rfs"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 2806654976,
+      "latency": {
+        "mean_ms": 3.227373285,
+        "median_ms": 3.2265145,
+        "p95_ms": 3.244934,
+        "standard_deviation_ms": 0.01033957292372368
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "rfs"
+    },
+    {
+      "exit_layer": 2,
+      "flops": 720931840,
+      "latency": {
+        "mean_ms": 1.2532752,
+        "median_ms": 1.252214,
+        "p95_ms": 1.26425,
+        "standard_deviation_ms": 0.00749109144552556
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "jamming"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 1416170496,
+      "latency": {
+        "mean_ms": 1.91842277,
+        "median_ms": 1.917933,
+        "p95_ms": 1.933368,
+        "standard_deviation_ms": 0.008478013718445542
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "jamming"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 2111409152,
+      "latency": {
+        "mean_ms": 2.581921315,
+        "median_ms": 2.5814795,
+        "p95_ms": 2.598102,
+        "standard_deviation_ms": 0.010402604230656531
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "jamming"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 2806647808,
+      "latency": {
+        "mean_ms": 3.2528422949999998,
+        "median_ms": 3.2391565,
+        "p95_ms": 3.256928,
+        "standard_deviation_ms": 0.19212188793962393
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "jamming"
+    },
+    {
+      "exit_layer": 2,
+      "flops": 2634845184,
+      "latency": {
+        "mean_ms": 1.19991865,
+        "median_ms": 1.1991874999999999,
+        "p95_ms": 1.210115,
+        "standard_deviation_ms": 0.0054185884287609
+      },
+      "sample_shape": [
+        3,
+        224,
+        224
+      ],
+      "task": "human-activity"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 5192616960,
+      "latency": {
+        "mean_ms": 1.814015855,
+        "median_ms": 1.814018,
+        "p95_ms": 1.825474,
+        "standard_deviation_ms": 0.0072406224123736694
+      },
+      "sample_shape": [
+        3,
+        224,
+        224
+      ],
+      "task": "human-activity"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 7750388736,
+      "latency": {
+        "mean_ms": 2.423012555,
+        "median_ms": 2.4223805,
+        "p95_ms": 2.438383,
+        "standard_deviation_ms": 0.009228952755420516
+      },
+      "sample_shape": [
+        3,
+        224,
+        224
+      ],
+      "task": "human-activity"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 10308160512,
+      "latency": {
+        "mean_ms": 3.032428765,
+        "median_ms": 3.0307765,
+        "p95_ms": 3.047938,
+        "standard_deviation_ms": 0.009846899591118131
+      },
+      "sample_shape": [
+        3,
+        224,
+        224
+      ],
+      "task": "human-activity"
+    },
+    {
+      "exit_layer": 2,
+      "flops": 720929792,
+      "latency": {
+        "mean_ms": 1.25071018,
+        "median_ms": 1.249545,
+        "p95_ms": 1.261287,
+        "standard_deviation_ms": 0.005612831728070794
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "interference"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 1416168448,
+      "latency": {
+        "mean_ms": 1.91902265,
+        "median_ms": 1.918562,
+        "p95_ms": 1.928532,
+        "standard_deviation_ms": 0.007074475794455136
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "interference"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 2111407104,
+      "latency": {
+        "mean_ms": 2.5834655800000004,
+        "median_ms": 2.5746475,
+        "p95_ms": 2.595097,
+        "standard_deviation_ms": 0.10483199226344607
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "interference"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 2806645760,
+      "latency": {
+        "mean_ms": 3.24029742,
+        "median_ms": 3.238673,
+        "p95_ms": 3.264054,
+        "standard_deviation_ms": 0.012529695317418417
+      },
+      "sample_shape": [
+        1,
+        224,
+        224
+      ],
+      "task": "interference"
+    },
+    {
+      "exit_layer": 2,
+      "flops": 3827828224,
+      "latency": {
+        "mean_ms": 1.218053045,
+        "median_ms": 1.2181485,
+        "p95_ms": 1.22853,
+        "standard_deviation_ms": 0.006075616901735849
+      },
+      "sample_shape": [
+        4,
+        224,
+        224
+      ],
+      "task": "nrpos-outdoor"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 7552894464,
+      "latency": {
+        "mean_ms": 1.8312703300000002,
+        "median_ms": 1.830478,
+        "p95_ms": 1.84491,
+        "standard_deviation_ms": 0.008122252810933905
+      },
+      "sample_shape": [
+        4,
+        224,
+        224
+      ],
+      "task": "nrpos-outdoor"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 11277960704,
+      "latency": {
+        "mean_ms": 2.4354223200000003,
+        "median_ms": 2.4330075,
+        "p95_ms": 2.449349,
+        "standard_deviation_ms": 0.020854725026893475
+      },
+      "sample_shape": [
+        4,
+        224,
+        224
+      ],
+      "task": "nrpos-outdoor"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 15003026944,
+      "latency": {
+        "mean_ms": 3.03379133,
+        "median_ms": 3.032836,
+        "p95_ms": 3.04956,
+        "standard_deviation_ms": 0.009201254968539909
+      },
+      "sample_shape": [
+        4,
+        224,
+        224
+      ],
+      "task": "nrpos-outdoor"
+    },
+    {
+      "exit_layer": 2,
+      "flops": 26353152,
+      "latency": {
+        "mean_ms": 1.42275982,
+        "median_ms": 1.4203165,
+        "p95_ms": 1.451706,
+        "standard_deviation_ms": 0.01605699784131454
+      },
+      "sample_shape": [
+        2,
+        32,
+        32
+      ],
+      "task": "deepmimo-beam"
+    },
+    {
+      "exit_layer": 4,
+      "flops": 51650048,
+      "latency": {
+        "mean_ms": 2.04504548,
+        "median_ms": 2.0402839999999998,
+        "p95_ms": 2.088614,
+        "standard_deviation_ms": 0.02101779644483652
+      },
+      "sample_shape": [
+        2,
+        32,
+        32
+      ],
+      "task": "deepmimo-beam"
+    },
+    {
+      "exit_layer": 6,
+      "flops": 76946944,
+      "latency": {
+        "mean_ms": 2.6287602249999997,
+        "median_ms": 2.625696,
+        "p95_ms": 2.658894,
+        "standard_deviation_ms": 0.019063824227453705
+      },
+      "sample_shape": [
+        2,
+        32,
+        32
+      ],
+      "task": "deepmimo-beam"
+    },
+    {
+      "exit_layer": 8,
+      "flops": 102243840,
+      "latency": {
+        "mean_ms": 3.25899155,
+        "median_ms": 3.2515435,
+        "p95_ms": 3.320906,
+        "standard_deviation_ms": 0.033333144243580096
+      },
+      "sample_shape": [
+        2,
+        32,
+        32
+      ],
+      "task": "deepmimo-beam"
+    }
+  ],
+  "environment": {
+    "cuda_available": true,
+    "cuda_device_count": 1,
+    "cuda_devices": [
+      {
+        "capability": [
+          8,
+          0
+        ],
+        "index": 0,
+        "name": "NVIDIA A100 80GB PCIe"
+      }
+    ],
+    "machine": "x86_64",
+    "nvidia_smi": {
+      "available": true,
+      "gpus": [
+        {
+          "driver_version": "560.35.03",
+          "memory_total_mib": "81920",
+          "name": "NVIDIA A100 80GB PCIe"
+        }
+      ]
+    },
+    "platform": "Linux-4.18.0-553.144.1.el8_10.x86_64-x86_64-with-glibc2.28",
+    "python": "3.13.15 (main, Sep 24 2026, 17:55:50) [Clang 22.1.3 ]",
+    "torch": "2.10.0+cu126",
+    "torch_cuda_runtime": "12.6"
+  },
+  "flops_protocol": "torch.utils.flop_counter.FlopCounterMode; batch-1 float32 sample; frozen encoder through exit plus task mean-pool/LayerNorm/linear head; supported PyTorch operations only",
+  "measure_iterations": 200,
+  "method": "p2_reverse",
+  "ood_root": null,
+  "operation_count_only": false,
+  "precision": "float32 with torch.set_float32_matmul_precision('high')",
+  "pretrain_seed": 0,
+  "synchronized": true,
+  "warmup_iterations": 50
+}
