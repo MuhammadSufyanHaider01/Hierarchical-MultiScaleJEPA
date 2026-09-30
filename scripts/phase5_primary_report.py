@@ -38,22 +38,25 @@ TASK_ORDER = (
 TASKS = TASK_ORDER[:6]
 METHODS = ("b1", "p2")
 METHOD_LABELS = {
-    "b0": "Original LatentWave",
-    "b1": "LatentWave with Post-hoc Frozen Early Exits",
-    "p1": "Same-scale Multi-depth JEPA",
-    "p2": "Proposed Hierarchical Multi-Scale JEPA",
+    "b0": "B0 — Original LatentWave",
+    "b1": "P0 — LatentWave with Post-hoc Frozen Early Exits",
+    "p1": "P1 — Same-scale Multi-depth JEPA",
+    "p2": "P2 — Proposed Hierarchical Multi-Scale JEPA",
+    "p2_reverse": "P2-Reverse — Coarse-to-fine Hierarchical JEPA",
 }
 FIGURE_METHOD_LABELS = {
-    "b0": "Original LatentWave (full-depth)",
-    "b1": "LatentWave with Post-hoc Frozen Early Exits",
-    "p1": "Same-scale Multi-depth JEPA",
-    "p2": "Proposed Hierarchical Multi-Scale JEPA",
+    "b0": "B0: Original LatentWave (full-depth)",
+    "b1": "P0: LatentWave + post-hoc frozen exits",
+    "p1": "P1: Same-scale multi-depth JEPA",
+    "p2": "P2: Proposed hierarchical JEPA",
+    "p2_reverse": "P2-Reverse: Coarse-to-fine hierarchical JEPA",
 }
 FIGURE_METHOD_SHORT = {
-    "b0": "Original\nLatentWave",
-    "b1": "LatentWave\nfrozen early exits",
-    "p1": "Same-scale\nmulti-depth JEPA",
-    "p2": "Proposed\nhierarchical JEPA",
+    "b0": "B0\nOriginal",
+    "b1": "P0\nPost-hoc exits",
+    "p1": "P1\nSame-scale",
+    "p2": "P2\nProposed",
+    "p2_reverse": "P2-Reverse\nCoarse-to-fine",
 }
 TASK_LABELS = {
     "rfs": "RF sensing",
@@ -100,6 +103,15 @@ def _arguments() -> argparse.Namespace:
         help=(
             "Optional root containing p1/seed_000 artifacts. When supplied, the "
             "same-scale multi-depth JEPA control is included in all unified figures and tables."
+        ),
+    )
+    parser.add_argument(
+        "--p2-reverse-import-root",
+        type=Path,
+        default=None,
+        help=(
+            "Optional imported P2-Reverse packet directory containing downstream/exit_metrics.json "
+            "and, where available, benchmarks.json."
         ),
     )
     parser.add_argument("--source-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5_pilot")
@@ -154,6 +166,7 @@ def _discover_tasks(
     p0_run_root: Path,
     p2_run_root: Path,
     p1_run_root: Path | None = None,
+    p2_reverse_metrics_path: Path | None = None,
 ) -> tuple[str, ...]:
     """Require all included methods to contain the same recognised task suite."""
 
@@ -163,11 +176,17 @@ def _discover_tasks(
     }
     if p1_run_root is not None:
         packets["p1"] = _read(p1_run_root / "p1/seed_000/downstream/exit_metrics.json")
+    if p2_reverse_metrics_path is not None:
+        packets["p2_reverse"] = _read(p2_reverse_metrics_path)
     task_sets = {method: set(packet.get("tasks", {})) for method, packet in packets.items()}
     if len(set(map(frozenset, task_sets.values()))) != 1:
         raise ValueError(f"included methods have different downstream task suites: {task_sets}")
     unknown = task_sets["p0"].difference(TASK_ORDER)
-    split_manifests = {method: packet.get("split_manifest") for method, packet in packets.items()}
+    # Imported P2-Reverse metrics preserve the source-machine split-manifest
+    # path, but do not bundle its index assignments. Locally generated methods
+    # still require an exact persisted-manifest match.
+    local_packets = {method: packet for method, packet in packets.items() if method != "p2_reverse"}
+    split_manifests = {method: packet.get("split_manifest") for method, packet in local_packets.items()}
     if None in split_manifests.values():
         raise ValueError(f"included methods are missing a persisted split manifest: {split_manifests}")
     split_signatures = {method: _split_manifest_signature(path) for method, path in split_manifests.items()}
@@ -330,13 +349,20 @@ def _load_exit_results(
     method: str,
     *,
     source_method: str | None = None,
+    metrics_path: Path | None = None,
+    benchmark_path: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     source_method = source_method or {"b1": "p0", "p1": "p1", "p2": "p2"}[method]
     base = run_root / source_method / "seed_000"
-    metrics_path = base / "downstream/exit_metrics.json"
-    benchmark_path = base / "benchmarks.json"
+    metrics_path = metrics_path or (base / "downstream/exit_metrics.json")
+    benchmark_path = benchmark_path or (base / "benchmarks.json")
     metrics = _read(metrics_path)
-    benchmarks = _read(benchmark_path)
+    if method == "p2_reverse" and metrics.get("method") != "p2_reverse":
+        raise ValueError("imported packet does not identify P2-Reverse")
+    if metrics.get("dataset_suite") != "primary":
+        raise ValueError(f"{method} packet is not the primary downstream suite")
+    if not metrics.get("protocol", {}).get("test_evaluation"):
+        raise ValueError(f"{method} packet does not contain a held-out test evaluation")
     rows = []
     for task in TASKS:
         if task not in metrics.get("tasks", {}):
@@ -395,36 +421,39 @@ def _load_exit_results(
             )
 
     benchmark_rows = []
-    entries = {(entry["task"], int(entry["exit_layer"])): entry for entry in benchmarks.get("entries", [])}
-    for task in TASKS:
-        for layer in EXIT_LAYERS:
-            key = (task, layer)
-            if key not in entries:
-                raise ValueError(f"{method} benchmark missing task/exit: {task}/L{layer}")
-            entry = entries[key]
-            benchmark_rows.append(
-                {
-                    "method": method,
-                    "method_label": METHOD_LABELS[method],
-                    "task": task,
-                    "task_label": TASK_LABELS[task],
-                    "exit_layer": layer,
-                    "flops": int(entry["flops"]),
-                    "latency_mean_ms": float(entry["latency"]["mean_ms"]),
-                    "latency_median_ms": float(entry["latency"]["median_ms"]),
-                    "latency_p95_ms": float(entry["latency"]["p95_ms"]),
-                    "latency_std_ms": float(entry["latency"]["standard_deviation_ms"]),
-                    "sample_shape": entry["sample_shape"],
-                    "protocol": "batch-1 synchronized CUDA timing after warm-up",
-                }
-            )
-    for task in TASKS:
-        l8 = next(row["latency_mean_ms"] for row in benchmark_rows if row["task"] == task and row["exit_layer"] == 8)
-        l8_flops = next(row["flops"] for row in benchmark_rows if row["task"] == task and row["exit_layer"] == 8)
-        for row in benchmark_rows:
-            if row["task"] == task:
-                row["latency_savings_vs_l8"] = 1.0 - row["latency_mean_ms"] / l8
-                row["flops_savings_vs_l8"] = 1.0 - row["flops"] / l8_flops
+    benchmark_available = benchmark_path.is_file()
+    if benchmark_available:
+        benchmarks = _read(benchmark_path)
+        entries = {(entry["task"], int(entry["exit_layer"])): entry for entry in benchmarks.get("entries", [])}
+        for task in TASKS:
+            for layer in EXIT_LAYERS:
+                key = (task, layer)
+                if key not in entries:
+                    raise ValueError(f"{method} benchmark missing task/exit: {task}/L{layer}")
+                entry = entries[key]
+                benchmark_rows.append(
+                    {
+                        "method": method,
+                        "method_label": METHOD_LABELS[method],
+                        "task": task,
+                        "task_label": TASK_LABELS[task],
+                        "exit_layer": layer,
+                        "flops": int(entry["flops"]),
+                        "latency_mean_ms": float(entry["latency"]["mean_ms"]),
+                        "latency_median_ms": float(entry["latency"]["median_ms"]),
+                        "latency_p95_ms": float(entry["latency"]["p95_ms"]),
+                        "latency_std_ms": float(entry["latency"]["standard_deviation_ms"]),
+                        "sample_shape": entry["sample_shape"],
+                        "protocol": "batch-1 synchronized CUDA timing after warm-up",
+                    }
+                )
+        for task in TASKS:
+            l8 = next(row["latency_mean_ms"] for row in benchmark_rows if row["task"] == task and row["exit_layer"] == 8)
+            l8_flops = next(row["flops"] for row in benchmark_rows if row["task"] == task and row["exit_layer"] == 8)
+            for row in benchmark_rows:
+                if row["task"] == task:
+                    row["latency_savings_vs_l8"] = 1.0 - row["latency_mean_ms"] / l8
+                    row["flops_savings_vs_l8"] = 1.0 - row["flops"] / l8_flops
 
     packet = {
         "method": method,
@@ -432,14 +461,14 @@ def _load_exit_results(
         "pretraining_method": source_method,
         "checkpoint": metrics["checkpoint"],
         "metrics_path": str(metrics_path),
-        "benchmark_path": str(benchmark_path),
-        "split_manifest": metrics["split_manifest"],
+        "benchmark_path": str(benchmark_path) if benchmark_available else None,
+        "benchmark_available": benchmark_available,
+        "split_manifest": metrics.get("split_manifest"),
         "metrics_protocol": metrics["protocol"],
         "metric_rows": rows,
         "benchmark_rows": benchmark_rows,
     }
     return packet, rows + benchmark_rows
-
 
 def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib
@@ -448,7 +477,7 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     paths = []
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
@@ -501,36 +530,25 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
 
 
 def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
+    """Plot held-out performance at the validation-best exit for every method."""
+
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
-    hatches = {"best_validation": "", "earliest_within_tolerance": "//"}
-    labels = {"best_validation": "Best validation", "earliest_within_tolerance": "Earliest within 5%"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         _, metric_label, higher_is_better = TASK_METRICS[task]
-        positions = []
-        heights = []
-        bar_colors = []
-        bar_hatches = []
-        bar_labels = []
-        for method in METHODS:
-            for policy in ("best_validation", "earliest_within_tolerance"):
-                row = next(row for row in rows if row["method"] == method and row["task"] == task and row["evaluation"] == policy)
-                positions.append(len(positions))
-                heights.append(row["value"])
-                bar_colors.append(colors[method])
-                bar_hatches.append(hatches[policy])
-                bar_labels.append(f"{FIGURE_METHOD_SHORT[method]}\nL{row['exit_layer']}")
-        bars = axis.bar(positions, heights, color=bar_colors, edgecolor="#222222", linewidth=0.7)
-        for bar, hatch in zip(bars, bar_hatches):
-            bar.set_hatch(hatch)
-        axis.set_xticks(positions, bar_labels)
+        selected = [
+            next(row for row in rows if row["method"] == method and row["task"] == task and row["evaluation"] == "best_validation")
+            for method in METHODS
+        ]
+        bars = axis.bar(range(len(METHODS)), [row["value"] for row in selected], color=[colors[row["method"]] for row in selected], edgecolor="#222222", linewidth=0.7)
+        axis.set_xticks(range(len(METHODS)), [f"{FIGURE_METHOD_SHORT[row['method']]}\nL{row['exit_layer']}" for row in selected])
         axis.set_title(TASK_LABELS[task], fontsize=11, weight="bold")
         axis.set_ylabel(metric_label)
         axis.grid(axis="y", alpha=0.25, linewidth=0.8)
@@ -538,15 +556,13 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
             axis.yaxis.set_major_formatter(PercentFormatter(1.0))
         else:
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
-    method_handles = [
-        plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method])
-        for method in METHODS
-    ]
-    policy_handles = [plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="#222222", hatch=hatches[policy], label=labels[policy]) for policy in hatches]
+        for bar, row in zip(bars, selected):
+            axis.annotate(f"L{row['exit_layer']}", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()), xytext=(0, 3 if higher_is_better else -12), textcoords="offset points", ha="center", va="bottom" if higher_is_better else "top", fontsize=8)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in METHODS]
     _hide_unused_axes(axes, len(TASKS))
-    fig.legend(handles=method_handles + policy_handles, loc="upper center", ncol=4, frameon=False, bbox_to_anchor=(0.5, 0.995))
-    fig.suptitle("Validation-selected exits and held-out test performance", fontsize=14, weight="bold", y=1.045)
-    fig.text(0.5, -0.015, "Exit labels show the selected encoder depth; selection never uses the test split.", ha="center", fontsize=9)
+    fig.legend(handles=handles, loc="upper center", ncol=len(METHODS), frameon=False, bbox_to_anchor=(0.5, 0.995), fontsize=9)
+    fig.suptitle("Validation-best exits and held-out test performance", fontsize=14, weight="bold", y=1.045)
+    fig.text(0.5, -0.015, "Layer labels show the validation-best encoder depth; selection never uses the test split.", ha="center", fontsize=9)
     fig.tight_layout(rect=(0, 0.02, 1, 0.94))
     paths = []
     for suffix, kwargs in (("png", {"dpi": 300}), ("pdf", {})):
@@ -556,26 +572,27 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     plt.close(fig)
     return paths
 
-
 def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.6 * len(TASKS), 6.3), squeeze=False)
     for column, task in enumerate(TASKS):
         for method in METHODS:
             task_rows = [row for row in benchmark_rows if row["method"] == method and row["task"] == task]
             task_rows.sort(key=lambda row: row["exit_layer"])
+            if not task_rows:
+                continue
             axes[0, column].plot(
                 [row["exit_layer"] for row in task_rows],
                 [row["flops"] / 1e9 for row in task_rows],
                 marker="o",
                 linewidth=2,
                 color=colors[method],
-                linestyle={"b1": "-", "p1": ":", "p2": "--"}[method],
+                linestyle={"b1": "-", "p1": ":", "p2": "--", "p2_reverse": "-."}[method],
                 label=FIGURE_METHOD_LABELS[method],
             )
             axes[1, column].plot(
@@ -663,57 +680,41 @@ def _build_headline_rows(
         )
         rows.append(
             {
-                "method": "b0",
-                "method_label": METHOD_LABELS["b0"],
-                "task": task,
-                "task_label": TASK_LABELS[task],
-                "metric": source["metric"],
-                "metric_label": source["metric_label"],
-                "value": source["value"],
-                "display_value": source["display_value"],
-                "exit_layer": 8,
-                "selection": "full-depth L8",
-                "protocol": "frozen context encoder, shared 80/10/10 split",
-                "flops": source_benchmark["flops"],
-                "latency_mean_ms": source_benchmark["latency_mean_ms"],
+                "method": "b0", "method_label": METHOD_LABELS["b0"], "task": task,
+                "task_label": TASK_LABELS[task], "metric": source["metric"],
+                "metric_label": source["metric_label"], "value": source["value"],
+                "display_value": source["display_value"], "exit_layer": 8,
+                "selection": "full-depth L8", "protocol": "frozen context encoder, shared 80/10/10 split",
+                "flops": source_benchmark["flops"], "latency_mean_ms": source_benchmark["latency_mean_ms"],
                 "latency_p95_ms": source_benchmark["latency_p95_ms"],
             }
         )
         for method in METHODS:
             selected = next(
-                row
-                for row in comparable_rows
-                if row["method"] == method
-                and row["task"] == task
-                and row["evaluation"] == "earliest_within_tolerance"
+                row for row in comparable_rows
+                if row["method"] == method and row["task"] == task
+                and row["evaluation"] == "best_validation"
             )
             benchmark = next(
-                row
-                for row in benchmark_rows
-                if row["method"] == method
-                and row["task"] == task
-                and row["exit_layer"] == selected["exit_layer"]
+                (row for row in benchmark_rows
+                 if row["method"] == method and row["task"] == task
+                 and row["exit_layer"] == selected["exit_layer"]),
+                None,
             )
             rows.append(
                 {
-                    "method": method,
-                    "method_label": METHOD_LABELS[method],
-                    "task": task,
-                    "task_label": TASK_LABELS[task],
-                    "metric": selected["metric"],
-                    "metric_label": selected["metric_label"],
-                    "value": selected["value"],
-                    "display_value": selected["display_value"],
-                    "exit_layer": selected["exit_layer"],
-                    "selection": "earliest within 5% of validation best",
+                    "method": method, "method_label": METHOD_LABELS[method], "task": task,
+                    "task_label": TASK_LABELS[task], "metric": selected["metric"],
+                    "metric_label": selected["metric_label"], "value": selected["value"],
+                    "display_value": selected["display_value"], "exit_layer": selected["exit_layer"],
+                    "selection": "best validation-performing exit",
                     "protocol": "frozen context encoder, shared 80/10/10 split",
-                    "flops": benchmark["flops"],
-                    "latency_mean_ms": benchmark["latency_mean_ms"],
-                    "latency_p95_ms": benchmark["latency_p95_ms"],
+                    "flops": None if benchmark is None else benchmark["flops"],
+                    "latency_mean_ms": None if benchmark is None else benchmark["latency_mean_ms"],
+                    "latency_p95_ms": None if benchmark is None else benchmark["latency_p95_ms"],
                 }
             )
     return rows
-
 
 def _plot_all_method_performance(
     output_dir: Path,
@@ -728,7 +729,7 @@ def _plot_all_method_performance(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
@@ -803,7 +804,7 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     methods = ("b0", *METHODS)
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
@@ -840,8 +841,8 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
     handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in methods]
     _hide_unused_axes(axes, len(TASKS))
     fig.legend(handles=handles, loc="upper center", ncol=len(methods), frameon=False, bbox_to_anchor=(0.5, 1.0), fontsize=9)
-    fig.suptitle("Headline downstream result at each approach's deployment choice", fontsize=14, weight="bold", y=1.045)
-    fig.text(0.5, -0.012, "Layer labels show full-depth L8 for Original LatentWave and the earliest exit within 5% of validation-best for exit methods.", ha="center", fontsize=8.5)
+    fig.suptitle("Headline downstream result at each approach's validation-best exit", fontsize=14, weight="bold", y=1.045)
+    fig.text(0.5, -0.012, "Layer labels show full-depth L8 for B0 and the validation-best exit for every exit-capable approach.", ha="center", fontsize=8.5)
     fig.tight_layout(rect=(0, 0.025, 1, 0.93))
     paths = []
     for suffix, kwargs in (("png", {"dpi": 300}), ("pdf", {})):
@@ -853,53 +854,48 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
 
 
 def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, Any]]) -> list[str]:
-    """Plot one inference-cost comparison containing all included approaches."""
+    """Plot deployment inference cost; annotate any deliberately unavailable rows."""
 
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p2_reverse": "#6A3D9A"}
     methods = ("b0", *METHODS)
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.45 * len(TASKS), 7.1), squeeze=False)
+    unavailable_any = False
     for column, task in enumerate(TASKS):
         task_rows = [row for row in headline_rows if row["task"] == task]
-        labels = [f"{FIGURE_METHOD_SHORT[method]}\nL{next(row['exit_layer'] for row in task_rows if row['method'] == method)}" for method in methods]
+        available = [method for method in methods if next(row for row in task_rows if row["method"] == method)["flops"] is not None]
+        unavailable = [method for method in methods if method not in available]
+        unavailable_any = unavailable_any or bool(unavailable)
+        labels = [f"{FIGURE_METHOD_SHORT[method]}\nL{next(row['exit_layer'] for row in task_rows if row['method'] == method)}" for method in available]
         for axis, measure, ylabel in (
             (axes[0, column], "flops", "FLOPs (billions)"),
             (axes[1, column], "latency_mean_ms", "Latency (ms)"),
         ):
-            values = []
-            for method in methods:
-                row = next(row for row in task_rows if row["method"] == method)
-                if method == "b0":
-                    b0_benchmark = row.get("flops") if measure == "flops" else row.get("latency_mean_ms")
-                    values.append(float(b0_benchmark))
-                else:
-                    values.append(float(row[measure]))
+            values = [float(next(row[measure] for row in task_rows if row["method"] == method)) for method in available]
             if measure == "flops":
                 values = [value / 1e9 for value in values]
-            bars = axis.bar(range(len(methods)), values, color=[colors[method] for method in methods], edgecolor="#222222", linewidth=0.7)
-            axis.set_xticks(range(len(methods)), labels)
+            bars = axis.bar(range(len(available)), values, color=[colors[method] for method in available], edgecolor="#222222", linewidth=0.7)
+            axis.set_xticks(range(len(available)), labels)
             axis.tick_params(axis="x", labelsize=7.2)
             axis.set_title(TASK_LABELS[task], fontsize=10, weight="bold")
             axis.set_ylabel(ylabel if column == 0 else "")
             axis.grid(axis="y", alpha=0.25, linewidth=0.8)
             for bar, value in zip(bars, values):
-                axis.annotate(
-                    f"{value:.3f}",
-                    xy=(bar.get_x() + bar.get_width() / 2, value),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha="center",
-                    va="bottom",
-                    fontsize=7.5,
-                )
-    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in methods]
-    fig.legend(handles=handles, loc="upper center", ncol=len(methods), frameon=False, bbox_to_anchor=(0.5, 1.01), fontsize=9)
-    fig.suptitle("Inference cost comparison at each approach's deployment choice", fontsize=14, weight="bold", y=1.065)
-    fig.text(0.5, 0.03, "Batch-1 synchronized CUDA timing on the RTX 5070 Ti; lower is better. Layer labels are printed below each method.", ha="center", fontsize=8.5)
+                axis.annotate(f"{value:.3f}", xy=(bar.get_x() + bar.get_width() / 2, value), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=7.5)
+            if unavailable:
+                axis.text(0.5, 0.97, "Unavailable: " + ", ".join("P2-Reverse" if method == "p2_reverse" else method for method in unavailable), transform=axis.transAxes, ha="center", va="top", fontsize=7, color="#555555")
+    legend_methods = [method for method in methods if any(row["method"] == method and row["flops"] is not None for row in headline_rows)]
+    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in legend_methods]
+    fig.legend(handles=handles, loc="upper center", ncol=len(legend_methods), frameon=False, bbox_to_anchor=(0.5, 1.01), fontsize=9)
+    fig.suptitle("Inference cost at each approach's validation-best exit", fontsize=14, weight="bold", y=1.065)
+    note = "Batch-1 synchronized CUDA timing on the RTX 5070 Ti; lower is better. Layer labels are printed below each method."
+    if unavailable_any:
+        note += " P2-Reverse has no supplied benchmark for this masking condition and is not plotted there."
+    fig.text(0.5, 0.03, note, ha="center", fontsize=8.5)
     fig.tight_layout(rect=(0, 0.07, 1, 0.96), h_pad=2.2, w_pad=1.3)
     paths = []
     for suffix, kwargs in (("png", {"dpi": 300}), ("pdf", {})):
@@ -908,7 +904,6 @@ def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, A
         paths.append(str(path))
     plt.close(fig)
     return paths
-
 
 def _build_report(
     output_dir: Path,
@@ -924,12 +919,13 @@ def _build_report(
     masking_label: str,
     provenance_note: str | None,
     p1_packet: dict[str, Any] | None = None,
+    p2_reverse_packet: dict[str, Any] | None = None,
 ) -> None:
-    packets = [b1_packet] + ([p1_packet] if p1_packet is not None else []) + [p2_packet]
+    packets = [b1_packet] + ([p1_packet] if p1_packet is not None else []) + [p2_packet] + ([p2_reverse_packet] if p2_reverse_packet is not None else [])
     comparable_rows = [row for packet in packets for row in packet["metric_rows"]]
     detailed_benchmark_rows = [row for row in benchmark_rows if row["method"] in METHODS]
     fixed_rows = [row for row in comparable_rows if row["evaluation"] == "fixed_exit"]
-    selected_rows = [row for row in comparable_rows if row["evaluation"] != "fixed_exit"]
+    selected_rows = [row for row in comparable_rows if row["evaluation"] == "best_validation"]
     fixed_table = []
     for row in fixed_rows:
         fixed_table.append(
@@ -973,9 +969,9 @@ def _build_report(
                 row["method_label"],
                 row["task_label"],
                 f"L{row['exit_layer']}",
-                f"{row['flops'] / 1e9:.3f}",
-                f"{row['latency_mean_ms']:.4f}",
-                f"{row['latency_p95_ms']:.4f}",
+                "n/a" if row["flops"] is None else f"{row['flops'] / 1e9:.3f}",
+                "n/a" if row["latency_mean_ms"] is None else f"{row['latency_mean_ms']:.4f}",
+                "n/a" if row["latency_p95_ms"] is None else f"{row['latency_p95_ms']:.4f}",
             ]
         )
     compute_table = []
@@ -998,7 +994,9 @@ def _build_report(
     ]
     if p1_packet is not None:
         approach_scope.append(["Same-scale Multi-depth JEPA", "P1 pretraining with same-scale intermediate targets", "Frozen context encoder at L2/L4/L6/L8", "Same-scale auxiliary-loss control"])
-    approach_scope.append(["Proposed Hierarchical Multi-Scale JEPA", "Separately pretrained hierarchical JEPA", "Frozen context encoder at L2/L4/L6/L8", "Proposed method"])
+    approach_scope.append(["P2 — Proposed Hierarchical Multi-Scale JEPA", "Separately pretrained fine-to-coarse hierarchical JEPA", "Frozen context encoder at L2/L4/L6/L8", "Proposed method"])
+    if p2_reverse_packet is not None:
+        approach_scope.append(["P2-Reverse — Coarse-to-fine Hierarchical JEPA", "Imported reverse-hierarchy pretraining artifact", "Frozen context encoder at L2/L4/L6/L8", "Exploratory hierarchy-direction ablation"])
     report = f"""# {report_title}
 
 This directory contains the submission-oriented result tables and figures for
@@ -1013,8 +1011,11 @@ revision `{_git_revision()}`.
 All rows use independent frozen task heads, the same persisted 80/10/10
 split, and validation-only head/exit selection. Original LatentWave is the
 P0 context encoder evaluated at L8; the post-hoc early-exit baseline reuses
-that exact P0 checkpoint at L2/L4/L6/L8. Therefore the included approaches are
-directly comparable for this single-seed packet.
+that exact P0 checkpoint at L2/L4/L6/L8. B0, P0, P1, and P2 are directly
+comparable for this single-seed packet. When included, P2-Reverse is an
+exploratory imported ablation: its task suite and protocol match, but its
+persisted split-index manifest was not packaged, so exact split identity could
+not be re-verified locally.
 
 All values are single-seed pilot point estimates.
 
@@ -1030,8 +1031,10 @@ for pretraining.
 
 ## All-approach headline downstream comparison
 
-The deployment rows use full-depth L8 Original LatentWave and the
-earliest exit within 5% of validation-best for the exit approaches.
+The manuscript-facing rows use full-depth L8 B0 and the validation-best
+performing exit for every exit-capable approach. The layer is chosen using the
+validation metric only (maximum accuracy or minimum positioning error); the
+held-out test split is never used for exit selection.
 
 {_markdown_table(['Approach', 'Task', 'Exit', 'Selection', 'Test value'], headline_table)}
 
@@ -1050,9 +1053,9 @@ validation column is included for auditability; it is not a test result.
 
 {_markdown_table(['Method', 'Task', 'Exit', 'Metric', 'Test value', 'Validation value', 'Head epoch'], fixed_table)}
 
-## Detailed selected exits
+## Detailed validation-best exits
 
-"Earliest within 5%" is selected from validation only. For positioning,
+The manuscript-facing exit is selected from validation only. For positioning,
 lower mean distance error is better; for classification, higher macro
 accuracy is better.
 
@@ -1061,7 +1064,8 @@ accuracy is better.
 ## Detailed batch-1 inference cost
 
 Latency is the synchronized CUDA mean/p95 measurement after warm-up on the
-RTX 5070 Ti. Savings are relative to the same method/task at L8.
+RTX 5070 Ti. Savings are relative to the same method/task at L8. A missing P2-Reverse
+benchmark is reported as unavailable, not estimated.
 
 {_markdown_table(['Method', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms', 'FLOPs saving', 'Latency saving'], compute_table)}
 
@@ -1087,7 +1091,7 @@ seeds, and alternate masking regimes are excluded. The same-scale auxiliary JEPA
         "# Detailed frozen-exit downstream metrics\n\n" + _markdown_table(["Approach", "Task", "Exit", "Metric", "Test value", "Validation value", "Head epoch"], fixed_table) + "\n"
     )
     (output_dir / "table_selected_exits.md").write_text(
-        "# Detailed selected exits\n\n" + _markdown_table(["Approach", "Task", "Policy", "Exit", "Test value"], selected_table) + "\n"
+        "# Detailed validation-best exits\n\n" + _markdown_table(["Approach", "Task", "Policy", "Exit", "Test value"], selected_table) + "\n"
     )
     (output_dir / "table_inference_cost.md").write_text(
         "# Detailed batch-1 inference cost\n\n" + _markdown_table(["Approach", "Task", "Exit", "FLOPs (B)", "Mean ms", "P95 ms", "FLOPs saving", "Latency saving"], compute_table) + "\n"
@@ -1142,20 +1146,34 @@ def main() -> int:
     run_root = _repo_path(args.run_root)
     p2_run_root = _repo_path(args.p2_run_root) if args.p2_run_root is not None else run_root
     p1_run_root = _repo_path(args.p1_run_root) if args.p1_run_root is not None else None
+    p2_reverse_root = _repo_path(args.p2_reverse_import_root) if args.p2_reverse_import_root is not None else None
+    p2_reverse_metrics_path = p2_reverse_root / "downstream/exit_metrics.json" if p2_reverse_root is not None else None
     source_root = _repo_path(args.source_root)
     output_dir = _repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
     global TASKS, METHODS
     METHODS = ("b1", "p1", "p2") if p1_run_root is not None else ("b1", "p2")
-    TASKS = _discover_tasks(run_root, p2_run_root, p1_run_root)
+    if p2_reverse_root is not None:
+        METHODS = (*METHODS, "p2_reverse")
+    TASKS = _discover_tasks(run_root, p2_run_root, p1_run_root, p2_reverse_metrics_path)
 
     b1_packet, _ = _load_exit_results(run_root, "b1")
     source_reference, source_rows = _load_context_l8_reference(b1_packet)
     p2_packet, _ = _load_exit_results(p2_run_root, "p2")
     p1_packet = _load_exit_results(p1_run_root, "p1")[0] if p1_run_root is not None else None
-    figure_paths = []
-    comparable_rows = b1_packet["metric_rows"] + (p1_packet["metric_rows"] if p1_packet is not None else []) + p2_packet["metric_rows"]
+    p2_reverse_packet = (
+        _load_exit_results(
+            p2_reverse_root,
+            "p2_reverse",
+            source_method="p2_reverse",
+            metrics_path=p2_reverse_metrics_path,
+            benchmark_path=p2_reverse_root / "benchmarks.json",
+        )[0]
+        if p2_reverse_root is not None else None
+    )
+    comparable_packets = [b1_packet] + ([p1_packet] if p1_packet is not None else []) + [p2_packet] + ([p2_reverse_packet] if p2_reverse_packet is not None else [])
+    comparable_rows = [row for packet in comparable_packets for row in packet["metric_rows"]]
     b0_benchmark_rows = []
     for row in b1_packet["benchmark_rows"]:
         if row["exit_layer"] != 8:
@@ -1165,8 +1183,9 @@ def main() -> int:
         b0_row["method_label"] = METHOD_LABELS["b0"]
         b0_row["protocol"] = "Original LatentWave frozen context encoder, full-depth L8 benchmark"
         b0_benchmark_rows.append(b0_row)
-    benchmark_rows = b0_benchmark_rows + b1_packet["benchmark_rows"] + (p1_packet["benchmark_rows"] if p1_packet is not None else []) + p2_packet["benchmark_rows"]
+    benchmark_rows = b0_benchmark_rows + [row for packet in comparable_packets for row in packet["benchmark_rows"]]
     headline_rows = _build_headline_rows(source_rows, comparable_rows, benchmark_rows)
+    figure_paths = []
     figure_paths.extend(_plot_all_method_performance(output_dir, source_rows, comparable_rows))
     figure_paths.extend(_plot_all_method_selected(output_dir, headline_rows))
     figure_paths.extend(_plot_all_method_inference(output_dir, headline_rows))
@@ -1175,51 +1194,36 @@ def main() -> int:
     figure_paths.extend(_plot_efficiency(output_dir, [row for row in benchmark_rows if row["method"] in METHODS]))
     figure_paths.extend(_plot_context_l8_reference(output_dir, source_rows))
     _build_report(
-        output_dir,
-        source_reference,
-        source_rows,
-        b1_packet,
-        p2_packet,
-        headline_rows,
-        benchmark_rows,
-        figure_paths,
-        report_title=args.report_title,
-        masking_label=args.masking_label,
-        provenance_note=args.provenance_note,
-        p1_packet=p1_packet,
+        output_dir, source_reference, source_rows, b1_packet, p2_packet, headline_rows,
+        benchmark_rows, figure_paths, report_title=args.report_title,
+        masking_label=args.masking_label, provenance_note=args.provenance_note,
+        p1_packet=p1_packet, p2_reverse_packet=p2_reverse_packet,
     )
     manifest = {
         "report": "phase5_primary_single_seed",
         "git_revision": _git_revision(),
-        "run_root": str(run_root),
-        "p2_run_root": str(p2_run_root),
+        "run_root": str(run_root), "p2_run_root": str(p2_run_root),
         "p1_checkpoint": p1_packet.get("checkpoint") if p1_packet is not None else None,
         "p1_pretraining_experiment": str(Path(p1_packet["checkpoint"]).parents[1] / "experiment.json") if p1_packet is not None else None,
         "p1_run_root": str(p1_run_root) if p1_run_root is not None else None,
-        "source_root": None,
-        "output_dir": str(output_dir),
+        "p2_reverse_import_root": str(p2_reverse_root) if p2_reverse_root is not None else None,
+        "p2_reverse_benchmark_available": p2_reverse_packet["benchmark_available"] if p2_reverse_packet is not None else None,
+        "p2_reverse_split_manifest_verification": "not available in imported archive" if p2_reverse_packet is not None else None,
+        "p2_reverse_archive": {"source_commit_claimed": "90c4793ac9ce6a174bb39138c7fc324e742a9147", "sha256": "83aeed0d9292cf89be5f1ed63e3b897bfce5dee3b41a050cba2bdf68c5c38ad6"} if p2_reverse_packet is not None else None,
+        "source_root": None, "output_dir": str(output_dir),
         "methods": [METHOD_LABELS[method] for method in ("b0", *METHODS)],
-        "seed": 0,
-        "masking": args.masking_label,
-        "task_suite": list(TASKS),
+        "seed": 0, "masking": args.masking_label, "task_suite": list(TASKS),
+        "headline_exit_policy": "best_validation",
         "included_inputs": {
             "b0_context_l8": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_metrics": str(run_root / "p0/seed_000/downstream/exit_metrics.json"),
             "b1_benchmark": str(run_root / "p0/seed_000/benchmarks.json"),
             "p2_metrics": str(p2_run_root / "p2/seed_000/downstream/exit_metrics.json"),
             "p2_benchmark": str(p2_run_root / "p2/seed_000/benchmarks.json"),
-            **({
-                "p1_metrics": str(p1_run_root / "p1/seed_000/downstream/exit_metrics.json"),
-                "p1_benchmark": str(p1_run_root / "p1/seed_000/benchmarks.json"),
-            } if p1_run_root is not None else {}),
+            **({"p1_metrics": str(p1_run_root / "p1/seed_000/downstream/exit_metrics.json"), "p1_benchmark": str(p1_run_root / "p1/seed_000/benchmarks.json")} if p1_run_root is not None else {}),
+            **({"p2_reverse_metrics": str(p2_reverse_metrics_path), "p2_reverse_benchmark": str(p2_reverse_root / "benchmarks.json") if p2_reverse_packet["benchmark_available"] else None} if p2_reverse_packet is not None else {}),
         },
-        "excluded": [
-            "EMA-teacher source-style probe (archived provenance only)",
-            "diagnostic early-stopped runs",
-            "extra transfer datasets",
-            "seeds 1 and 2",
-            "alternate masking regimes",
-        ],
+        "excluded": ["EMA-teacher source-style probe (archived provenance only)", "diagnostic early-stopped runs", "extra transfer datasets", "seeds 1 and 2", "alternate masking regimes"],
         "figures": [Path(path).name for path in figure_paths],
         "provenance_note": args.provenance_note,
     }

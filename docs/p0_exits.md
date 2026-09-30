@@ -50,9 +50,10 @@ The configured Phase 2 tasks are RF classification, NR outdoor positioning,
 DeepMIMO 16-beam prediction, and EfficientFi WiFi human activity recognition.
 Exit
 selection is performed on validation metrics only. The best validation exit
-breaks ties toward the earliest layer. The earliest-within-tolerance rule uses
-the first exit within 5% of the best validation metric, with the direction
-chosen by task type. Test data is reserved for final reporting.
+breaks ties toward the earliest layer and is the manuscript-facing exit rule.
+The historical earliest-within-tolerance rule remains reproducible from the
+saved metrics but is not used for headline figures or tables. Test data is
+reserved for final reporting.
 
 For formal Phase 5 evaluation, each frozen head has a 200-epoch maximum and
 validation-metric early stopping with patience 20. This controls head training

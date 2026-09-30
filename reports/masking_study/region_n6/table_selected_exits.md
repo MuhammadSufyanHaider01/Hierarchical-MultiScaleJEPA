@@ -1,40 +1,28 @@
-# Detailed selected exits
+# Detailed validation-best exits
 
 | Approach | Task | Policy | Exit | Test value |
 | --- | --- | --- | --- | --- |
-| LatentWave with Post-hoc Frozen Early Exits | RF sensing | best validation | L8 | 78.97% |
-| LatentWave with Post-hoc Frozen Early Exits | RF sensing | earliest within tolerance | L4 | 75.16% |
-| LatentWave with Post-hoc Frozen Early Exits | Jamming classification | best validation | L6 | 87.60% |
-| LatentWave with Post-hoc Frozen Early Exits | Jamming classification | earliest within tolerance | L6 | 87.60% |
-| LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | best validation | L8 | 96.67% |
-| LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | earliest within tolerance | L2 | 97.50% |
-| LatentWave with Post-hoc Frozen Early Exits | Interference classification | best validation | L4 | 71.57% |
-| LatentWave with Post-hoc Frozen Early Exits | Interference classification | earliest within tolerance | L2 | 73.43% |
-| LatentWave with Post-hoc Frozen Early Exits | NR positioning | best validation | L8 | 2.939 m |
-| LatentWave with Post-hoc Frozen Early Exits | NR positioning | earliest within tolerance | L6 | 3.012 m |
-| LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | best validation | L6 | 41.46% |
-| LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | earliest within tolerance | L2 | 42.52% |
-| Same-scale Multi-depth JEPA | RF sensing | best validation | L4 | 82.56% |
-| Same-scale Multi-depth JEPA | RF sensing | earliest within tolerance | L4 | 82.56% |
-| Same-scale Multi-depth JEPA | Jamming classification | best validation | L8 | 86.67% |
-| Same-scale Multi-depth JEPA | Jamming classification | earliest within tolerance | L2 | 87.33% |
-| Same-scale Multi-depth JEPA | Human activity sensing | best validation | L4 | 96.67% |
-| Same-scale Multi-depth JEPA | Human activity sensing | earliest within tolerance | L2 | 95.83% |
-| Same-scale Multi-depth JEPA | Interference classification | best validation | L4 | 74.71% |
-| Same-scale Multi-depth JEPA | Interference classification | earliest within tolerance | L2 | 73.00% |
-| Same-scale Multi-depth JEPA | NR positioning | best validation | L8 | 2.694 m |
-| Same-scale Multi-depth JEPA | NR positioning | earliest within tolerance | L6 | 2.785 m |
-| Same-scale Multi-depth JEPA | DeepMIMO beam | best validation | L2 | 49.27% |
-| Same-scale Multi-depth JEPA | DeepMIMO beam | earliest within tolerance | L2 | 49.27% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | best validation | L8 | 76.30% |
-| Proposed Hierarchical Multi-Scale JEPA | RF sensing | earliest within tolerance | L6 | 75.40% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | best validation | L4 | 86.27% |
-| Proposed Hierarchical Multi-Scale JEPA | Jamming classification | earliest within tolerance | L2 | 88.40% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | best validation | L2 | 97.50% |
-| Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | earliest within tolerance | L2 | 97.50% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | best validation | L6 | 74.93% |
-| Proposed Hierarchical Multi-Scale JEPA | Interference classification | earliest within tolerance | L2 | 74.00% |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | best validation | L8 | 2.759 m |
-| Proposed Hierarchical Multi-Scale JEPA | NR positioning | earliest within tolerance | L8 | 2.759 m |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | best validation | L2 | 44.46% |
-| Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | earliest within tolerance | L2 | 44.46% |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | RF sensing | best validation | L8 | 78.97% |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | Jamming classification | best validation | L6 | 87.60% |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | best validation | L8 | 96.67% |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | Interference classification | best validation | L4 | 71.57% |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | NR positioning | best validation | L8 | 2.939 m |
+| P0 — LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | best validation | L6 | 41.46% |
+| P1 — Same-scale Multi-depth JEPA | RF sensing | best validation | L4 | 82.56% |
+| P1 — Same-scale Multi-depth JEPA | Jamming classification | best validation | L8 | 86.67% |
+| P1 — Same-scale Multi-depth JEPA | Human activity sensing | best validation | L4 | 96.67% |
+| P1 — Same-scale Multi-depth JEPA | Interference classification | best validation | L4 | 74.71% |
+| P1 — Same-scale Multi-depth JEPA | NR positioning | best validation | L8 | 2.694 m |
+| P1 — Same-scale Multi-depth JEPA | DeepMIMO beam | best validation | L2 | 49.27% |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | RF sensing | best validation | L8 | 76.30% |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | Jamming classification | best validation | L4 | 86.27% |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | best validation | L2 | 97.50% |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | Interference classification | best validation | L6 | 74.93% |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | NR positioning | best validation | L8 | 2.759 m |
+| P2 — Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | best validation | L2 | 44.46% |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | RF sensing | best validation | L6 | 75.76% |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Jamming classification | best validation | L6 | 88.13% |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Human activity sensing | best validation | L2 | 97.50% |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Interference classification | best validation | L4 | 74.36% |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | NR positioning | best validation | L8 | 2.776 m |
+| P2-Reverse — Coarse-to-fine Hierarchical JEPA | DeepMIMO beam | best validation | L2 | 44.41% |

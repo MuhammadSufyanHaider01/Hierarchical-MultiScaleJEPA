@@ -165,8 +165,9 @@ pretraining. The completed four-task pilot remains historical and must not be
 mixed into the six-task tables. LoS/NLoS results are historical only.
 
 Report each method's L2/L4/L6/L8 test performance, L8 full-depth reference,
-best validation-selected exit, earliest exit within 5% of the best validation
-metric, FLOPs, batch-1 latency, and relative compute/latency savings. OOD
+and the validation-best exit as the manuscript-facing selection, alongside its
+FLOPs, batch-1 latency, and relative compute/latency savings. The historical
+5%-tolerance selection is retained only in raw artifacts for reproducibility. OOD
 transfer, if later approved, is reported separately and never mixed into the
 paper-comparable table. The pretraining overhead table remains separate from
 deployment savings.

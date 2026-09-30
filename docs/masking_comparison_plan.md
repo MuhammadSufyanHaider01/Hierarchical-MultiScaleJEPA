@@ -186,7 +186,7 @@ For every mask profile, retain the same outputs used by the current pilot:
 
 - source-style Original LatentWave full-depth L8 metrics;
 - all fixed L2/L4/L6/L8 downstream metrics for the two frozen-head tracks;
-- validation-selected best exit and earliest exit within 5% of validation best;
+- validation-best exit as the manuscript-facing selection (the 5%-tolerance policy is retained only in raw artifacts);
 - test performance after selection using the shared persisted 80/10/10 split;
 - FLOPs, mean/median/p95 batch-1 latency, and savings relative to L8; and
 - pretraining loss and overhead as a separate accounting table.
