@@ -17,7 +17,7 @@ import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PROFILE_DIRECTORY = REPOSITORY_ROOT / "configs" / "masking_study"
-PROFILE_NAMES = ("frequency_n6", "region_n6", "time_n6", "random_75")
+PROFILE_NAMES = ("multi_block_n6", "frequency_n6", "region_n6", "time_n6", "random_75")
 
 
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
@@ -38,6 +38,7 @@ def _validate_profile(name: str, profile: dict[str, Any]) -> None:
         raise ValueError(f"mask profile {name!r} must contain a mapping under 'masks'")
 
     expected = {
+        "multi_block_n6": ("multi_block", "span_time"),
         "frequency_n6": ("multi_block", "span_time"),
         "region_n6": ("multi_block", "random"),
         "time_n6": ("multi_block", "span_freq"),

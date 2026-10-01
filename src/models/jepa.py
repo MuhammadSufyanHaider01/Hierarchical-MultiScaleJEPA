@@ -36,6 +36,7 @@ class JEPA(ValidationModule):
         self.hierarchy_lambda = float(getattr(hierarchy, "lambda_h", 1.0))
         self.hierarchy_warmup_epochs = int(getattr(hierarchy, "warmup_epochs", 12))
         self.include_l8_coarse = bool(getattr(hierarchy, "include_l8_coarse", False))
+        self.hierarchy_gradient_routing = getattr(hierarchy, "gradient_routing", "global")
         self._validate_hierarchy_config()
         self.auxiliary_layers = self.hierarchy_layers
         if self.hierarchy_enabled and self.include_l8_coarse:
@@ -100,6 +101,11 @@ class JEPA(ValidationModule):
         }
         if self.hierarchy_mode not in supported_modes:
             raise ValueError(f"unsupported hierarchy mode: {self.hierarchy_mode!r}")
+        if self.hierarchy_gradient_routing not in {"global", "pair_local"}:
+            raise ValueError(
+                "hierarchy gradient_routing must be 'global' or 'pair_local', got "
+                f"{self.hierarchy_gradient_routing!r}"
+            )
         if self.hierarchy_warmup_epochs < 0:
             raise ValueError("hierarchy warmup_epochs must be non-negative")
         if self.hierarchy_lambda < 0:
@@ -114,6 +120,14 @@ class JEPA(ValidationModule):
         if self.hierarchy_mode == "mask_relative_fine_to_coarse" and self.hierarchy_layers != P2_LAYERS:
             raise ValueError(
                 f"P2 requires auxiliary layers {P2_LAYERS}, got {self.hierarchy_layers}"
+            )
+        if self.hierarchy_gradient_routing == "pair_local" and (
+            self.hierarchy_mode != "mask_relative_fine_to_coarse"
+            or self.hierarchy_layers != P2_LAYERS
+        ):
+            raise ValueError(
+                "pair-local routing is the P3 ablation and requires mask-relative "
+                f"fine-to-coarse layers {P2_LAYERS}"
             )
         if self.include_l8_coarse and (
             not self.hierarchy_enabled or self.hierarchy_mode != "mask_relative_fine_to_coarse"
@@ -174,7 +188,16 @@ class JEPA(ValidationModule):
 
         if hierarchy_requested:
             context_depth = self.context_encoder.logical_depth
-            if getattr(self.context_encoder, "has_stage_local_routing", False):
+            if self.hierarchy_gradient_routing == "pair_local":
+                if not hasattr(self.context_encoder, "forward_pair_local_layers"):
+                    raise TypeError("pair-local hierarchy routing requires a ViT encoder")
+                context_emb = self.context_encoder(
+                    x, masks_enc, return_layers=(context_depth,)
+                )[context_depth]
+                auxiliary_context_outputs = self.context_encoder.forward_pair_local_layers(
+                    x, masks_enc, self.auxiliary_layers
+                )
+            elif getattr(self.context_encoder, "has_stage_local_routing", False):
                 context_emb = self.context_encoder(
                     x, masks_enc, return_layers=(context_depth,)
                 )[context_depth]

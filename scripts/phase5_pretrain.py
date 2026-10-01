@@ -55,12 +55,14 @@ METHOD_CONFIGS = {
     "p0": REPOSITORY_ROOT / "configs/p0.yml",
     "p1": REPOSITORY_ROOT / "configs/p1.yml",
     "p2": REPOSITORY_ROOT / "configs/p2.yml",
+    "p3": REPOSITORY_ROOT / "configs/p2.yml",
     "p2_reverse": REPOSITORY_ROOT / "configs/p2.yml",
     "cnn_p1": REPOSITORY_ROOT / "configs/p1.yml",
     "cnn_p2": REPOSITORY_ROOT / "configs/p2.yml",
     "cnn_p2_reverse": REPOSITORY_ROOT / "configs/p2.yml",
 }
 FORMAL_EPOCHS = 60
+P3_EPOCHS = 50
 
 
 def _allocator_configuration() -> str | None:
@@ -113,16 +115,22 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--run-kind",
-        choices=("formal", "diagnostic"),
+        choices=("formal", "matched_horizon", "diagnostic"),
         default="formal",
         help=(
-            "formal uses the fixed 60-epoch Phase 5 pilot schedule; diagnostic permits "
+            "formal uses the fixed 60-epoch Phase 5 pilot schedule; matched_horizon runs the approved fixed 50-epoch P3 schedule while recording its P2 reference; diagnostic permits "
             "short runs and latent-loss early stopping that cannot be reported as a main result"
         ),
     )
-    parser.add_argument("--hierarchy-lambda", type=float, default=None, help="Override lambda_H for P1/P2 ablations.")
+    parser.add_argument("--hierarchy-lambda", type=float, default=None, help="Override lambda_H for P1/P2/P3 ablations.")
     parser.add_argument("--include-l8-coarse", action="store_true", help="Enable the opt-in P2 L8 whole-block auxiliary loss.")
     parser.add_argument("--max-epochs", type=int, default=FORMAL_EPOCHS)
+    parser.add_argument(
+        "--matched-reference-checkpoint",
+        type=Path,
+        default=None,
+        help="P2 checkpoint whose completed horizon/configuration P3 replicates; recorded in metadata.",
+    )
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--accumulate-grad-batches", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=4)
@@ -446,7 +454,7 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.early_stopping and args.validate_every:
         raise ValueError("--validate-every downstream probing cannot be combined with latent early stopping")
     if args.hierarchy_lambda is not None and (args.method == "p0" or args.hierarchy_lambda < 0):
-        raise ValueError("hierarchy-lambda must be non-negative and is only valid for P1/P2")
+        raise ValueError("hierarchy-lambda must be non-negative and is only valid for P1/P2/P3")
     if args.include_l8_coarse and args.method != "p2":
         raise ValueError("include-l8-coarse is only valid for the P2 ablation")
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -461,6 +469,19 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             raise ValueError("formal jobs require full train and validation batch limits")
         if args.validate_every:
             raise ValueError("formal jobs do not run the legacy downstream probe during pretraining")
+    elif args.run_kind == "matched_horizon":
+        if args.method != "p3":
+            raise ValueError("matched_horizon is reserved for the P3 routing ablation")
+        if args.early_stopping:
+            raise ValueError("matched_horizon jobs cannot use latent-loss early stopping")
+        if args.limit_train_batches != 1.0 or args.limit_val_batches != 1.0:
+            raise ValueError("matched_horizon jobs require full train and validation batch limits")
+        if args.validate_every:
+            raise ValueError("matched_horizon jobs do not run legacy downstream probes")
+        if args.matched_reference_checkpoint is None:
+            raise ValueError("matched_horizon P3 jobs require --matched-reference-checkpoint")
+        if args.max_epochs != P3_EPOCHS:
+            raise ValueError(f"matched_horizon P3 jobs require the approved {P3_EPOCHS}-epoch cap, got {args.max_epochs}")
     elif args.early_stopping is False and args.validate_every:
         # The legacy downstream probe is neither a source-style reproducibility
         # check nor the fixed-exit protocol.  Keep it out of this runner.
@@ -471,7 +492,7 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.memory_safe:
         if args.throughput_safe or args.performance_safe:
             raise ValueError("--memory-safe cannot be combined with another execution profile")
-        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+        if args.method not in {"p1", "p2", "p3", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
             raise ValueError("--memory-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
             raise ValueError("--memory-safe requires --device cuda --batch-size 4 --accumulate-grad-batches 16")
@@ -484,7 +505,7 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.throughput_safe:
         if args.performance_safe:
             raise ValueError("--throughput-safe and --performance-safe are mutually exclusive")
-        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+        if args.method not in {"p1", "p2", "p3", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
             raise ValueError("--throughput-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
             raise ValueError(
@@ -504,7 +525,7 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
                 "reduce workers only in a separately documented contention test"
             )
     if args.performance_safe:
-        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+        if args.method not in {"p1", "p2", "p3", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
             raise ValueError("--performance-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 16 or args.accumulate_grad_batches != 4:
             raise ValueError(
@@ -588,12 +609,19 @@ def main() -> int:
     runtime = {
         "phase": 5,
         "method": args.method,
+        "hierarchy_gradient_routing": getattr(config.hierarchy, "gradient_routing", "global"),
+        "pair_local_block_pairs": {"L2": [1, 2], "L4": [3, 4], "L6": [5, 6]} if args.method == "p3" else None,
+        "matched_reference_checkpoint": str(args.matched_reference_checkpoint) if args.matched_reference_checkpoint else None,
         "run_name": args.run_name or args.method,
         "run_kind": args.run_kind,
         "pretraining_selection": (
             "fixed_source_horizon_last_checkpoint"
             if args.run_kind == "formal"
-            else ("diagnostic_latent_validation_early_stopping" if args.early_stopping else "diagnostic_fixed_horizon")
+            else (
+                "fixed_p3_50_epoch_horizon"
+                if args.run_kind == "matched_horizon"
+                else ("diagnostic_latent_validation_early_stopping" if args.early_stopping else "diagnostic_fixed_horizon")
+            )
         ),
         "seed": args.seed,
         "config_path": str(config_path.relative_to(REPOSITORY_ROOT)),

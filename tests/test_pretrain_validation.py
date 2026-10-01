@@ -26,6 +26,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "method": "p0",
             "run_kind": "formal",
             "max_epochs": FORMAL_EPOCHS,
+            "matched_reference_checkpoint": None,
             "batch_size": 16,
             "accumulate_grad_batches": 4,
             "num_workers": 0,
@@ -83,6 +84,20 @@ class PretrainValidationSplitTest(unittest.TestCase):
                 max_epochs=12,
                 limit_train_batches=1,
                 early_stopping=True,
+            )
+        )
+
+    def test_p3_matched_horizon_requires_and_records_a_reference_checkpoint(self):
+        with self.assertRaisesRegex(ValueError, "matched-reference-checkpoint"):
+            _validate_run_arguments(
+                self._arguments(method="p3", run_kind="matched_horizon", max_epochs=50)
+            )
+        _validate_run_arguments(
+            self._arguments(
+                method="p3",
+                run_kind="matched_horizon",
+                max_epochs=50,
+                matched_reference_checkpoint=Path("reference-p2.ckpt"),
             )
         )
 
@@ -165,7 +180,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
         ):
             _validate_run_arguments(arguments)
 
-        for method in ("cnn_p1", "cnn_p2", "cnn_p2_reverse"):
+        for method in ("p3", "cnn_p1", "cnn_p2", "cnn_p2_reverse"):
             cnn_arguments = self._arguments(
                 method=method, batch_size=16, accumulate_grad_batches=4,
                 num_workers=3, hdf5_worker_budget=12, prefetch_factor=4,

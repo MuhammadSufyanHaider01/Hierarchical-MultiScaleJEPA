@@ -37,6 +37,7 @@ class HierarchyConfig(BaseSettings):
     lambda_h: float = Field(default=1.0, validation_alias="lambda")
     warmup_epochs: int = 12
     include_l8_coarse: bool = False
+    gradient_routing: Literal["global", "pair_local"] = "global"
 
 
 class ProjectorConfig(BaseSettings):

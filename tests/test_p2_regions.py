@@ -225,5 +225,64 @@ class P2HierarchyTest(unittest.TestCase):
         self.assertFalse(targets[8].requires_grad)
 
 
+class P3PairLocalGradientTest(P2HierarchyTest):
+    def setUp(self):
+        super().setUp()
+        config = tiny_p2_config()
+        config.hierarchy.gradient_routing = "pair_local"
+        self.model = JEPA(
+            config,
+            iterations_per_epoch=2,
+            eval_fns=[lambda *_: 0.0],
+            metrics=["smoke"],
+        ).eval()
+
+    @staticmethod
+    def _has_gradient(module):
+        return any(parameter.grad is not None for parameter in module.parameters())
+
+    def _assert_context_gradient_scope(self, active_blocks, patch_embed_active):
+        self.assertEqual(self._has_gradient(self.model.context_encoder.patch_embed), patch_embed_active)
+        for block_index, block in enumerate(self.model.context_encoder.blocks):
+            self.assertEqual(
+                self._has_gradient(block),
+                block_index in active_blocks,
+                f"unexpected P3 gradient state for transformer block {block_index + 1}",
+            )
+        self.assertTrue(all(parameter.grad is None for parameter in self.model.target_encoder.parameters()))
+
+    def test_pair_local_auxiliary_losses_only_train_their_own_transformer_pair(self):
+        expected_scopes = {2: ({0, 1}, True), 4: ({2, 3}, False), 6: ({4, 5}, False)}
+        for layer, (active_blocks, patch_embed_active) in expected_scopes.items():
+            self.model.zero_grad(set_to_none=True)
+            _, _, _, predictions, targets = self.model(
+                self.x, self.masks_enc, self.masks_pred, return_hierarchy=True
+            )
+            loss = self.model.loss(predictions[layer], targets[layer])
+            self.assertTrue(torch.isfinite(loss))
+            loss.backward()
+            self._assert_context_gradient_scope(active_blocks, patch_embed_active)
+            self.assertTrue(self._has_gradient(self.model.aux_predictors[str(layer)]))
+
+    def test_pair_local_outputs_match_regular_intermediate_exits_in_eval_mode(self):
+        with torch.no_grad():
+            regular = self.model.context_encoder(
+                self.x, self.masks_enc, return_layers=(2, 4, 6)
+            )
+            local = self.model.context_encoder.forward_pair_local_layers(
+                self.x, self.masks_enc, (2, 4, 6)
+            )
+        for layer in (2, 4, 6):
+            torch.testing.assert_close(local[layer], regular[layer])
+
+    def test_l8_anchor_remains_end_to_end(self):
+        self.model.zero_grad(set_to_none=True)
+        prediction, target, _ = self.model(self.x, self.masks_enc, self.masks_pred)
+        loss = self.model.loss(prediction, target)
+        self.assertTrue(torch.isfinite(loss))
+        loss.backward()
+        self._assert_context_gradient_scope(set(range(8)), True)
+
+
 if __name__ == "__main__":
     unittest.main()

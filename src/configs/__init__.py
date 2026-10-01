@@ -24,6 +24,8 @@ def configure_method_variant(config: JEPAConfig, method: str) -> JEPAConfig:
         config.encoder.gradient_checkpointing = True
     if method in {"p2_reverse", "cnn_p2_reverse"}:
         config.hierarchy.mode = "mask_relative_coarse_to_fine"
+    if method == "p3":
+        config.hierarchy.gradient_routing = "pair_local"
     return config
 
 

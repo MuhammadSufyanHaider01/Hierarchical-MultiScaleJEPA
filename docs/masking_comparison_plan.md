@@ -234,6 +234,14 @@ It must not be silently merged with the frozen-head 80/10/10 metrics.
 - FLOPs and latency use synchronized batch-1 CUDA timing with warm-up.
 - The report generator produces complete three-approach tables and figures.
 
+## P3 pair-local gradient-routing ablation
+
+P3 preserves the ViT P2 mask-relative fine-to-coarse targets, auxiliary predictors, target EMA branch, hierarchy weight, and L8 anchor. Its only objective change is the auxiliary-gradient path: L2 updates the patch embedding and transformer blocks 1–2; L4 updates blocks 3–4 after a detached block-2 prefix; and L6 updates blocks 5–6 after a detached block-4 prefix. The L8 anchor remains end-to-end.
+
+Run P3 only for the four recorded report conditions: multi-block, frequency, time, and region. Random masking is outside this ablation. Use seed 0, the finalized six-task suite, validation-only best-exit selection, one held-out evaluation, and synchronized batch-1 FLOPs/latency. For fairness, cap every P3 pretraining run at exactly 50 epochs; retain the corresponding report-source P2 checkpoint as the architecture, mask, and objective provenance reference, not as a horizon to copy. Use one shared P3 execution profile for every condition: microbatch 16, accumulation 4 (effective batch 64), BF16 mixed precision, fused attention, 12 total HDF5 workers split 3 per cache, prefetch 4, epoch-only metrics, and expandable CUDA allocator segments. This yields 903 microbatches per epoch; the common profile controls execution while each condition retains its own P2 mask geometry. Run one masking end-to-end at a time: pretrain, train frozen heads, evaluate held-out test data once, benchmark inference, and update that masking’s report with P3 alongside B0, P0, P1, P2, and P2-Reverse wherever those artifacts are available.
+
+P3 metadata must record `gradient_routing: pair_local`, pair boundaries, the P2 reference checkpoint, resolved mask profile, runtime profile, and checkpoint provenance. The configuration and unit tests must prove that target parameters remain gradient-free, each auxiliary loss reaches only its designated transformer pair, and the anchor reaches all eight blocks.
+
 ## Deferred work
 
 Do not add extra seeds, the full `N_m ∈ {2,3,4,5,6}` sweep, P1 same-scale

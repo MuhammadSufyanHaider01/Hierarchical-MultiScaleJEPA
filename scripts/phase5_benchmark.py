@@ -37,7 +37,7 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p3", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--run-root", type=Path, default=REPOSITORY_ROOT / "runs/phase5")
@@ -111,7 +111,7 @@ def main() -> int:
     checkpoint = args.checkpoint if args.checkpoint.is_absolute() else REPOSITORY_ROOT / args.checkpoint
     if not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)
-    config_method = {"cnn_p1": "p1", "cnn_p2": "p2", "cnn_p2_reverse": "p2", "p2_reverse": "p2"}.get(args.method, args.method)
+    config_method = {"cnn_p1": "p1", "cnn_p2": "p2", "cnn_p2_reverse": "p2", "p2_reverse": "p2", "p3": "p2"}.get(args.method, args.method)
     config_path = args.config or (REPOSITORY_ROOT / "configs" / f"{config_method}.yml")
     config = init_jepa_config(str(config_path))
     configure_method_variant(config, args.method)

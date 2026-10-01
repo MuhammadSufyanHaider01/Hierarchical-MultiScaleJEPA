@@ -173,6 +173,41 @@ class Encoder(nn.Module):
             stop_at_last_requested=True,
         )[int(exit_layer)]
 
+    def forward_pair_local_layers(self, x, masks, return_layers):
+        """Return auxiliary exits with gradients isolated to two-block pairs.
+
+        P3 uses the existing L2/L4/L6 logical exits, but only the matching
+        transformer pair receives an auxiliary-loss gradient. Prefix blocks
+        run under ``no_grad`` and their output is detached before the active
+        pair. This is separate from :meth:`forward`: the L8 anchor retains
+        its ordinary end-to-end gradient path.
+        """
+        requested = tuple(dict.fromkeys(int(layer) for layer in return_layers))
+        supported = (2, 4, 6)
+        invalid = sorted(set(requested).difference(supported))
+        if invalid:
+            raise ValueError(
+                f"pair-local exits must be a subset of {supported}, got {requested}"
+            )
+
+        tokens = self._prepare_tokens(x, masks=masks)
+        outputs = {}
+        for exit_layer in requested:
+            pair_start = exit_layer - 2
+            if pair_start == 0:
+                local_tokens = tokens
+            else:
+                with torch.no_grad():
+                    prefix_tokens = tokens
+                    for block in self.blocks[:pair_start]:
+                        prefix_tokens = block(prefix_tokens)
+                local_tokens = prefix_tokens.detach()
+
+            for block in self.blocks[pair_start:exit_layer]:
+                local_tokens = block(local_tokens)
+            outputs[exit_layer] = self.norm(local_tokens)
+        return outputs
+
     def forward(self, x, masks=None, return_layers=None, *, normalize_exits=True):
         if return_layers is not None:
             return self._forward_layers(
