@@ -71,6 +71,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
 
     def test_formal_protocol_requires_the_pinned_horizon_and_no_latent_early_stopping(self):
         _validate_run_arguments(self._arguments())
+        _validate_run_arguments(self._arguments(max_epochs=50))
         with self.assertRaisesRegex(ValueError, "max-epochs"):
             _validate_run_arguments(self._arguments(max_epochs=12))
         with self.assertRaisesRegex(ValueError, "cannot use latent-loss early stopping"):

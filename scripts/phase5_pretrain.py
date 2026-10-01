@@ -58,6 +58,7 @@ METHOD_CONFIGS = {
     "p2_reverse": REPOSITORY_ROOT / "configs/p2_reverse.yml",
 }
 FORMAL_EPOCHS = 60
+FORMAL_SUPPORTED_EPOCHS = (50, FORMAL_EPOCHS)
 
 
 def _allocator_configuration() -> str | None:
@@ -113,7 +114,7 @@ def _arguments() -> argparse.Namespace:
         choices=("formal", "diagnostic"),
         default="formal",
         help=(
-            "formal uses the fixed 60-epoch Phase 5 pilot schedule; diagnostic permits "
+            "formal uses a fixed 50- or 60-epoch Phase 5 schedule; diagnostic permits "
             "short runs and latent-loss early stopping that cannot be reported as a main result"
         ),
     )
@@ -452,8 +453,9 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.run_kind == "formal":
         if args.early_stopping:
             raise ValueError("formal jobs cannot use latent-loss early stopping; use --run-kind diagnostic")
-        if args.max_epochs != FORMAL_EPOCHS:
-            raise ValueError(f"formal jobs require --max-epochs {FORMAL_EPOCHS}, got {args.max_epochs}")
+        if args.max_epochs not in FORMAL_SUPPORTED_EPOCHS:
+            allowed = " or ".join(map(str, FORMAL_SUPPORTED_EPOCHS))
+            raise ValueError(f"formal jobs require --max-epochs {allowed}, got {args.max_epochs}")
         if args.limit_train_batches != 1.0 or args.limit_val_batches != 1.0:
             raise ValueError("formal jobs require full train and validation batch limits")
         if args.validate_every:

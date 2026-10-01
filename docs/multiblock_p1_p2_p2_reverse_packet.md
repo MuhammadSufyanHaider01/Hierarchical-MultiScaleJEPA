@@ -23,16 +23,16 @@ mandatory read-only preflight, which includes P2-Reverse:
 
 ## 1. Formal pretraining — one command per method
 
-Run the following in order: P1, P2, then P2-Reverse. Each must finish 60
+Run the following in order: P1, P2, then P2-Reverse. Each must finish 50
 epochs with finite losses and write `checkpoints/last.ckpt`, `experiment.json`,
 and `summary.json` before its downstream work is approved.
 
 ```bash
-.venv/bin/python scripts/phase5_pretrain.py --method p1 --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 60 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
+.venv/bin/python scripts/phase5_pretrain.py --method p1 --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 50 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
 
-.venv/bin/python scripts/phase5_pretrain.py --method p2 --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 60 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
+.venv/bin/python scripts/phase5_pretrain.py --method p2 --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 50 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
 
-.venv/bin/python scripts/phase5_pretrain.py --method p2_reverse --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 60 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
+.venv/bin/python scripts/phase5_pretrain.py --method p2_reverse --seed 0 --run-root "$PACKET_RUN_ROOT" --run-kind formal --max-epochs 50 --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 --prefetch-factor 4 --epoch-metrics-only --attention-backend fused --precision bf16-mixed --device cuda --performance-safe
 ```
 
 ## 2. Validation-only frozen-exit selection

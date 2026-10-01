@@ -1,0 +1,4 @@
+  File "scripts/phase5_benchmark.py", line 9
+    from __future__ import annotations
+    ^
+SyntaxError: future feature annotations is not defined

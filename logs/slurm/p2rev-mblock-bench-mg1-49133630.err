@@ -1,0 +1,4 @@
+  File "scripts/phase5_benchmark.py", line 37
+    def _arguments() -> argparse.Namespace:
+                     ^
+SyntaxError: invalid syntax

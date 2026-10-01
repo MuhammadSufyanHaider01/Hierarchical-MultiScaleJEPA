@@ -1,0 +1,31 @@
+[rank: 0] Seed set to 0
+/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/pytorch/utilities/_pytree.py:21: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python scripts/phase5_pretrain.py --method p2 --seed 0 --ru ...
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+`Trainer(limit_train_batches=1.0)` was configured so 100% of the batches per epoch will be used..
+`Trainer(limit_val_batches=1.0)` was configured so 100% of the batches will be used..
+/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/pytorch/trainer/configuration_validator.py:70: You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py:242: Precision bf16-mixed is not supported by the model summary.  Estimated model size in MB will not be accurate. Using 32 bits instead.
+┏━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name            ┃ Type       ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ context_encoder │ Encoder    │  6.4 M │ train │     0 │
+│ 1 │ target_encoder  │ Encoder    │  6.4 M │ train │     0 │
+│ 2 │ predictor       │ Predictor  │  882 K │ train │     0 │
+│ 3 │ aux_predictors  │ ModuleDict │  2.6 M │ train │     0 │
+│ 4 │ loss            │ MSELoss    │      0 │ train │     0 │
+└───┴─────────────────┴────────────┴────────┴───────┴───────┘
+Trainable params: 9.8 M                                                         
+Non-trainable params: 6.6 M                                                     
+Total params: 16.4 M                                                            
+Total estimated model params size (MB): 65                                      
+Modules in train mode: 480                                                      
+Modules in eval mode: 0                                                         
+Total FLOPs: 0                                                                  
+[progress epoch 001] [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 000/903 batches optimizer_step=0[progress epoch 001] [█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 025/903 batches optimizer_step=6[progress epoch 001] [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 050/903 batches optimizer_step=12/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/pytorch/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 16. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+[progress epoch 001] [██░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 075/903 batches optimizer_step=18[progress epoch 001] [███░░░░░░░░░░░░░░░░░░░░░░░░░░░] 100/903 batches optimizer_step=25[progress epoch 001] [████░░░░░░░░░░░░░░░░░░░░░░░░░░] 125/903 batches optimizer_step=31[progress epoch 001] [█████░░░░░░░░░░░░░░░░░░░░░░░░░] 150/903 batches optimizer_step=37[progress epoch 001] [██████░░░░░░░░░░░░░░░░░░░░░░░░] 175/903 batches optimizer_step=43[progress epoch 001] [███████░░░░░░░░░░░░░░░░░░░░░░░] 200/903 batches optimizer_step=50/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/.venv/lib/python3.13/site-packages/lightning/pytorch/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 4. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+[progress epoch 001] [███████░░░░░░░░░░░░░░░░░░░░░░░] 225/903 batches optimizer_step=56[progress epoch 001] [████████░░░░░░░░░░░░░░░░░░░░░░] 250/903 batches optimizer_step=62[progress epoch 001] [█████████░░░░░░░░░░░░░░░░░░░░░] 275/903 batches optimizer_step=68[progress epoch 001] [██████████░░░░░░░░░░░░░░░░░░░░] 300/903 batches optimizer_step=75[progress epoch 001] [███████████░░░░░░░░░░░░░░░░░░░] 325/903 batches optimizer_step=81[progress epoch 001] [████████████░░░░░░░░░░░░░░░░░░] 350/903 batches optimizer_step=87[progress epoch 001] [████████████░░░░░░░░░░░░░░░░░░] 375/903 batches optimizer_step=93slurmstepd: error: *** JOB 49166553 ON mlg4 CANCELLED AT 2026-09-30T16:04:31 ***
