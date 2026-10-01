@@ -15,7 +15,7 @@ or launch formal GPU jobs.
   after each stage.
 - Stages S1/S2/S3/S4 expose logical exits L2/L4/L6/L8. Stage adapters produce
   256-dimensional tokens on the existing 14x14 predictor grid. S1/S2 are
-  adaptively pooled, S3 remains native, and S4 is nearest-neighbor upsampled
+  block-average pooled, S3 remains native, and S4 is nearest-neighbor upsampled
   from 7x7; this duplicates tokens and changes final-stage token weighting.
 - Context masks replace hidden 16x16 input patches with the configured fixed
   value before CNN processing. The EMA target sees the original unmasked input.

@@ -218,10 +218,10 @@ class ConvNeXtV2HierEncoder(nn.Module):
     def _adapt_stage(self, feature: torch.Tensor, stage_index: int, batch: int, channels: int,
                      *, normalize: bool) -> torch.Tensor:
         height, width = self.base_grid_size
-        if stage_index == 0:
-            feature = F.adaptive_avg_pool2d(feature, (height, width))
+        if stage_index == 0:  # fixed-factor pooling keeps deterministic CUDA backward supported
+            feature = F.avg_pool2d(feature, kernel_size=(feature.shape[-2] // height, feature.shape[-1] // width), stride=(feature.shape[-2] // height, feature.shape[-1] // width))
         elif stage_index == 1:
-            feature = F.adaptive_avg_pool2d(feature, (height, width))
+            feature = F.avg_pool2d(feature, kernel_size=(feature.shape[-2] // height, feature.shape[-1] // width), stride=(feature.shape[-2] // height, feature.shape[-1] // width))
         elif stage_index == 2:
             if tuple(feature.shape[-2:]) != (height, width):
                 raise ValueError(f"stage 3 should have {height}x{width} features, got {tuple(feature.shape[-2:])}")
@@ -319,7 +319,7 @@ class ConvNeXtV2HierEncoder(nn.Module):
             for layer in requested:
                 stage_index = self.exit_layers.index(layer)
                 features = masked.reshape(batch * masked.size(1), 1, masked.size(-2), masked.size(-1))
-                if stage_index == 0:
+                if stage_index == 0:  # fixed-factor pooling keeps deterministic CUDA backward supported
                     features = self.stem(features)
                 else:
                     with torch.no_grad():
