@@ -68,6 +68,14 @@ class Encoder(nn.Module):
         self.apply(self._init_weights)
         self.fix_init_weight()
 
+    @property
+    def logical_depth(self):
+        return len(self.blocks)
+
+    @property
+    def exit_embed_dim(self):
+        return int(self.pos_embed.shape[-1])
+
     def fix_init_weight(self):
         def rescale(param, layer_id):
             param.div_(math.sqrt(2.0 * layer_id))

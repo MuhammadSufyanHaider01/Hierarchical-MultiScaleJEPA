@@ -22,9 +22,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 os.environ.setdefault("WANDB_KEY", "offline")
 
-from configs import init_jepa_config  # noqa: E402
+from configs import configure_method_variant, init_jepa_config  # noqa: E402
 from evaluation import select_best_exit, select_earliest_within_tolerance  # noqa: E402
-from models import Encoder, FrozenEncoderExit, load_context_encoder_checkpoint  # noqa: E402
+from models import Encoder, FrozenEncoderExit, build_encoder, load_context_encoder_checkpoint  # noqa: E402
 from phase5 import (  # noqa: E402
     PRIMARY_TASKS,
     TaskSpec,
@@ -48,7 +48,7 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p1", "p2"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--head-seed", type=int, default=None)
     parser.add_argument("--split-seed", type=int, default=2025)
@@ -220,13 +220,7 @@ def _evaluate(
 
 
 def _new_encoder(config, checkpoint: Path, device: torch.device) -> Encoder:
-    encoder = Encoder(
-        img_size=tuple(config.encoder.img_size),
-        patch_size=config.encoder.patch_size,
-        embed_dim=config.encoder.embed_dim,
-        depth=config.encoder.depth,
-        num_heads=config.encoder.num_heads,
-    ).to(device)
+    encoder = build_encoder(config.encoder).to(device)
     load_context_encoder_checkpoint(encoder, checkpoint)
     encoder.eval()
     return encoder
@@ -388,8 +382,10 @@ def main() -> int:
         manifest = load_or_create_ood_split_manifest(manifest_path, args.ood_root, seed=args.split_seed)
         build_dataset = lambda task: build_ood_task_dataset(task, args.ood_root)
         make_subsets = ood_task_subsets
-    config_path = args.config or (REPOSITORY_ROOT / "configs" / f"{args.method}.yml")
+    config_method = {"cnn_p1": "p1", "cnn_p2": "p2", "cnn_p2_reverse": "p2", "p2_reverse": "p2"}.get(args.method, args.method)
+    config_path = args.config or (REPOSITORY_ROOT / "configs" / f"{config_method}.yml")
     config = init_jepa_config(str(config_path))
+    configure_method_variant(config, args.method)
     tasks = tuple(args.task or allowed_tasks)
     unsupported = sorted(set(tasks).difference(allowed_tasks))
     if unsupported:

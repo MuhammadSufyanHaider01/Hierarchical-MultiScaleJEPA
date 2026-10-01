@@ -9,6 +9,7 @@ from .predictor import Predictor, PredictorCLS
 from .jepa import JEPA
 from .validation import ValidationModule
 from .latentwfm import LatentWFM, get_latent_wfm
+from .factory import build_encoder
 from .exit_heads import (
     ExitHead,
     FrozenEncoderExit,
@@ -19,6 +20,7 @@ from .exit_heads import (
 __all__ = [
     "Encoder",
     "EncoderCLS",
+    "build_encoder",
     "Predictor",
     "PredictorCLS",
     "JEPA",

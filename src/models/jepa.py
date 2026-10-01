@@ -6,7 +6,8 @@ import numpy as np
 import torch.nn.functional as F
 
 from configs import JEPAConfig
-from models import Encoder, Predictor
+from .factory import build_encoder
+from .predictor import Predictor
 from .utils import apply_masks, repeat_interleave_batch, get_effective_rank, sample_channel_subsets
 from .regions import P2_LAYERS, build_mask_relative_region_layout, pool_target_regions
 from .validation import ValidationModule
@@ -18,13 +19,7 @@ class JEPA(ValidationModule):
     def __init__(self, config: JEPAConfig, iterations_per_epoch: int, eval_fns: list[callable], metrics: list[str]):
         super().__init__(eval_fns, metrics)
         CONFIG = config
-        self.context_encoder = Encoder(
-            img_size=CONFIG.encoder.img_size,
-            patch_size=CONFIG.encoder.patch_size,
-            embed_dim=CONFIG.encoder.embed_dim,
-            depth=CONFIG.encoder.depth,
-            num_heads=CONFIG.encoder.num_heads,
-        )
+        self.context_encoder = build_encoder(CONFIG.encoder)
         self.target_encoder = copy.deepcopy(self.context_encoder)
         self.predictor = Predictor(
             num_patches=(CONFIG.encoder.img_size[0] // CONFIG.encoder.patch_size) ** 2,
@@ -100,7 +95,9 @@ class JEPA(ValidationModule):
     def _validate_hierarchy_config(self):
         if not self.hierarchy_enabled:
             return
-        supported_modes = {"same_scale", "mask_relative_fine_to_coarse"}
+        supported_modes = {
+            "same_scale", "mask_relative_fine_to_coarse", "mask_relative_coarse_to_fine"
+        }
         if self.hierarchy_mode not in supported_modes:
             raise ValueError(f"unsupported hierarchy mode: {self.hierarchy_mode!r}")
         if self.hierarchy_warmup_epochs < 0:
@@ -109,7 +106,7 @@ class JEPA(ValidationModule):
             raise ValueError("hierarchy lambda must be non-negative")
         if len(set(self.hierarchy_layers)) != len(self.hierarchy_layers):
             raise ValueError(f"hierarchy layers must be unique, got {self.hierarchy_layers}")
-        depth = len(self.context_encoder.blocks)
+        depth = self.context_encoder.logical_depth
         if any(layer < 1 or layer >= depth for layer in self.hierarchy_layers):
             raise ValueError(
                 f"same-scale auxiliary layers must be in [1, {depth - 1}], got {self.hierarchy_layers}"
@@ -122,6 +119,14 @@ class JEPA(ValidationModule):
             not self.hierarchy_enabled or self.hierarchy_mode != "mask_relative_fine_to_coarse"
         ):
             raise ValueError("include_l8_coarse is an opt-in P2-only ablation")
+
+    def _region_layout_layer(self, encoder_layer: int) -> int:
+        """Map hierarchy exits to the existing fine/local/coarse regions."""
+        if encoder_layer == self.context_encoder.logical_depth:
+            return 6
+        if self.hierarchy_mode == "mask_relative_coarse_to_fine":
+            return {2: 6, 4: 4, 6: 2}[encoder_layer]
+        return encoder_layer
 
     def _freeze_target_encoder(self):
         for param in self.target_encoder.parameters():
@@ -168,11 +173,22 @@ class JEPA(ValidationModule):
         p2_layout = None
 
         if hierarchy_requested:
-            context_layers = tuple(sorted(set(self.auxiliary_layers + (len(self.context_encoder.blocks),))))
-            context_outputs = self.context_encoder(x, masks_enc, return_layers=context_layers)
-            context_emb = context_outputs[len(self.context_encoder.blocks)]
+            context_depth = self.context_encoder.logical_depth
+            if getattr(self.context_encoder, "has_stage_local_routing", False):
+                context_emb = self.context_encoder(
+                    x, masks_enc, return_layers=(context_depth,)
+                )[context_depth]
+                auxiliary_context_outputs = self.context_encoder.forward_local_layers(
+                    x, masks_enc, self.auxiliary_layers
+                )
+            else:
+                context_layers = tuple(sorted(set(self.auxiliary_layers + (context_depth,))))
+                context_outputs = self.context_encoder(x, masks_enc, return_layers=context_layers)
+                context_emb = context_outputs[context_depth]
+                auxiliary_context_outputs = context_outputs
         else:
             context_outputs = None
+            auxiliary_context_outputs = None
             context_emb = self.context_encoder(x, masks_enc)
         latent_mask_pred = self.predictor(context_emb, C, masks_enc, masks_pred)
 
@@ -183,7 +199,7 @@ class JEPA(ValidationModule):
                 # full-depth EMA pass.  The L8 output is normalized here to
                 # preserve the original target_encoder(x) result; raw
                 # intermediate taps are retained for P2 region pooling.
-                target_depth = len(self.target_encoder.blocks)
+                target_depth = self.target_encoder.logical_depth
                 target_layers = tuple(sorted(set(self.auxiliary_layers + (target_depth,))))
                 target_outputs = self.target_encoder(
                     x,
@@ -222,7 +238,7 @@ class JEPA(ValidationModule):
                             layout=p2_layout,
                             # L8 coarse supervision pools the same complete
                             # masked block as L6, but from L8 target features.
-                            layer=6 if layer == len(self.context_encoder.blocks) else layer,
+                            layer=self._region_layout_layer(layer),
                         )
                         .unsqueeze(1)
                         .expand(-1, num_context_masks, -1, -1, -1, -1)
@@ -235,18 +251,18 @@ class JEPA(ValidationModule):
         if self.hierarchy_mode == "same_scale":
             auxiliary_predictions = {
                 layer: self.aux_predictors[str(layer)](
-                    context_outputs[layer], C, masks_enc, masks_pred
+                    auxiliary_context_outputs[layer], C, masks_enc, masks_pred
                 )
                 for layer in self.auxiliary_layers
             }
         else:
             auxiliary_predictions = {
                 layer: self.aux_predictors[str(layer)].forward_regions(
-                    context_outputs[layer],
+                    auxiliary_context_outputs[layer],
                     C,
                     masks_enc,
-                    p2_layout.for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
-                    p2_layout.sizes_for_layer(6 if layer == len(self.context_encoder.blocks) else layer),
+                    p2_layout.for_layer(self._region_layout_layer(layer)),
+                    p2_layout.sizes_for_layer(self._region_layout_layer(layer)),
                 )
                 for layer in self.auxiliary_layers
             }

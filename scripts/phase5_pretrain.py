@@ -43,7 +43,7 @@ os.environ.setdefault("WANDB_KEY", "offline")
 
 from checkpointing import build_checkpoint_metadata  # noqa: E402
 from collators import get_collator  # noqa: E402
-from configs import init_jepa_config  # noqa: E402
+from configs import configure_method_variant, init_jepa_config  # noqa: E402
 from datasets import DeepMIMO, ImageDataset, PretrainCache  # noqa: E402
 from evaluation import evaluate_class, evaluate_pos  # noqa: E402
 from masking_profiles import PROFILE_NAMES, apply_mask_profile  # noqa: E402
@@ -55,6 +55,10 @@ METHOD_CONFIGS = {
     "p0": REPOSITORY_ROOT / "configs/p0.yml",
     "p1": REPOSITORY_ROOT / "configs/p1.yml",
     "p2": REPOSITORY_ROOT / "configs/p2.yml",
+    "p2_reverse": REPOSITORY_ROOT / "configs/p2.yml",
+    "cnn_p1": REPOSITORY_ROOT / "configs/p1.yml",
+    "cnn_p2": REPOSITORY_ROOT / "configs/p2.yml",
+    "cnn_p2_reverse": REPOSITORY_ROOT / "configs/p2.yml",
 }
 FORMAL_EPOCHS = 60
 
@@ -540,6 +544,7 @@ def main() -> int:
 
     config_path = METHOD_CONFIGS[args.method]
     config = init_jepa_config(str(config_path))
+    configure_method_variant(config, args.method)
     mask_profile = apply_mask_profile(config, args.mask_profile) if args.mask_profile else None
     config.seed = args.seed
     config.data.batch_size = args.batch_size

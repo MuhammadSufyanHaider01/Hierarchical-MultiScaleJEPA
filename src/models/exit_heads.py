@@ -34,13 +34,16 @@ class FrozenEncoderExit(nn.Module):
 
     def __init__(self, encoder: nn.Module, exit_layer: int, num_outputs: int):
         super().__init__()
-        depth = len(encoder.blocks)
+        depth = int(getattr(encoder, "logical_depth", len(encoder.blocks)))
         exit_layer = int(exit_layer)
         if exit_layer < 1 or exit_layer > depth:
             raise ValueError(f"exit_layer must be in [1, {depth}], got {exit_layer}")
         self.encoder = encoder
         self.exit_layer = exit_layer
-        self.head = ExitHead(encoder.pos_embed.shape[-1], int(num_outputs))
+        embed_dim = getattr(encoder, "exit_embed_dim", None)
+        if embed_dim is None:
+            embed_dim = encoder.pos_embed.shape[-1]
+        self.head = ExitHead(int(embed_dim), int(num_outputs))
         self.freeze_backbone()
 
     def freeze_backbone(self) -> None:

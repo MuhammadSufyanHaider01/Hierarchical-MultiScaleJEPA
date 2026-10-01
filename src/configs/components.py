@@ -11,6 +11,10 @@ class EncoderConfig(BaseSettings):
     embed_dim: int
     depth: int
     num_heads: int
+    backbone: Literal["vit", "convnext_v2_hier"] = "vit"
+    stage_depths: tuple[int, int, int, int] = (2, 2, 6, 2)
+    stage_channels: tuple[int, int, int, int] = (48, 96, 192, 384)
+    mask_value: float = 0.0
 
 
 class PredictorConfig(BaseSettings):
@@ -23,7 +27,11 @@ class HierarchyConfig(BaseSettings):
     """Optional P1 same-scale or P2 mask-relative JEPA supervision."""
 
     enabled: bool = False
-    mode: Literal["same_scale", "mask_relative_fine_to_coarse"] = "same_scale"
+    mode: Literal[
+        "same_scale",
+        "mask_relative_fine_to_coarse",
+        "mask_relative_coarse_to_fine",
+    ] = "same_scale"
     layers: list[int] = [2, 4, 6]
     lambda_h: float = Field(default=1.0, validation_alias="lambda")
     warmup_epochs: int = 12
