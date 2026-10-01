@@ -471,8 +471,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.memory_safe:
         if args.throughput_safe or args.performance_safe:
             raise ValueError("--memory-safe cannot be combined with another execution profile")
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--memory-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+            raise ValueError("--memory-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 4 or args.accumulate_grad_batches != 16:
             raise ValueError("--memory-safe requires --device cuda --batch-size 4 --accumulate-grad-batches 16")
         if args.precision != "32-true":
@@ -484,8 +484,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
     if args.throughput_safe:
         if args.performance_safe:
             raise ValueError("--throughput-safe and --performance-safe are mutually exclusive")
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--throughput-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+            raise ValueError("--throughput-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 8 or args.accumulate_grad_batches != 8:
             raise ValueError(
                 "--throughput-safe requires --device cuda --batch-size 8 "
@@ -504,8 +504,8 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
                 "reduce workers only in a separately documented contention test"
             )
     if args.performance_safe:
-        if args.method not in {"p1", "p2"}:
-            raise ValueError("--performance-safe is only defined for P1/P2 hierarchical jobs")
+        if args.method not in {"p1", "p2", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"}:
+            raise ValueError("--performance-safe is only defined for hierarchical JEPA jobs")
         if args.device != "cuda" or args.batch_size != 16 or args.accumulate_grad_batches != 4:
             raise ValueError(
                 "--performance-safe requires --device cuda --batch-size 16 "

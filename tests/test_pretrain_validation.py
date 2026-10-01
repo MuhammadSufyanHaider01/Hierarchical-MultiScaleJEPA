@@ -165,6 +165,19 @@ class PretrainValidationSplitTest(unittest.TestCase):
         ):
             _validate_run_arguments(arguments)
 
+        for method in ("cnn_p1", "cnn_p2", "cnn_p2_reverse"):
+            cnn_arguments = self._arguments(
+                method=method, batch_size=16, accumulate_grad_batches=4,
+                num_workers=3, hdf5_worker_budget=12, prefetch_factor=4,
+                epoch_metrics_only=True, attention_backend="fused",
+                performance_safe=True, device="cuda", precision="bf16-mixed",
+            )
+            with patch("phase5_pretrain.torch.cuda.is_available", return_value=True), patch(
+                "phase5_pretrain.torch.cuda.is_bf16_supported", return_value=True
+            ), patch.dict("phase5_pretrain.os.environ",
+                {"PYTORCH_ALLOC_CONF": "expandable_segments:True"}, clear=False):
+                _validate_run_arguments(cnn_arguments)
+
         legacy_arguments = self._arguments(
             method="p2",
             batch_size=16,
