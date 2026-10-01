@@ -63,6 +63,7 @@ class ConvNeXtV2HierEncoderTest(unittest.TestCase):
 
     def test_local_auxiliary_gradients_are_isolated_to_their_own_stage(self):
         self.encoder.train()
+        self.encoder.gradient_checkpointing = True
         images = torch.randn(1, 1, 224, 224)
         visible = torch.arange(98, dtype=torch.long).reshape(1, -1)
         for layer, stage_index in ((2, 0), (4, 1), (6, 2)):

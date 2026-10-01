@@ -13,6 +13,7 @@ from collections.abc import Sequence
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 
 from .utils import apply_masks
 
@@ -100,6 +101,7 @@ class ConvNeXtV2HierEncoder(nn.Module):
         stage_depths: Sequence[int] = (2, 2, 6, 2),
         stage_channels: Sequence[int] = (48, 96, 192, 384),
         mask_value: float = 0.0,
+        gradient_checkpointing: bool = False,
         norm_eps: float = 1e-6,
     ):
         super().__init__()
@@ -118,6 +120,7 @@ class ConvNeXtV2HierEncoder(nn.Module):
             self.img_size[1] // self.patch_size,
         )
         self.mask_value = float(mask_value)
+        self.gradient_checkpointing = bool(gradient_checkpointing)
         widths = tuple(int(value) for value in stage_channels)
         self.stage_channels = widths
 
@@ -211,17 +214,22 @@ class ConvNeXtV2HierEncoder(nn.Module):
         return outputs
 
     def _run_stage(self, x: torch.Tensor, stage_index: int, batch: int, channels: int) -> torch.Tensor:
-        x = self.stages[stage_index](x)
+        for block in self.stages[stage_index]:
+            if self.gradient_checkpointing and self.training and torch.is_grad_enabled():
+                x = checkpoint(block, x, use_reentrant=False)
+            else:
+                x = block(x)
         x = self.channel_fusions[stage_index](x, batch, channels)
         return x.reshape(batch * channels, x.size(2), x.size(3), x.size(4))
 
     def _adapt_stage(self, feature: torch.Tensor, stage_index: int, batch: int, channels: int,
                      *, normalize: bool) -> torch.Tensor:
         height, width = self.base_grid_size
-        if stage_index == 0:  # fixed-factor pooling keeps deterministic CUDA backward supported
-            feature = F.avg_pool2d(feature, kernel_size=(feature.shape[-2] // height, feature.shape[-1] // width), stride=(feature.shape[-2] // height, feature.shape[-1] // width))
-        elif stage_index == 1:
-            feature = F.avg_pool2d(feature, kernel_size=(feature.shape[-2] // height, feature.shape[-1] // width), stride=(feature.shape[-2] // height, feature.shape[-1] // width))
+        if stage_index in (0, 1):  # fixed-factor pooling keeps deterministic CUDA backward supported
+            if feature.shape[-2] % height or feature.shape[-1] % width:
+                raise ValueError(f"stage {stage_index + 1} features cannot be evenly pooled to {(height, width)}")
+            factor = (feature.shape[-2] // height, feature.shape[-1] // width)
+            feature = F.avg_pool2d(feature, kernel_size=factor, stride=factor)
         elif stage_index == 2:
             if tuple(feature.shape[-2:]) != (height, width):
                 raise ValueError(f"stage 3 should have {height}x{width} features, got {tuple(feature.shape[-2:])}")

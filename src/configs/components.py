@@ -15,6 +15,7 @@ class EncoderConfig(BaseSettings):
     stage_depths: tuple[int, int, int, int] = (2, 2, 6, 2)
     stage_channels: tuple[int, int, int, int] = (48, 96, 192, 384)
     mask_value: float = 0.0
+    gradient_checkpointing: bool = False
 
 
 class PredictorConfig(BaseSettings):

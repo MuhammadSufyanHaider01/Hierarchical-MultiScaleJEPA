@@ -21,6 +21,7 @@ def configure_method_variant(config: JEPAConfig, method: str) -> JEPAConfig:
         config.encoder.stage_depths = (2, 2, 6, 2)
         config.encoder.stage_channels = (48, 96, 192, 384)
         config.encoder.mask_value = 0.0
+        config.encoder.gradient_checkpointing = True
     if method in {"p2_reverse", "cnn_p2_reverse"}:
         config.hierarchy.mode = "mask_relative_coarse_to_fine"
     return config

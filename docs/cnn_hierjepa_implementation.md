@@ -18,7 +18,7 @@ or launch formal GPU jobs.
   block-average pooled, S3 remains native, and S4 is nearest-neighbor upsampled
   from 7x7; this duplicates tokens and changes final-stage token weighting.
 - Context masks replace hidden 16x16 input patches with the configured fixed
-  value before CNN processing. The EMA target sees the original unmasked input.
+  value before CNN processing. The EMA target sees the original unmasked input. CNN stage blocks use activation checkpointing during training; this trades recomputation for lower memory without changing inference.
 - CNN P1, P2, and P2-Reverse use the existing method objectives. Intermediate
   CNN auxiliary losses route gradients only through their supervised stage
   and its input transition; the original L8 anchor remains end-to-end.

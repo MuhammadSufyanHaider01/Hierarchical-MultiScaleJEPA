@@ -31,5 +31,6 @@ def build_encoder(encoder_config):
             stage_depths=encoder_config.stage_depths,
             stage_channels=encoder_config.stage_channels,
             mask_value=encoder_config.mask_value,
+            gradient_checkpointing=getattr(encoder_config, "gradient_checkpointing", False),
         )
     raise ValueError(f"unsupported encoder backbone: {backbone!r}")
