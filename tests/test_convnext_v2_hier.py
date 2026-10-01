@@ -30,6 +30,16 @@ class ConvNeXtV2HierEncoderTest(unittest.TestCase):
                 self.assertEqual(tuple(exits[layer].shape), (1, channels * 196, 16))
             self.assertTrue(torch.equal(self.encoder.forward_to_layer(images, 8), exits[8]))
 
+    def test_smaller_valid_input_keeps_canonical_exit_shapes(self):
+        self.encoder.eval()
+        images = torch.randn(2, 3, 32, 32)
+        exits = self.encoder(images, return_layers=(2, 4, 6, 8))
+        for layer in (2, 4, 6, 8):
+            self.assertEqual(tuple(exits[layer].shape), (2, 3 * 196, 16))
+            self.assertTrue(torch.isfinite(exits[layer]).all())
+        with self.assertRaisesRegex(ValueError, "at least 32 and divisible by 32"):
+            self.encoder(torch.randn(1, 1, 16, 16))
+
     def test_context_checkpoint_round_trip(self):
         with tempfile.TemporaryDirectory() as directory:
             checkpoint = Path(directory) / "cnn_context.ckpt"

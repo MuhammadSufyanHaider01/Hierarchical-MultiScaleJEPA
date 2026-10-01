@@ -176,16 +176,14 @@ class ConvNeXtV2HierEncoder(nn.Module):
         batch, channels, height, width = x.shape
         if channels < 1:
             raise ValueError("the physical-channel dimension must be non-empty")
-        if height % 32 or width % 32:
-            raise ValueError(f"input dimensions must be divisible by 32, got {(height, width)}")
+        if height < 32 or width < 32 or height % 32 or width % 32:
+            raise ValueError(
+                "input dimensions must be at least 32 and divisible by 32, "
+                f"got {(height, width)}"
+            )
         if height % self.patch_size or width % self.patch_size:
             raise ValueError(
                 f"input dimensions must be divisible by patch_size={self.patch_size}, got {(height, width)}"
-            )
-        if (height // self.patch_size, width // self.patch_size) != self.base_grid_size:
-            raise ValueError(
-                "CNN input grid must match configured img_size; "
-                f"expected {self.base_grid_size}, got {(height // self.patch_size, width // self.patch_size)}"
             )
         return batch, channels, height, width
 
@@ -225,14 +223,25 @@ class ConvNeXtV2HierEncoder(nn.Module):
     def _adapt_stage(self, feature: torch.Tensor, stage_index: int, batch: int, channels: int,
                      *, normalize: bool) -> torch.Tensor:
         height, width = self.base_grid_size
-        if stage_index in (0, 1):  # fixed-factor pooling keeps deterministic CUDA backward supported
-            if feature.shape[-2] % height or feature.shape[-1] % width:
-                raise ValueError(f"stage {stage_index + 1} features cannot be evenly pooled to {(height, width)}")
-            factor = (feature.shape[-2] // height, feature.shape[-1] // width)
-            feature = F.avg_pool2d(feature, kernel_size=factor, stride=factor)
+        if stage_index in (0, 1):
+            source_height, source_width = feature.shape[-2:]
+            if source_height >= height and source_width >= width:
+                if source_height % height == 0 and source_width % width == 0:
+                    # Preserve exact average-pooling for 56/28 -> 14.
+                    factor = (source_height // height, source_width // width)
+                    feature = F.avg_pool2d(feature, kernel_size=factor, stride=factor)
+                else:
+                    feature = F.adaptive_avg_pool2d(feature, output_size=(height, width))
+            else:
+                # Smaller downstream grids are interpolated to the canonical grid.
+                feature = F.interpolate(
+                    feature, size=(height, width), mode="bilinear", align_corners=False
+                )
         elif stage_index == 2:
             if tuple(feature.shape[-2:]) != (height, width):
-                raise ValueError(f"stage 3 should have {height}x{width} features, got {tuple(feature.shape[-2:])}")
+                feature = F.interpolate(
+                    feature, size=(height, width), mode="bilinear", align_corners=False
+                )
         else:
             feature = F.interpolate(feature, size=(height, width), mode="nearest")
         feature = self.adapters[stage_index](feature)
