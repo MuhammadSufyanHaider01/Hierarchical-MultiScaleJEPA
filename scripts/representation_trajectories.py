@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract and compare P0/P2 Interference representation trajectories."""
+"""Extract and compare P0/P1/P2/P2-Reverse Interference trajectories."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import csv
 import json
 import os
 import sys
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -20,11 +22,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 os.environ.setdefault("WANDB_KEY", "offline")
 
-from configs import init_jepa_config  # noqa: E402
+from configs import configure_method_variant, init_jepa_config  # noqa: E402
 from datasets import ImageDataset  # noqa: E402
-from models import Encoder, load_context_encoder_checkpoint  # noqa: E402
+from models import build_encoder, load_context_encoder_checkpoint  # noqa: E402
 from representation_trajectories import (  # noqa: E402
-    EMBED_DIM, LAYERS, TEMPORAL_LEVELS, IndexedSamples, extract_features, fit_pca,
+    CHECKPOINT_HORIZONS, EMBED_DIM, LAYERS, METHODS, TEMPORAL_LEVELS, IndexedSamples, canonical_mask_signature, extract_features, fit_pca,
     load_split_and_labels, paired_bootstrap, sha256_file, sha256_indices,
     transform_pca, trajectory_metrics, validate_checkpoint_metadata,
     validate_source_metrics, write_figures, write_summary,
@@ -32,9 +34,13 @@ from representation_trajectories import (  # noqa: E402
 
 DEFAULTS = {
     "p0_checkpoint": Path("/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/checkpoints/epoch=epoch=059-step=step=13560.ckpt"),
+    "p1_checkpoint": Path("runs/masking_study/frequency_n6/p1_same_scale_frequency_p2matched/seed_000/checkpoints/epoch=epoch=059-step=step=13560.ckpt"),
     "p2_checkpoint": Path("/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt"),
     "p0_source_metrics": Path("runs/masking_study/multi_block_n6/p0/seed_000/downstream/exit_metrics.json"),
+    "p1_source_metrics": Path("runs/masking_study/frequency_n6/p1_epoch060_six_tasks/p1/seed_000/downstream/exit_metrics.json"),
     "p2_source_metrics": Path("runs/masking_study/multi_block_n6/p2/seed_000/downstream/exit_metrics.json"),
+    "p2_reverse_checkpoint": Path("runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/checkpoints/last.ckpt"),
+    "p2_reverse_source_metrics": Path("imports/p2_reverse/multi_block_n6/downstream/exit_metrics.json"),
     "split_manifest": Path("runs/masking_study/multi_block_n6/splits_seed_2025_primary_v3.json"),
     "interference_h5": Path("/home/waves-lab/LatentWave_Data/preprocessed_datasets/interference.h5"),
     "output_root": Path("runs/representation_trajectories/multi_block_n6/interference/seed_000"),
@@ -48,7 +54,9 @@ def arguments() -> argparse.Namespace:
     for name, default in DEFAULTS.items():
         parser.add_argument(f"--{name.replace('_', '-')}", type=Path, default=default)
     parser.add_argument("--p0-config", type=Path, default=Path("configs/p0.yml"))
+    parser.add_argument("--p1-config", type=Path, default=Path("configs/p1.yml"))
     parser.add_argument("--p2-config", type=Path, default=Path("configs/p2.yml"))
+    parser.add_argument("--p2-reverse-config", type=Path, default=Path("configs/p2.yml"))
     parser.add_argument("--pca-fit-dir", type=Path, help="Validation output root, required for --split test")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=2)
@@ -71,9 +79,11 @@ def _load_model(method: str, config_path: Path, checkpoint_path: Path, device: t
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     if not isinstance(checkpoint, dict) or not isinstance(checkpoint.get("metadata"), dict):
         raise ValueError(f"checkpoint lacks Phase 5 metadata: {checkpoint_path}")
-    meta = validate_checkpoint_metadata(checkpoint["metadata"], method=method)
-    if int(checkpoint.get("epoch", -1)) != 59 or int(checkpoint.get("global_step", -1)) != 13560:
-        raise ValueError(f"{method} checkpoint must be epoch=59/global_step=13560")
+    expected_epoch, expected_step = CHECKPOINT_HORIZONS[method]
+    meta = validate_checkpoint_metadata(checkpoint["metadata"], method=method,
+                                        expected_epoch=expected_epoch, expected_step=expected_step)
+    if int(checkpoint.get("epoch", -1)) != expected_epoch or int(checkpoint.get("global_step", -1)) != expected_step:
+        raise ValueError(f"{method} checkpoint must be epoch={expected_epoch}/global_step={expected_step}")
     config = init_jepa_config(str(config_path))
     metadata_config = checkpoint["metadata"].get("config", {})
     for key in ("img_size", "patch_size", "embed_dim", "depth", "num_heads"):
@@ -87,16 +97,17 @@ def _load_model(method: str, config_path: Path, checkpoint_path: Path, device: t
         raise ValueError(f"{method} local config must use multi_block/span_time")
     if config.masks.multi_block.num_pred_masks != 6:
         raise ValueError(f"{method} local config must specify six prediction masks")
-    expected_hierarchy = method == "p2"
+    config = configure_method_variant(config, method)
+    local_signature = canonical_mask_signature(config.model_dump())
+    if local_signature != meta["mask_signature"]:
+        raise ValueError(f"{method} local config mask signature differs from checkpoint metadata")
+    expected_modes = {"p1": "same_scale", "p2": "mask_relative_fine_to_coarse", "p2_reverse": "mask_relative_coarse_to_fine"}
+    expected_hierarchy = method in ("p1", "p2", "p2_reverse")
     if config.hierarchy.enabled != expected_hierarchy:
         raise ValueError(f"{method} local config hierarchy enabled must be {expected_hierarchy}")
-    if expected_hierarchy and (config.hierarchy.mode != "mask_relative_fine_to_coarse" or config.hierarchy.layers != [2, 4, 6]):
-        raise ValueError("P2 local config must define fine-to-coarse hierarchy at L2/L4/L6")
-    encoder = Encoder(
-        img_size=tuple(config.encoder.img_size), patch_size=config.encoder.patch_size,
-        embed_dim=config.encoder.embed_dim, depth=config.encoder.depth,
-        num_heads=config.encoder.num_heads,
-    ).to(device)
+    if expected_hierarchy and (config.hierarchy.mode != expected_modes[method] or config.hierarchy.layers != [2, 4, 6]):
+        raise ValueError(f"{method} local config has the wrong hierarchy semantics")
+    encoder = build_encoder(config.encoder).to(device)
     load_context_encoder_checkpoint(encoder, checkpoint_path)
     encoder.eval()
     for parameter in encoder.parameters():
@@ -104,6 +115,19 @@ def _load_model(method: str, config_path: Path, checkpoint_path: Path, device: t
     meta["actual_epoch"] = int(checkpoint["epoch"])
     meta["actual_global_step"] = int(checkpoint["global_step"])
     return encoder, meta
+
+
+def _pretraining_manifest(config_path: Path) -> list[dict[str, Any]]:
+    config = init_jepa_config(str(config_path))
+    records = []
+    for dataset in config.data.pretrain_datasets:
+        path = _resolve(Path(dataset.path))
+        record = {"name": dataset.name, "key": dataset.key, "configured_path": dataset.path,
+                  "resolved_path": str(path.resolve()), "exists": path.is_file()}
+        if path.is_file():
+            record["size_bytes"] = path.stat().st_size
+        records.append(record)
+    return records
 
 
 def _save_pca(path: Path, pca) -> None:
@@ -133,7 +157,8 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
     with path.open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(dict.fromkeys(key for row in rows for key in row)))
+        writer = csv.DictWriter(stream, fieldnames=list(dict.fromkeys(key for row in rows for key in row)),
+                                lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -149,12 +174,12 @@ def run(args: argparse.Namespace) -> None:
             raise FileNotFoundError(f"{name}: {path}")
     split_manifest = paths["split_manifest"]
     packets = {}
-    checkpoint_paths = {"p0": paths["p0_checkpoint"], "p2": paths["p2_checkpoint"]}
-    for method in ("p0", "p2"):
+    checkpoint_paths = {method: paths[f"{method}_checkpoint"] for method in METHODS}
+    for method in METHODS:
         source = paths[f"{method}_source_metrics"]
-        packets[method] = validate_source_metrics(source, method=method, manifest_path=split_manifest)
-    if packets["p0"].get("split_manifest") != packets["p2"].get("split_manifest"):
-        raise ValueError("P0 and P2 source metrics do not share the same split manifest")
+        packets[method] = validate_source_metrics(source, method=method, manifest_path=split_manifest,
+                                                  allow_unverifiable_manifest=(method == "p2_reverse"))
+
 
     with h5py.File(paths["interference_h5"], "r") as h5:
         raw_labels = np.asarray(h5["cls_labels"][:]).reshape(-1)
@@ -177,7 +202,7 @@ def run(args: argparse.Namespace) -> None:
     device = _device(args.device)
     features: dict[str, np.ndarray] = {}
     model_metadata: dict[str, Any] = {}
-    for method in ("p0", "p2"):
+    for method in METHODS:
         encoder, model_metadata[method] = _load_model(
             method, _resolve(getattr(args, f"{method}_config")), checkpoint_paths[method], device
         )
@@ -192,13 +217,13 @@ def run(args: argparse.Namespace) -> None:
         if device.type == "cuda":
             torch.cuda.empty_cache()
     if not np.array_equal(labels, expected_labels):
-        raise RuntimeError("P0/P2 sample labels are not aligned")
+        raise RuntimeError("Four-method sample labels are not aligned")
 
     output_dir = paths["output_root"] / args.split
     output_dir.mkdir(parents=True, exist_ok=True)
     class_counts = {str(cls): int(np.sum(labels == cls)) for cls in (0, 1)}
     np.savez_compressed(output_dir / "features.npz", labels=labels, indices=seen_indices,
-                        p0=features["p0"], p2=features["p2"],
+                        **features,
                         temporal_levels=np.asarray(TEMPORAL_LEVELS), layers=np.asarray(LAYERS))
     provenance = {
         "schema_version": 1,
@@ -212,14 +237,14 @@ def run(args: argparse.Namespace) -> None:
         "checkpoints": {},
         "configs": {},
         "source_metrics": {},
-        "p0_packet_checkpoint_mismatch": None,
+        "source_metrics_checkpoint_mismatches": {},
         "data": {"path": str(paths["interference_h5"].resolve()), "sample_shape": sample_shape},
         "feature_definition": {
             "encoder": "frozen context_encoder", "layers": list(LAYERS),
             "temporal_columns": list(TEMPORAL_LEVELS), "grid": [14, 14],
             "selection": "row-major leading-column patch indices after full-grid positional embedding",
-            "token_counts": [28, 56, 112, 196], "pooling": "mean over normalized tokens",
-            "dimension": EMBED_DIM,
+            "token_counts": [28, 56, 112, 196], "normalization": "context encoder normalize_exits=True per layer",
+            "pooling": "mean over normalized tokens", "dimension": EMBED_DIM,
         },
         "pca": {"fit_split": "validation", "n_components": 2, "svd_solver": "full",
                 "basis": "separate per model; jointly fit over all layers and temporal levels"},
@@ -227,37 +252,58 @@ def run(args: argparse.Namespace) -> None:
         "diagnostic_limit_per_class": args.limit_per_class,
         "environment": {"torch": torch.__version__, "device": str(device)},
     }
-    for method in ("p0", "p2"):
+    for method in METHODS:
         checkpoint = torch.load(checkpoint_paths[method], map_location="cpu", weights_only=False)
         provenance["checkpoints"][method] = {
             "path": str(checkpoint_paths[method].resolve()), "sha256": sha256_file(checkpoint_paths[method]),
             **model_metadata[method],
         }
-        provenance["configs"][method] = {"path": str(_resolve(getattr(args, f"{method}_config")).resolve())}
+        config_path = _resolve(getattr(args, f"{method}_config"))
+        provenance["configs"][method] = {"path": str(config_path.resolve())}
+        provenance.setdefault("pretraining_data_manifests", {})[method] = _pretraining_manifest(config_path)
         metric_path = paths[f"{method}_source_metrics"]
-        provenance["source_metrics"][method] = {"path": str(metric_path.resolve()), "sha256": sha256_file(metric_path)}
-        if method == "p0":
-            provenance["p0_packet_checkpoint_mismatch"] = {
-                "packet_checkpoint": packets[method].get("checkpoint"),
+        provenance["source_metrics"][method] = {"path": str(metric_path.resolve()), "sha256": sha256_file(metric_path),
+                                                "split_verification": packets[method].get("_split_verification", {"status": "unverified"})}
+        packet_checkpoint = packets[method].get("checkpoint")
+        if packet_checkpoint and Path(packet_checkpoint).resolve() != checkpoint_paths[method].resolve():
+            provenance["source_metrics_checkpoint_mismatches"][method] = {
+                "packet_checkpoint": packet_checkpoint,
                 "analysis_checkpoint": str(checkpoint_paths[method].resolve()),
-                "reason": "Use the epoch-59 checkpoint matched to P2; packet points to epoch-64 last.ckpt.",
+                "reason": ("Packet names the epoch-64 run checkpoint; analysis uses the matched epoch-59/step-13560 checkpoint."
+                           if method == "p0" else
+                           "P2-Reverse source packet is from the same 50-epoch run; supplied archive is used at epoch-49/step-11300."
+                           if method == "p2_reverse" else
+                           "Analysis intentionally uses the matched epoch-59/step-13560 checkpoint."),
             }
         del checkpoint
+    provenance["checkpoint_horizons"] = {
+        method: {"epoch": CHECKPOINT_HORIZONS[method][0], "global_step": CHECKPOINT_HORIZONS[method][1],
+                 "max_epochs": model_metadata[method].get("max_epochs")}
+        for method in METHODS
+    }
+    provenance["pretraining_data_manifest_comparison"] = {
+        method: provenance["pretraining_data_manifests"][method] == provenance["pretraining_data_manifests"]["p0"]
+        for method in METHODS
+    }
     (output_dir / "provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True))
 
     coords: dict[str, np.ndarray] = {}
     if args.split == "validation":
-        for method in ("p0", "p2"):
+        pca_evr = {}
+        for method in METHODS:
             pca = fit_pca(features[method])
             _save_pca(output_dir / f"pca_{method}.npz", pca)
+            pca_evr[method] = pca.explained_variance_ratio_.tolist()
             coords[method] = transform_pca(pca, features[method]).astype(np.float32)
         (output_dir / "pca_metadata.json").write_text(json.dumps({
             "schema_version": 1, "fit_split": "validation",
-            "checkpoint_sha256": {m: provenance["checkpoints"][m]["sha256"] for m in ("p0", "p2")},
+            "checkpoint_sha256": {m: provenance["checkpoints"][m]["sha256"] for m in METHODS},
+            "explained_variance_ratio": pca_evr,
             "feature_definition": provenance["feature_definition"],
         }, indent=2, sort_keys=True))
-        np.savez_compressed(output_dir / "coordinates.npz", labels=labels, indices=seen_indices,
-                            p0=coords["p0"], p2=coords["p2"])
+        provenance["pca"]["explained_variance_ratio"] = pca_evr
+        (output_dir / "provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True))
+        np.savez_compressed(output_dir / "coordinates.npz", labels=labels, indices=seen_indices, **coords)
         return
 
     if args.pca_fit_dir is None:
@@ -266,20 +312,32 @@ def run(args: argparse.Namespace) -> None:
     pca_meta = json.loads((pca_fit_dir / "pca_metadata.json").read_text())
     if pca_meta.get("fit_split") != "validation":
         raise ValueError("PCA artifact was not fit on validation")
-    current_hashes = {m: provenance["checkpoints"][m]["sha256"] for m in ("p0", "p2")}
+    current_hashes = {m: provenance["checkpoints"][m]["sha256"] for m in METHODS}
     if pca_meta.get("checkpoint_sha256") != current_hashes:
         raise ValueError("PCA artifacts were fit with different checkpoints")
-    for method in ("p0", "p2"):
+    provenance["pca"]["explained_variance_ratio"] = pca_meta.get("explained_variance_ratio", {})
+    for method in METHODS:
         coords[method] = transform_pca(_load_pca(pca_fit_dir / f"pca_{method}.npz"), features[method]).astype(np.float32)
-    np.savez_compressed(output_dir / "coordinates.npz", labels=labels, indices=seen_indices,
-                        p0=coords["p0"], p2=coords["p2"])
+    np.savez_compressed(output_dir / "coordinates.npz", labels=labels, indices=seen_indices, **coords)
     metric_rows = trajectory_metrics(features, labels)
     interval_rows = paired_bootstrap(features, labels)
+    report_dir = paths["report_root"]
+    report_dir.parent.mkdir(parents=True, exist_ok=True)
+    staged = Path(tempfile.mkdtemp(prefix=".trajectory-report-", dir=report_dir.parent))
+    try:
+        _write_csv(staged / "metrics.csv", metric_rows)
+        _write_csv(staged / "bootstrap_intervals.csv", interval_rows)
+        write_figures(features, coords, labels, metric_rows, interval_rows, staged,
+                      pca_explained_variance=pca_meta.get("explained_variance_ratio", {}))
+        write_summary(staged / "summary.md", metric_rows, interval_rows, provenance)
+        report_dir.mkdir(parents=True, exist_ok=True)
+        for filename in ("metrics.csv", "bootstrap_intervals.csv", "class_centroid_trajectories.png",
+                         "class_centroid_trajectories.pdf", "trajectory_metrics.png", "trajectory_metrics.pdf", "summary.md"):
+            os.replace(staged / filename, report_dir / filename)
+    finally:
+        shutil.rmtree(staged, ignore_errors=True)
     _write_csv(output_dir / "metrics.csv", metric_rows)
     _write_csv(output_dir / "bootstrap_intervals.csv", interval_rows)
-    report_dir = paths["report_root"]
-    write_figures(features, coords, labels, metric_rows, interval_rows, report_dir)
-    write_summary(report_dir / "summary.md", metric_rows, interval_rows, provenance)
     provenance["artifacts"] = {"features": str((output_dir / "features.npz").resolve()),
                                "coordinates": str((output_dir / "coordinates.npz").resolve()),
                                "metrics": str((output_dir / "metrics.csv").resolve()),

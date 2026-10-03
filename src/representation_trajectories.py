@@ -1,4 +1,4 @@
-"""Matched P0/P2 intermediate representation trajectories for Interference."""
+"""Matched multi-method intermediate representation trajectories for Interference."""
 
 from __future__ import annotations
 
@@ -17,6 +17,22 @@ TEMPORAL_LEVELS = (2, 4, 8, 14)
 GRID_SIZE = 14
 EMBED_DIM = 256
 
+
+METHODS = ("p0", "p1", "p2", "p2_reverse")
+METHOD_LABELS = {"p0": "P0", "p1": "P1", "p2": "P2", "p2_reverse": "P2-Reverse"}
+COMPARISONS = (("p1", "p0"), ("p2", "p0"), ("p2_reverse", "p0"), ("p2", "p1"), ("p2", "p2_reverse"))
+HIERARCHY = {"p0": (False, None), "p1": (True, "same_scale"), "p2": (True, "mask_relative_fine_to_coarse"), "p2_reverse": (True, "mask_relative_coarse_to_fine")}
+CHECKPOINT_HORIZONS = {"p0": (59, 13560), "p1": (59, 13560), "p2": (59, 13560), "p2_reverse": (49, 11300)}
+
+
+def canonical_mask_signature(config: Mapping[str, Any]) -> dict[str, Any]:
+    masks = config.get("masks", {})
+    block = masks.get("multi_block", {})
+    return {"type": masks.get("type"), "allow_overlap": bool(block.get("allow_overlap", False)),
+            "aspect_ratio_type": block.get("aspect_ratio_type"), "aspect_ratio": list(block.get("aspect_ratio", [])),
+            "enc_mask_scale": list(block.get("enc_mask_scale", [])), "min_keep": int(block.get("min_keep", -1)),
+            "num_enc_masks": int(block.get("num_enc_masks", -1)), "num_pred_masks": int(block.get("num_pred_masks", -1)),
+            "pred_mask_scale": list(block.get("pred_mask_scale", []))}
 
 class IndexedSamples(Dataset):
     """Return samples with source indices so persisted split order is auditable."""
@@ -58,15 +74,20 @@ def temporal_token_indices(columns: int, *, grid_size: int = GRID_SIZE) -> torch
 
 
 def validate_checkpoint_metadata(
-    metadata: Mapping[str, Any], *, method: str, expected_epoch: int = 59, expected_step: int = 13560
+    metadata: Mapping[str, Any], *, method: str, expected_epoch: int | None = None, expected_step: int | None = None
 ) -> dict[str, Any]:
-    """Check real Phase 5 checkpoint provenance and P0/P2 mask signatures."""
+    """Check matched checkpoint provenance for a canonical method."""
+    if method not in METHODS:
+        raise ValueError(f"unsupported method {method!r}; expected one of {METHODS}")
     phase5 = metadata.get("phase5", {})
+    horizon_epoch, horizon_step = CHECKPOINT_HORIZONS[method]
+    expected_epoch = horizon_epoch if expected_epoch is None else expected_epoch
+    expected_step = horizon_step if expected_step is None else expected_step
     config = metadata.get("config", {})
     masks = config.get("masks", {})
     block = masks.get("multi_block", {})
     hierarchy = config.get("hierarchy", {})
-    expected_hierarchy = method == "p2"
+    expected_hierarchy, expected_mode = HIERARCHY[method]
     errors = []
     if metadata.get("seed") != 0 or phase5.get("seed") != 0:
         errors.append("checkpoint seed must be 0")
@@ -74,34 +95,38 @@ def validate_checkpoint_metadata(
         errors.append(f"checkpoint method must be {method}")
     if int(phase5.get("epoch", expected_epoch)) != expected_epoch:
         errors.append(f"checkpoint metadata epoch must be {expected_epoch}")
-    if masks.get("type") != "multi_block":
-        errors.append("mask type must be multi_block")
-    if block.get("aspect_ratio_type") != "span_time":
-        errors.append("multi_block aspect_ratio_type must be span_time")
-    if int(block.get("num_pred_masks", -1)) != 6:
-        errors.append("multi_block num_pred_masks must be 6")
+    expected_max_epochs = 50 if method == "p2_reverse" else None
+    if expected_max_epochs is not None and int(phase5.get("max_epochs", -1)) != expected_max_epochs:
+        errors.append(f"{METHOD_LABELS[method]} checkpoint run must declare max_epochs={expected_max_epochs}")
+    signature = canonical_mask_signature(config)
+    expected_signature = {"type": "multi_block", "allow_overlap": False, "aspect_ratio_type": "span_time",
+                          "aspect_ratio": [0.75, 1.5], "enc_mask_scale": [1.0, 1.0], "min_keep": 10,
+                          "num_enc_masks": 1, "num_pred_masks": 6, "pred_mask_scale": [0.15, 0.2]}
+    if signature != expected_signature:
+        errors.append(f"mask signature must match canonical multi_block/span_time six-mask recipe: {signature}")
     if bool(hierarchy.get("enabled", False)) != expected_hierarchy:
         errors.append(f"hierarchy enabled must be {expected_hierarchy}")
-    if expected_hierarchy and (
-        hierarchy.get("mode") != "mask_relative_fine_to_coarse"
-        or tuple(hierarchy.get("layers", ())) != (2, 4, 6)
-    ):
-        errors.append("P2 hierarchy must be fine-to-coarse at L2/L4/L6")
+    if expected_hierarchy and (hierarchy.get("mode") != expected_mode or tuple(hierarchy.get("layers", ())) != (2, 4, 6)):
+        errors.append(f"{METHOD_LABELS[method]} hierarchy must be {expected_mode} at L2/L4/L6")
     if errors:
         raise ValueError(f"invalid {method} checkpoint metadata: " + "; ".join(errors))
     return {
         "method": method,
         "epoch": expected_epoch,
         "global_step": expected_step,
+        "max_epochs": phase5.get("max_epochs"),
         "mask_type": masks["type"],
         "mask_aspect_ratio_type": block["aspect_ratio_type"],
         "num_pred_masks": int(block["num_pred_masks"]),
         "hierarchy_enabled": expected_hierarchy,
         "hierarchy_mode": hierarchy.get("mode"),
+        "mask_signature": signature,
     }
 
 
-def validate_source_metrics(path: Path, *, method: str, manifest_path: Path) -> dict[str, Any]:
+def validate_source_metrics(path: Path, *, method: str, manifest_path: Path,
+                            canonical_indices: Mapping[str, list[int]] | None = None,
+                            allow_unverifiable_manifest: bool = False) -> dict[str, Any]:
     payload = json.loads(Path(path).read_text())
     if payload.get("method") != method or int(payload.get("pretrain_seed", -1)) != 0:
         raise ValueError(f"{path} must describe method={method}, pretrain_seed=0")
@@ -109,9 +134,27 @@ def validate_source_metrics(path: Path, *, method: str, manifest_path: Path) -> 
         raise ValueError(f"{path} has no Interference task")
     source_manifest = Path(payload.get("split_manifest", ""))
     if not source_manifest.is_absolute():
-        source_manifest = _source_root(Path(path)) / source_manifest
-    if source_manifest.resolve() != Path(manifest_path).resolve():
-        raise ValueError(f"{method} metrics use split {source_manifest}, not {manifest_path}")
+        relative_manifest = source_manifest
+        source_manifest = _source_root(Path(path)) / relative_manifest
+        if not source_manifest.is_file():
+            repository_root = Path(__file__).resolve().parents[1]
+            source_manifest = repository_root / relative_manifest
+    if not source_manifest.is_file():
+        if not allow_unverifiable_manifest:
+            raise ValueError(f"{METHOD_LABELS[method]} source split manifest is unavailable: {source_manifest}")
+        payload["_split_verification"] = {"status": "unverifiable", "recorded_path": str(source_manifest),
+                                           "reason": "Source manifest is missing; analysis uses the canonical manifest for all extracted samples."}
+        return payload
+    source_payload = json.loads(source_manifest.read_text())
+    source_indices = source_payload.get("tasks", {}).get("interference", {}).get("indices", {})
+    canonical = canonical_indices or json.loads(Path(manifest_path).read_text()).get("tasks", {}).get("interference", {}).get("indices", {})
+    for split in ("train", "validation", "test"):
+        if [int(i) for i in source_indices.get(split, [])] != [int(i) for i in canonical.get(split, [])]:
+            raise ValueError(f"{METHOD_LABELS[method]} source metrics {split} indices differ from canonical split")
+    if int(source_payload.get("seed", -1)) != 2025:
+        raise ValueError(f"{METHOD_LABELS[method]} source split must have seed 2025")
+    payload["_split_verification"] = {"status": "verified", "manifest_path": str(source_manifest.resolve()),
+                                       "indices_equal": True}
     return payload
 
 
@@ -228,85 +271,88 @@ def trajectory_metrics(features_by_method: Mapping[str, np.ndarray], labels: np.
 
 def paired_bootstrap(features_by_method: Mapping[str, np.ndarray], labels: np.ndarray,
                      *, replicates: int = 2000, seed: int = 2025) -> list[dict[str, Any]]:
-    """Class-stratified paired bootstrap; identical sample draws for P0/P2."""
-    if set(features_by_method) != {"p0", "p2"}:
-        raise ValueError("paired bootstrap requires p0 and p2 features")
+    """Class-stratified paired bootstrap with long-form method and contrast rows."""
+    if set(features_by_method) != set(METHODS):
+        raise ValueError(f"paired bootstrap requires exactly {METHODS}")
     rng = np.random.default_rng(seed)
     grouped = {cls: np.flatnonzero(labels == cls) for cls in (0, 1)}
-    boot: dict[tuple[str, int, int, str], list[float]] = {}
-    for rep in range(replicates):
+    keys = [(metric, cls) for metric in ("normalized_distance", "cosine_similarity") for cls in (None, 0, 1)]
+    keys += [("class_separation_ratio", None)]
+    boot = {(kind, method, reference, layer, temporal, metric, cls): []
+            for kind in ("method", "comparison")
+            for method, reference in ([(m, "") for m in METHODS] if kind == "method" else list(COMPARISONS))
+            for layer in LAYERS for temporal in TEMPORAL_LEVELS for metric, cls in keys}
+    for _ in range(replicates):
         sampled = np.concatenate([rng.choice(grouped[cls], size=len(grouped[cls]), replace=True) for cls in (0, 1)])
-        stats = trajectory_metrics({m: arr[sampled] for m, arr in features_by_method.items()}, labels[sampled])
-        for row in stats:
-            for metric in ("normalized_distance", "cosine_similarity", "class_separation_ratio"):
-                boot.setdefault((row["method"], row["layer"], row["temporal_columns"], metric), []).append(row[metric])
-                if metric != "class_separation_ratio":
-                    for cls in (0, 1):
-                        key = f"{metric}_class{cls}"
-                        boot.setdefault((row["method"], row["layer"], row["temporal_columns"], metric, cls), []).append(row[key])
+        sampled_labels = labels[sampled]
+        stats = trajectory_metrics({m: arr[sampled] for m, arr in features_by_method.items()}, sampled_labels)
+        lookup = {(r["method"], r["layer"], r["temporal_columns"]): r for r in stats}
+        for layer in LAYERS:
+            for temporal in TEMPORAL_LEVELS:
+                for metric, cls in keys:
+                    field = metric if cls is None else f"{metric}_class{cls}"
+                    values = {m: lookup[(m, layer, temporal)][field] for m in METHODS}
+                    for method, value in values.items():
+                        boot[("method", method, "", layer, temporal, metric, cls)].append(value)
+                    for method, reference in COMPARISONS:
+                        boot[("comparison", method, reference, layer, temporal, metric, cls)].append(values[method] - values[reference])
+    point_rows = trajectory_metrics(features_by_method, labels)
+    point = {(r["method"], r["layer"], r["temporal_columns"]): r for r in point_rows}
     rows = []
     for layer in LAYERS:
         for temporal in TEMPORAL_LEVELS:
-            for metric in ("normalized_distance", "cosine_similarity", "class_separation_ratio"):
-                p0 = np.asarray(boot[("p0", layer, temporal, metric)])
-                p2 = np.asarray(boot[("p2", layer, temporal, metric)])
-                delta = p2 - p0
-                point_rows = trajectory_metrics(features_by_method, labels)
-                point = {(r["method"], r["layer"], r["temporal_columns"]): r[metric] for r in point_rows}
-                rows.append({
-                    "layer": layer, "temporal_columns": temporal, "metric": metric,
-                    "p0_low": float(np.quantile(p0, .025)), "p0_high": float(np.quantile(p0, .975)),
-                    "p2_low": float(np.quantile(p2, .025)), "p2_high": float(np.quantile(p2, .975)),
-                    "p2_minus_p0": float(point[("p2", layer, temporal)] - point[("p0", layer, temporal)]),
-                    "difference_low": float(np.quantile(delta, .025)),
-                    "difference_high": float(np.quantile(delta, .975)),
-                    "replicates": replicates, "seed": seed,
-                })
-                if metric != "class_separation_ratio":
-                    for cls in (0, 1):
-                        p0_class = np.asarray(boot[("p0", layer, temporal, metric, cls)])
-                        p2_class = np.asarray(boot[("p2", layer, temporal, metric, cls)])
-                        delta_class = p2_class - p0_class
-                        key = f"{metric}_class{cls}"
-                        point_class = {(r["method"], r["layer"], r["temporal_columns"]): r[key] for r in point_rows}
-                        rows.append({
-                            "layer": layer, "temporal_columns": temporal, "metric": metric, "class_id": cls,
-                            "p0_low": float(np.quantile(p0_class, .025)), "p0_high": float(np.quantile(p0_class, .975)),
-                            "p2_low": float(np.quantile(p2_class, .025)), "p2_high": float(np.quantile(p2_class, .975)),
-                            "p2_minus_p0": float(point_class[("p2", layer, temporal)] - point_class[("p0", layer, temporal)]),
-                            "difference_low": float(np.quantile(delta_class, .025)),
-                            "difference_high": float(np.quantile(delta_class, .975)),
-                            "replicates": replicates, "seed": seed,
-                        })
+            for metric, cls in keys:
+                field = metric if cls is None else f"{metric}_class{cls}"
+                for method in METHODS:
+                    sample = np.asarray(boot[("method", method, "", layer, temporal, metric, cls)])
+                    lo, hi = np.quantile(sample, [.025, .975])
+                    rows.append({"record_type": "method", "method": method, "reference_method": "", "layer": layer,
+                                 "temporal_columns": temporal, "metric": metric, "class_id": "" if cls is None else cls,
+                                 "estimate": point[(method, layer, temporal)][field], "ci_low": float(lo), "ci_high": float(hi),
+                                 "difference": "", "difference_low": "", "difference_high": "", "excludes_zero": "",
+                                 "replicates": replicates, "seed": seed})
+                for method, reference in COMPARISONS:
+                    sample = np.asarray(boot[("comparison", method, reference, layer, temporal, metric, cls)])
+                    lo, hi = np.quantile(sample, [.025, .975])
+                    delta = point[(method, layer, temporal)][field] - point[(reference, layer, temporal)][field]
+                    rows.append({"record_type": "comparison", "method": method, "reference_method": reference,
+                                 "layer": layer, "temporal_columns": temporal, "metric": metric,
+                                 "class_id": "" if cls is None else cls, "estimate": point[(method, layer, temporal)][field],
+                                 "ci_low": "", "ci_high": "", "difference": delta, "difference_low": float(lo),
+                                 "difference_high": float(hi), "excludes_zero": bool(lo > 0 or hi < 0),
+                                 "replicates": replicates, "seed": seed})
     return rows
 
 
 def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Mapping[str, np.ndarray],
                   labels: np.ndarray, metric_rows: list[dict[str, Any]], interval_rows: list[dict[str, Any]],
-                  output_dir: Path) -> None:
+                  output_dir: Path, pca_explained_variance: Mapping[str, list[float]] | None = None) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     output_dir.mkdir(parents=True, exist_ok=True)
     colors = {0: "#277da1", 1: "#f94144"}
-    markers = ["o", "s", "^", "D"]
-    fig, axes = plt.subplots(2, 4, figsize=(15, 7), constrained_layout=True)
-    for mi, method in enumerate(("p0", "p2")):
+    pca_explained_variance = pca_explained_variance or {}
+    method_colors = {"p0": "#277da1", "p1": "#f9c74f", "p2": "#f94144", "p2_reverse": "#7209b7"}
+    fig, axes = plt.subplots(4, 4, figsize=(16, 13), constrained_layout=True, sharex="row", sharey="row")
+    for mi, method in enumerate(METHODS):
         coords = coordinates[method]
         for li, layer in enumerate(LAYERS):
             ax = axes[mi, li]
             for cls in (0, 1):
                 centroids = np.stack([coords[labels == cls, ti, li].mean(axis=0) for ti in range(4)])
                 ax.plot(centroids[:, 0], centroids[:, 1], color=colors[cls], marker="o", linewidth=1.8,
-                        label=f"Class {cls}" if li == 0 and mi == 0 else None)
-                ax.scatter(centroids[:, 0], centroids[:, 1], color=colors[cls], marker="o", s=45)
+                        label=f"Class {cls}" if mi == 0 and li == 0 else None)
                 for ti, point in enumerate(centroids):
-                    ax.annotate(f"{TEMPORAL_LEVELS[ti]}", point, xytext=(3, 3), textcoords="offset points", fontsize=8)
-            ax.set_title(f"{method.upper()} · L{layer}")
-            ax.set_xlabel("PCA 1")
+                    ax.annotate(str(TEMPORAL_LEVELS[ti]), point, xytext=(3, 3), textcoords="offset points", fontsize=8)
+            ax.set_title(f"{METHOD_LABELS[method]} · L{layer}")
             if li == 0:
-                ax.set_ylabel("PCA 2\n" + method.upper())
+                ratios = pca_explained_variance.get(method, [])
+                captured = sum(ratios[:2]) if ratios else float("nan")
+                ax.set_ylabel(f"PC 2 ({captured:.1%} variance)")
+            if mi == 3:
+                ax.set_xlabel("PC 1")
             ax.grid(alpha=.2)
     fig.legend(loc="outside lower center", ncol=2)
     for ext in ("png", "pdf"):
@@ -314,52 +360,62 @@ def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Map
     plt.close(fig)
 
     metrics = ("normalized_distance", "cosine_similarity", "class_separation_ratio")
-    labels_text = {
-        "normalized_distance": "Normalized distance to full-input feature",
-        "cosine_similarity": "Cosine similarity to full-input feature",
-        "class_separation_ratio": "Between/within-class separation ratio",
-    }
-    fig, axes = plt.subplots(1, 3, figsize=(17, 5), constrained_layout=True)
+    titles = {"normalized_distance": "Normalized distance to full-input feature",
+              "cosine_similarity": "Cosine similarity to full-input feature",
+              "class_separation_ratio": "Between/within-class separation ratio"}
+    fig, axes = plt.subplots(3, 4, figsize=(18, 12), constrained_layout=True)
     lookup = {(r["method"], r["layer"], r["temporal_columns"]): r for r in metric_rows}
-    ci_lookup = {(r["layer"], r["temporal_columns"], r["metric"]): r for r in interval_rows if r.get("class_id") is None}
-    for ax, metric in zip(axes, metrics):
-        for method, color in (("p0", "#277da1"), ("p2", "#f94144")):
-            for layer, linestyle in zip(LAYERS, ("-", "--", ":", "-.")):
-                values, lower, upper = [], [], []
+    ci = {(r["method"], r["layer"], r["temporal_columns"], r["metric"]): r for r in interval_rows
+          if r["record_type"] == "method" and r["class_id"] == ""}
+    for ri, metric in enumerate(metrics):
+        for li, layer in enumerate(LAYERS):
+            ax = axes[ri, li]
+            for method in METHODS:
+                values, low, high = [], [], []
                 for temporal in TEMPORAL_LEVELS:
                     row = lookup[(method, layer, temporal)]
-                    ci = ci_lookup[(layer, temporal, metric)]
+                    interval = ci[(method, layer, temporal, metric)]
                     values.append(row[metric])
-                    lower.append(max(0.0, row[metric] - ci[f"{method}_low"]))
-                    upper.append(max(0.0, ci[f"{method}_high"] - row[metric]))
-                ax.errorbar(TEMPORAL_LEVELS, values, yerr=np.vstack((lower, upper)), color=color,
-                            linestyle=linestyle, marker="o", capsize=2,
-                            label=f"{method.upper()} L{layer}")
-        ax.set_title(labels_text[metric])
-        ax.set_xlabel("Visible temporal patch columns")
-        ax.set_xticks(TEMPORAL_LEVELS)
-        ax.grid(alpha=.25)
-    axes[0].legend(fontsize=8, ncol=2)
+                    low.append(max(0.0, row[metric] - interval["ci_low"]))
+                    high.append(max(0.0, interval["ci_high"] - row[metric]))
+                ax.errorbar(TEMPORAL_LEVELS, values, yerr=np.vstack((low, high)), color=method_colors[method],
+                            marker="o", capsize=2, label=METHOD_LABELS[method])
+            ax.set_title(f"{titles[metric]} · L{layer}" if li == 0 else f"L{layer}")
+            ax.set_xticks(TEMPORAL_LEVELS)
+            ax.grid(alpha=.25)
+            if li == 0:
+                ax.set_ylabel(titles[metric])
+            if ri == 2:
+                ax.set_xlabel("Visible temporal patch columns")
+    axes[0, 0].legend(fontsize=8)
     for ext in ("png", "pdf"):
         fig.savefig(output_dir / f"trajectory_metrics.{ext}", dpi=220)
     plt.close(fig)
 
 
 def write_summary(path: Path, metrics: list[dict[str, Any]], intervals: list[dict[str, Any]], provenance: dict[str, Any]) -> None:
-    lines = ["# P0/P2 Interference representation trajectories", "",
-             "Inference-only comparison of fixed-grid temporal-prefix features. PCA is fit on validation features separately for each model; test metrics are computed in the original 256-D feature space.", "",
+    lines = ["# Four-method Interference representation trajectories", "",
+             "Inference-only comparison of temporal-prefix trajectories. Each method has its own PCA fit on validation data; PCA coordinates are not comparable across methods. Primary scalar metrics are in the original 256-D feature space.", "",
              "## Protocol", "",
-             f"- Checkpoints: P0 epoch {provenance['checkpoints']['p0']['epoch']} / P2 epoch {provenance['checkpoints']['p2']['epoch']} (step 13560).",
+             "- Methods: P0, P1 (same-scale intermediate supervision), P2 (fine-to-coarse), and P2-Reverse (coarse-to-fine).",
+             "- Selected checkpoints: P0 epoch 59 / step 13560 (run configured for 240 epochs); P1 epoch 59 / step 13560 (60 epochs); P2 epoch 59 / step 13560 (60 epochs); P2-Reverse epoch 49 / step 11300 (50 epochs). All are seed 0 and use the canonical six-mask multi_block/span_time signature.",
+             "- P0/P1/P2 are matched by selected update step, but their configured training schedules differ; P2-Reverse is also 10 epochs shorter than P1/P2. Method differences are descriptive and cannot isolate hierarchy/objective effects from schedule and horizon differences.",
+             "- The P2-Reverse source packet's split manifest is unavailable. All extracted features use the canonical seed-2025 split, but equality with the missing source packet manifest cannot be verified.",
              "- Samples: 1,400 held-out test examples, balanced at 700 per class.",
-             "- Prefix token counts: 28, 56, 112, and 196; original 14×14 positional grid retained.",
-             "- Features: normalized encoder tokens mean-pooled to 256 dimensions at L2/L4/L6/L8.",
-             "- Uncertainty: class-stratified paired bootstrap, 2,000 replicates; interval table includes P2−P0 CIs.", "",
-             "## Key test-set findings", ""]
-    lookup = {(r["method"], r["layer"], r["temporal_columns"]): r for r in metrics}
-    for metric, human in (("normalized_distance", "distance"), ("cosine_similarity", "cosine"), ("class_separation_ratio", "separation ratio")):
-        p0_short, p0_full = lookup[("p0", 8, 2)][metric], lookup[("p0", 8, 14)][metric]
-        p2_short, p2_full = lookup[("p2", 8, 2)][metric], lookup[("p2", 8, 14)][metric]
-        lines.append(f"- At L8, {human}: P0 Tp2→Tp14 {p0_short:.4f}→{p0_full:.4f}; P2 {p2_short:.4f}→{p2_full:.4f}.")
-    lines += ["", "See `class_centroid_trajectories` for the projected class paths and `trajectory_metrics` for estimates with 95% bootstrap intervals.", ""]
+             "- Prefixes: 2, 4, 8, and 14 temporal columns (28, 56, 112, and 196 tokens), retaining the 14×14 positional grid.",
+             "- Features: frozen context-encoder normalized tokens mean-pooled to 256 dimensions at L2/L4/L6/L8.",
+             "- Intervals: 2,000 class-stratified paired bootstrap resamples (seed 2025); uncertainty is conditional on seed 0.", "",
+             "## Predeclared Tp4 comparisons", "",
+             "Paired differences are method minus reference; the intervals below are 95% bootstrap intervals for class-separation ratio.", "",
+             "| Layer | P1−P0 | P2−P0 | P2-Reverse−P0 | P2−P1 | P2−P2-Reverse |", "|---|---:|---:|---:|---:|---:|"]
+    comparison = {(r["method"], r["reference_method"], r["layer"]): r for r in intervals
+                  if r["record_type"] == "comparison" and r["temporal_columns"] == 4
+                  and r["metric"] == "class_separation_ratio" and r["class_id"] == ""}
+    for layer in LAYERS:
+        cells = [comparison[(m, ref, layer)] for m, ref in COMPARISONS]
+        rendered = ["{:.3f} [{:.3f}, {:.3f}]".format(r.get("difference"), r.get("difference_low"), r.get("difference_high")) for r in cells]
+        lines.append(f"| L{layer} | " + " | ".join(rendered) + " |")
+    lines += ["", "These are descriptive estimates; no automatic winner or causal attribution is implied. The intervals quantify resampling uncertainty for this seed and do not capture across-seed variation.", "",
+              "See `class_centroid_trajectories` for PCA-projected class centroids and `trajectory_metrics` for original-space metric trajectories.", ""]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines))
