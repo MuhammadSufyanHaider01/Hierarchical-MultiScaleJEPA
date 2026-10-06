@@ -44,6 +44,7 @@ METHOD_LABELS = {
     "p2": "P2 — Proposed Hierarchical Multi-Scale JEPA",
     "p3": "P3 — Pair-local Hierarchical Multi-Scale JEPA",
     "p2_reverse": "P2-Reverse — Coarse-to-fine Hierarchical JEPA",
+    "cnn_p0": "CNN-P0 — Original L8 JEPA Objective",
     "cnn_p1": "CNN-HierJEPA P1 — Same-scale Multi-depth",
     "cnn_p2": "CNN-HierJEPA P2 — Mask-relative Fine-to-coarse",
     "cnn_p2_reverse": "CNN-HierJEPA P2-Reverse — Coarse-to-fine",
@@ -55,6 +56,7 @@ FIGURE_METHOD_LABELS = {
     "p2": "P2: Proposed hierarchical JEPA",
     "p3": "P3: Pair-local hierarchical JEPA",
     "p2_reverse": "P2-Reverse: Coarse-to-fine hierarchical JEPA",
+    "cnn_p0": "CNN-P0: Original L8 objective",
     "cnn_p1": "CNN-HierJEPA P1: Same-scale",
     "cnn_p2": "CNN-HierJEPA P2: Fine-to-coarse",
     "cnn_p2_reverse": "CNN-HierJEPA P2-Reverse: Coarse-to-fine",
@@ -66,6 +68,7 @@ FIGURE_METHOD_SHORT = {
     "p2": "P2\nProposed",
     "p3": "P3\nPair-local",
     "p2_reverse": "P2-Reverse\nCoarse-to-fine",
+    "cnn_p0": "CNN-P0\nOriginal L8",
     "cnn_p1": "CNN-P1\nSame-scale",
     "cnn_p2": "CNN-P2\nFine-to-coarse",
     "cnn_p2_reverse": "CNN-P2-Reverse\nCoarse-to-fine",
@@ -123,7 +126,7 @@ def _arguments() -> argparse.Namespace:
         default=None,
         help="Optional root containing p3/seed_000 artifacts for the pair-local routing ablation.",
     )
-    parser.add_argument("--cnn-run-root", type=Path, default=None, help="Root containing cnn_p1, cnn_p2, and cnn_p2_reverse result directories.")
+    parser.add_argument("--cnn-run-root", type=Path, default=None, help="Root containing cnn_p0, cnn_p1, cnn_p2, and cnn_p2_reverse result directories.")
     parser.add_argument(
         "--p2-reverse-import-root",
         type=Path,
@@ -193,7 +196,7 @@ def _discover_tasks(
 
     packets = {"p0": _read(p0_run_root / "p0/seed_000/downstream/exit_metrics.json")}
     if cnn_run_root is not None:
-        for method in ("cnn_p1", "cnn_p2", "cnn_p2_reverse"):
+        for method in ("cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"):
             packets[method] = _read(cnn_run_root / method / "seed_000/downstream/exit_metrics.json")
     else:
         packets["p2"] = _read(p2_run_root / "p2/seed_000/downstream/exit_metrics.json")
@@ -377,7 +380,7 @@ def _load_exit_results(
     metrics_path: Path | None = None,
     benchmark_path: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    source_method = source_method or {"b1": "p0", "p1": "p1", "p2": "p2", "p3": "p3", "cnn_p1": "cnn_p1", "cnn_p2": "cnn_p2", "cnn_p2_reverse": "cnn_p2_reverse"}[method]
+    source_method = source_method or {"b1": "p0", "p1": "p1", "p2": "p2", "p3": "p3", "cnn_p0": "cnn_p0", "cnn_p1": "cnn_p1", "cnn_p2": "cnn_p2", "cnn_p2_reverse": "cnn_p2_reverse"}[method]
     base = run_root / source_method / "seed_000"
     metrics_path = metrics_path or (base / "downstream/exit_metrics.json")
     benchmark_path = benchmark_path or (base / "benchmarks.json")
@@ -502,7 +505,7 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     paths = []
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
@@ -563,7 +566,7 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
@@ -603,7 +606,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.6 * len(TASKS), 6.3), squeeze=False)
     for column, task in enumerate(TASKS):
         for method in METHODS:
@@ -617,7 +620,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
                 marker="o",
                 linewidth=2,
                 color=colors[method],
-                linestyle={"b1": "-", "p1": ":", "p2": "--", "p3": "-", "p2_reverse": "-.", "cnn_p1": "-", "cnn_p2": ":", "cnn_p2_reverse": "--"}[method],
+                linestyle={"b1": "-", "p1": ":", "p2": "--", "p3": "-", "p2_reverse": "-.", "cnn_p0": "-.", "cnn_p1": "-", "cnn_p2": ":", "cnn_p2_reverse": "--"}[method],
                 label=FIGURE_METHOD_LABELS[method],
             )
             axes[1, column].plot(
@@ -754,7 +757,7 @@ def _plot_all_method_performance(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
@@ -829,7 +832,7 @@ def _plot_all_method_selected(output_dir: Path, headline_rows: list[dict[str, An
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     methods = ("b0", *METHODS)
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(5.0 * columns_count, 3.9 * rows_count), squeeze=False)
@@ -886,7 +889,7 @@ def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, A
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     methods = ("b0", *METHODS)
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.45 * len(TASKS), 7.1), squeeze=False)
     unavailable_any = False
@@ -1193,7 +1196,7 @@ def main() -> int:
     if cnn_run_root is not None and (p1_run_root is not None or p3_run_root is not None or p2_reverse_root is not None):
         raise ValueError("--cnn-run-root supplies CNN P1/P2/P2-Reverse; do not combine it with ViT P1, P3, or P2-Reverse inputs")
     global TASKS, METHODS
-    METHODS = ("b1", "cnn_p1", "cnn_p2", "cnn_p2_reverse") if cnn_run_root is not None else (("b1", "p1", "p2") if p1_run_root is not None else ("b1", "p2"))
+    METHODS = ("b1", "cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse") if cnn_run_root is not None else (("b1", "p1", "p2") if p1_run_root is not None else ("b1", "p2"))
     if cnn_run_root is None and p3_run_root is not None:
         METHODS = (*METHODS, "p3")
     if cnn_run_root is None and p2_reverse_root is not None:
@@ -1203,16 +1206,18 @@ def main() -> int:
     b1_packet, _ = _load_exit_results(run_root, "b1")
     source_reference, source_rows = _load_context_l8_reference(b1_packet)
     if cnn_run_root is not None:
+        cnn_p0_packet = _load_exit_results(cnn_run_root, "cnn_p0", source_method="cnn_p0")[0]
         p1_packet = _load_exit_results(cnn_run_root, "cnn_p1", source_method="cnn_p1")[0]
         p2_packet = _load_exit_results(cnn_run_root, "cnn_p2", source_method="cnn_p2")[0]
         p2_reverse_packet = _load_exit_results(cnn_run_root, "cnn_p2_reverse", source_method="cnn_p2_reverse")[0]
         p3_packet = None
     else:
+        cnn_p0_packet = None
         p2_packet, _ = _load_exit_results(p2_run_root, "p2")
         p1_packet = _load_exit_results(p1_run_root, "p1")[0] if p1_run_root is not None else None
         p3_packet = _load_exit_results(p3_run_root, "p3")[0] if p3_run_root is not None else None
         p2_reverse_packet = (_load_exit_results(p2_reverse_root, "p2_reverse", source_method="p2_reverse", metrics_path=p2_reverse_metrics_path, benchmark_path=p2_reverse_root / "benchmarks.json")[0] if p2_reverse_root is not None else None)
-    comparable_packets = [b1_packet] + ([p1_packet] if p1_packet is not None else []) + [p2_packet] + ([p3_packet] if p3_packet is not None else []) + ([p2_reverse_packet] if p2_reverse_packet is not None else [])
+    comparable_packets = [b1_packet] + ([cnn_p0_packet] if cnn_p0_packet is not None else []) + ([p1_packet] if p1_packet is not None else []) + [p2_packet] + ([p3_packet] if p3_packet is not None else []) + ([p2_reverse_packet] if p2_reverse_packet is not None else [])
     comparable_rows = [row for packet in comparable_packets for row in packet["metric_rows"]]
     b0_benchmark_rows = []
     for row in b1_packet["benchmark_rows"]:
@@ -1265,7 +1270,7 @@ def main() -> int:
             "p2_benchmark": str((cnn_run_root / "cnn_p2/seed_000/benchmarks.json") if cnn_run_root is not None else (p2_run_root / "p2/seed_000/benchmarks.json")),
             **({"p1_metrics": str(p1_run_root / "p1/seed_000/downstream/exit_metrics.json"), "p1_benchmark": str(p1_run_root / "p1/seed_000/benchmarks.json")} if p1_run_root is not None else {}),
             **({"p3_metrics": str(p3_run_root / "p3/seed_000/downstream/exit_metrics.json"), "p3_benchmark": str(p3_run_root / "p3/seed_000/benchmarks.json")} if p3_run_root is not None else {}),
-            **({"cnn_p1_metrics": str(cnn_run_root / "cnn_p1/seed_000/downstream/exit_metrics.json"), "cnn_p1_benchmark": str(cnn_run_root / "cnn_p1/seed_000/benchmarks.json"), "cnn_p2_reverse_metrics": str(cnn_run_root / "cnn_p2_reverse/seed_000/downstream/exit_metrics.json"), "cnn_p2_reverse_benchmark": str(cnn_run_root / "cnn_p2_reverse/seed_000/benchmarks.json")} if cnn_run_root is not None else {}),
+            **({"cnn_p0_metrics": str(cnn_run_root / "cnn_p0/seed_000/downstream/exit_metrics.json"), "cnn_p0_benchmark": str(cnn_run_root / "cnn_p0/seed_000/benchmarks.json"), "cnn_p1_metrics": str(cnn_run_root / "cnn_p1/seed_000/downstream/exit_metrics.json"), "cnn_p1_benchmark": str(cnn_run_root / "cnn_p1/seed_000/benchmarks.json"), "cnn_p2_reverse_metrics": str(cnn_run_root / "cnn_p2_reverse/seed_000/downstream/exit_metrics.json"), "cnn_p2_reverse_benchmark": str(cnn_run_root / "cnn_p2_reverse/seed_000/benchmarks.json")} if cnn_run_root is not None else {}),
             **({"p2_reverse_metrics": str(p2_reverse_metrics_path), "p2_reverse_benchmark": str(p2_reverse_root / "benchmarks.json") if p2_reverse_packet["benchmark_available"] else None} if p2_reverse_packet is not None else {}),
         },
         "excluded": ["EMA-teacher source-style probe (archived provenance only)", "diagnostic early-stopped runs", "extra transfer datasets", "seeds 1 and 2", "alternate masking regimes"],

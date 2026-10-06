@@ -224,7 +224,7 @@ class PretrainValidationSplitTest(unittest.TestCase):
         ):
             _validate_run_arguments(arguments)
 
-        for method in ("p3", "cnn_p1", "cnn_p2", "cnn_p2_reverse"):
+        for method in ("p3", "cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"):
             cnn_arguments = self._arguments(
                 method=method, batch_size=16, accumulate_grad_batches=4,
                 num_workers=3, hdf5_worker_budget=12, prefetch_factor=4,

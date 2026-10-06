@@ -6,6 +6,7 @@ from .jepa import init_config as init_jepa_config
 
 
 CNN_VARIANT_BASES = {
+    "cnn_p0": "p0",
     "cnn_p1": "p1",
     "cnn_p2": "p2",
     "cnn_p2_reverse": "p2",

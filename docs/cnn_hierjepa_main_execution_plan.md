@@ -11,7 +11,7 @@ This plan covers the first formal CNN comparison only:
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
 - a 60-epoch maximum pretraining horizon;
-- CNN-P1, CNN-P2, and CNN-P2-Reverse.
+- CNN-P0, CNN-P1, CNN-P2, and CNN-P2-Reverse.
 
 The existing ViT B0/P0 and P1/P2/P2-Reverse M-block packets remain comparison
 references.  Frequency, time, region, and random masking are deferred until
@@ -36,7 +36,10 @@ zero before the CNN; the EMA target encoder sees unmasked inputs.  S4's
 upsampling duplicates 7x7 features on the canonical 14x14 grid, so this
 representation is not equivalent to 196 independent native S4 tokens.
 
-The CNN P1/P2/P2-Reverse objectives use the existing independent L2/L4/L6
+CNN-P0 is the single-scale architecture baseline: it uses the same masked CNN
+context encoder, EMA CNN target encoder, and one original L8 predictor with
+the original masked-token MSE loss. It has no auxiliary predictors and no
+L2/L4/L6 losses. CNN P1/P2/P2-Reverse objectives use the existing independent L2/L4/L6
 auxiliary predictors and the original L8 JEPA anchor.  Intermediate CNN losses
 are stage-local: L2 trains the stem plus S1; L4 trains the S1-to-S2 transition
 plus S2; L6 trains the S2-to-S3 transition plus S3.  The L8 anchor remains
@@ -65,6 +68,21 @@ manifest.  Formal runs use the fixed horizon; latent-loss early stopping is not
 used to select a formal checkpoint.
 
 ## Current artifact audit
+
+### CNN-P0 — original L8 CNN-JEPA baseline
+
+CNN-P0 is not the paper-faithful ViT LatentWave reference. It isolates the
+backbone change by retaining the original single L8 JEPA objective under the
+same CNN execution profile as the hierarchical CNN variants. It must be
+reported as **CNN-P0 — Original L8 JEPA objective**, never as Original
+LatentWave.
+
+| Item | Required protocol |
+| --- | --- |
+| Pretraining | new 60-epoch M-block run, seed 0, locked CNN execution profile |
+| Objective | one final predictor and L8 masked-token MSE only |
+| Downstream | frozen context-encoder exits L2/L4/L6/L8 on the six persisted-split tasks |
+| Evaluation | one held-out test pass and batch-1 FLOPs/latency benchmark |
 
 ### CNN-P1 — same-scale multi-depth JEPA
 

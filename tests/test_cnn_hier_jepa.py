@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import torch
 import torch.nn.functional as F
 
+from configs import configure_method_variant
 from models import JEPA
 
 
@@ -53,6 +54,31 @@ def tiny_cnn_config(mode: str) -> SimpleNamespace:
 
 
 class CNNHierJEPAObjectiveTest(unittest.TestCase):
+    def test_cnn_p0_variant_uses_the_cnn_backbone_without_enabling_hierarchy(self):
+        config = tiny_cnn_config("same_scale")
+        config.hierarchy.enabled = False
+        configure_method_variant(config, "cnn_p0")
+        self.assertEqual(config.encoder.backbone, "convnext_v2_hier")
+        self.assertFalse(config.hierarchy.enabled)
+
+    def test_cnn_p0_has_only_the_l8_predictor_and_frozen_target(self):
+        torch.manual_seed(7)
+        config = tiny_cnn_config("same_scale")
+        config.hierarchy.enabled = False
+        model = JEPA(config, iterations_per_epoch=1, eval_fns=[], metrics=[])
+        prediction_mask = torch.arange(28, dtype=torch.long).reshape(1, -1)
+        context_mask = torch.arange(28, 196, dtype=torch.long).reshape(1, -1)
+        samples = torch.randn(1, 1, 224, 224)
+
+        prediction, target, _ = model(samples, [context_mask], [prediction_mask])
+        loss = F.mse_loss(prediction, target)
+        self.assertTrue(torch.isfinite(loss))
+        self.assertEqual(len(model.aux_predictors), 0)
+        loss.backward()
+        self.assertTrue(any(parameter.grad is not None for parameter in model.predictor.parameters()))
+        self.assertTrue(any(parameter.grad is not None for parameter in model.context_encoder.parameters()))
+        self.assertTrue(all(parameter.grad is None for parameter in model.target_encoder.parameters()))
+
     def test_p1_p2_and_reverse_have_finite_losses_and_frozen_targets(self):
         torch.manual_seed(11)
         prediction_mask = torch.arange(28, dtype=torch.long).reshape(1, -1)

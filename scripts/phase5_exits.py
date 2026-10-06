@@ -48,7 +48,7 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p1", "p2", "p3", "p2_reverse", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p3", "p2_reverse", "cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--head-seed", type=int, default=None)
     parser.add_argument("--split-seed", type=int, default=2025)
@@ -404,7 +404,7 @@ def main() -> int:
         manifest = load_or_create_ood_split_manifest(manifest_path, args.ood_root, seed=args.split_seed)
         build_dataset = lambda task: build_ood_task_dataset(task, args.ood_root)
         make_subsets = ood_task_subsets
-    config_method = {"cnn_p1": "p1", "cnn_p2": "p2", "cnn_p2_reverse": "p2", "p2_reverse": "p2", "p3": "p2"}.get(args.method, args.method)
+    config_method = {"cnn_p0": "p0", "cnn_p1": "p1", "cnn_p2": "p2", "cnn_p2_reverse": "p2", "p2_reverse": "p2", "p3": "p2"}.get(args.method, args.method)
     config_path = args.config or (REPOSITORY_ROOT / "configs" / f"{config_method}.yml")
     config = init_jepa_config(str(config_path))
     configure_method_variant(config, args.method)
