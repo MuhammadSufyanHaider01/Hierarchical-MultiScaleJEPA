@@ -49,6 +49,7 @@ from evaluation import evaluate_class, evaluate_pos  # noqa: E402
 from masking_profiles import PROFILE_NAMES, apply_mask_profile  # noqa: E402
 from models import JEPA  # noqa: E402
 from models.components import set_attention_backend  # noqa: E402
+from schedulers import CosineWDSchedule, WarmupCosineSchedule  # noqa: E402
 
 
 METHOD_CONFIGS = {
@@ -63,6 +64,36 @@ METHOD_CONFIGS = {
 }
 FORMAL_EPOCHS = 60
 P3_EPOCHS = 50
+
+
+def _rebase_resumed_schedulers(scheduler_configs, *, total_steps: int) -> list[dict[str, int]]:
+    """Rebase restored project schedulers while retaining their completed steps.
+
+    Checkpoints restore the prior cosine horizon. A documented extended resume
+    must opt in to replacing only that horizon; otherwise LR and weight decay
+    would reach their final values at the old endpoint.
+    """
+    audit = []
+    for config in scheduler_configs:
+        scheduler = config.scheduler
+        if not isinstance(scheduler, (WarmupCosineSchedule, CosineWDSchedule)):
+            raise TypeError(
+                "resume-horizon extension only supports the project's cosine "
+                f"schedulers, got {type(scheduler).__name__}"
+            )
+        old_horizon = int(scheduler.T_max)
+        scheduler.rebase_total_steps(total_steps)
+        audit.append(
+            {
+                "scheduler": type(scheduler).__name__,
+                "step": int(scheduler._step),
+                "old_horizon": old_horizon,
+                "new_horizon": int(scheduler.T_max),
+            }
+        )
+    if not audit:
+        raise RuntimeError("no schedulers were available to rebase after checkpoint restoration")
+    return audit
 
 
 def _allocator_configuration() -> str | None:
@@ -232,6 +263,15 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--early-stopping-patience", type=int, default=20)
     parser.add_argument("--early-stopping-min-delta", type=float, default=1.0e-4)
     parser.add_argument("--resume", type=Path, default=None)
+    parser.add_argument(
+        "--extend-resume-schedule-horizon",
+        action="store_true",
+        help=(
+            "After restoring a checkpoint, rebase the saved LR and weight-decay "
+            "cosine horizons to --max-epochs while retaining completed steps. "
+            "This is a documented diagnostic-continuation option."
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -489,6 +529,14 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
 
     if args.early_stopping and args.run_kind != "diagnostic":
         raise ValueError("latent-loss early stopping is diagnostic-only")
+    if args.extend_resume_schedule_horizon:
+        if args.resume is None:
+            raise ValueError("--extend-resume-schedule-horizon requires --resume")
+        if args.run_kind != "diagnostic":
+            raise ValueError(
+                "--extend-resume-schedule-horizon is a diagnostic continuation; "
+                "use --run-kind diagnostic"
+            )
     if args.memory_safe:
         if args.throughput_safe or args.performance_safe:
             raise ValueError("--memory-safe cannot be combined with another execution profile")
@@ -655,6 +703,13 @@ def main() -> int:
         "validation_seed": args.validation_seed if args.early_stopping else None,
         "early_stopping_patience": args.early_stopping_patience if args.early_stopping else None,
         "early_stopping_min_delta": args.early_stopping_min_delta if args.early_stopping else None,
+        "resume_checkpoint": str(args.resume) if args.resume else None,
+        "resume_schedule_horizon_extended": bool(args.extend_resume_schedule_horizon),
+        "resume_scheduler_total_steps": (
+            optimizer_steps_per_epoch * args.max_epochs
+            if args.extend_resume_schedule_horizon
+            else None
+        ),
         "mask_profile": mask_profile,
     }
     metadata = build_checkpoint_metadata(config, seed=args.seed, config_path=config_path)
@@ -862,6 +917,22 @@ def main() -> int:
         BatchProgressPrinter(microbatches_per_epoch, args.progress_every_n_batches),
         EpochLossPrinter(),
     ]
+    if args.extend_resume_schedule_horizon:
+        class ResumeScheduleHorizonCallback(callbacks.Callback):
+            """Rebase restored schedulers before the first resumed batch."""
+
+            def on_fit_start(self, trainer, pl_module):
+                audit = _rebase_resumed_schedulers(
+                    trainer.lr_scheduler_configs,
+                    total_steps=optimizer_steps_per_epoch * args.max_epochs,
+                )
+                print(
+                    "[resume] rebased scheduler horizons "
+                    f"for {args.max_epochs} epochs: {json.dumps(audit)}",
+                    flush=True,
+                )
+
+        callbacks_list.append(ResumeScheduleHorizonCallback())
     best_checkpoint_callback = None
     if args.early_stopping:
         best_checkpoint_callback = callbacks.ModelCheckpoint(

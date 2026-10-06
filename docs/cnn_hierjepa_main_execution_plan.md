@@ -45,7 +45,7 @@ EMA.
 
 ## Locked execution profile
 
-Every formal CNN pretraining run must use the same execution profile:
+Every fixed-horizon formal CNN pretraining run must use the same execution profile:
 
 | Setting | Value |
 | --- | --- |
@@ -106,6 +106,31 @@ Resume from the durable epoch-4 checkpoint, preserving the original P2
 configuration and run directory.  The repeated epochs after that checkpoint
 are expected: progress through epochs 5--8 was not checkpointed.
 
+#### Approved protocol amendment: 100-epoch validation-monitored extension
+
+The requested continuation is intentionally separated from the fixed 60-epoch
+formal packet. It resumes the epoch-4 checkpoint into a new run directory,
+uses a 100-epoch maximum, and selects the best checkpoint with pretraining
+validation loss.
+
+| Setting | Value |
+| --- | --- |
+| Resume source | `cnn_p2/seed_000/checkpoints/last.ckpt` at epoch 4 / step 1,130 |
+| New run name | `cnn_p2_extended100_es` |
+| Horizon | 100 epochs maximum, including the restored completed epochs |
+| Validation | deterministic 90/10 cache split, seed 2025 |
+| Stop monitor | mean pretraining `val_loss`, minimize |
+| Patience / minimum improvement | 20 epochs / `1e-4` |
+| Scheduler handling | preserve optimizer/EMA/completed step; rebase LR and weight-decay cosine horizons to the new loader's 100-epoch horizon |
+| Status | diagnostic extension, not interchangeable with the 60-epoch fixed-horizon P1 comparison |
+
+The extension retains the original CNN-P2 directory untouched. Because
+validation removes 10% of each pretraining cache from resumed training and
+changes the schedule horizon, it is useful for choosing a CNN-P2 candidate
+checkpoint but must be labelled as an extended validation-monitored protocol.
+A direct fixed-horizon comparison would require matching P1 and P2-Reverse
+extensions.
+
 ### CNN-P2-Reverse — coarse-to-fine JEPA
 
 No formal pretraining, downstream, or benchmark artifact exists.  This method
@@ -149,8 +174,8 @@ benchmark stage from the saved CNN-P1 checkpoint.
 
 ### Gate 2 — finish CNN-P2
 
-1. Resume the epoch-4 CNN-P2 checkpoint to the fixed 60-epoch horizon using
-   the locked profile and original run directory.
+1. Resume the epoch-4 CNN-P2 checkpoint through the documented 100-epoch
+   validation-monitored extension using a separate output directory.
 2. Require finite anchor and L2/L4/L6 auxiliary losses through a short resume
    check before continuing the full fit.
 3. Train independent frozen L2/L4/L6/L8 heads on the six tasks; use only
@@ -193,4 +218,3 @@ The M-block CNN study is complete only when:
 - the report uses only traceable, compatible artifacts; and
 - the manifest records all source checkpoints, current code revision, training
   revisions where different, masks, split manifest, and execution profile.
-

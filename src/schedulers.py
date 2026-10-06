@@ -63,6 +63,15 @@ class WarmupCosineSchedule(LRScheduler):
         self.warmup_steps = state_dict['warmup_steps']
         self.T_max = state_dict['T_max']
 
+    def rebase_total_steps(self, total_steps):
+        """Extend a resumed schedule without resetting its optimizer step."""
+        total_steps = int(total_steps)
+        if total_steps <= self.warmup_steps:
+            raise ValueError(
+                f"total_steps={total_steps} must exceed warmup_steps={self.warmup_steps}"
+            )
+        self.T_max = total_steps - self.warmup_steps
+
 
 class CosineWDSchedule(LRScheduler):
     def __init__(
@@ -106,3 +115,10 @@ class CosineWDSchedule(LRScheduler):
         self.ref_wd = state_dict['ref_wd']
         self.final_wd = state_dict['final_wd']
         self.T_max = state_dict['T_max']
+
+    def rebase_total_steps(self, total_steps):
+        """Extend a resumed weight-decay schedule while retaining its step."""
+        total_steps = int(total_steps)
+        if total_steps < 1:
+            raise ValueError("total_steps must be positive")
+        self.T_max = total_steps

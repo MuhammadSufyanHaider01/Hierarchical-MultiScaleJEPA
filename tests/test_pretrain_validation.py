@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+import torch
 from unittest.mock import patch
 
 
@@ -12,11 +13,13 @@ sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
 from phase5_pretrain import (  # noqa: E402
     FORMAL_EPOCHS,
+    _rebase_resumed_schedulers,
     _split_pretrain_indices,
     _uses_expandable_segments,
     _validate_run_arguments,
     _worker_allocation,
 )
+from schedulers import CosineWDSchedule, WarmupCosineSchedule  # noqa: E402
 
 
 class PretrainValidationSplitTest(unittest.TestCase):
@@ -45,6 +48,8 @@ class PretrainValidationSplitTest(unittest.TestCase):
             "early_stopping": False,
             "early_stopping_patience": 20,
             "early_stopping_min_delta": 1.0e-4,
+            "resume": None,
+            "extend_resume_schedule_horizon": False,
             "hierarchy_lambda": None,
             "include_l8_coarse": False,
             "device": "cpu",
@@ -84,6 +89,45 @@ class PretrainValidationSplitTest(unittest.TestCase):
                 max_epochs=12,
                 limit_train_batches=1,
                 early_stopping=True,
+            )
+        )
+
+    def test_extended_resume_rebases_schedulers_without_replaying_steps(self):
+        parameter = torch.nn.Parameter(torch.tensor(1.0))
+        optimizer = torch.optim.AdamW([parameter], lr=1.0e-3, weight_decay=0.04)
+        lr_schedule = WarmupCosineSchedule(
+            optimizer, warmup_steps=10, start_lr=1.0e-6,
+            ref_lr=1.0e-3, final_lr=1.0e-6, T_max=60,
+        )
+        wd_schedule = CosineWDSchedule(optimizer, ref_wd=0.04, final_wd=0.04, T_max=60)
+        lr_schedule._step = 17
+        wd_schedule._step = 17
+        configs = [SimpleNamespace(scheduler=lr_schedule), SimpleNamespace(scheduler=wd_schedule)]
+
+        audit = _rebase_resumed_schedulers(configs, total_steps=100)
+
+        self.assertEqual(lr_schedule._step, 17)
+        self.assertEqual(wd_schedule._step, 17)
+        self.assertEqual(lr_schedule.T_max, 90)
+        self.assertEqual(wd_schedule.T_max, 100)
+        self.assertEqual([entry["new_horizon"] for entry in audit], [90, 100])
+
+    def test_extended_resume_requires_a_diagnostic_resume(self):
+        with self.assertRaisesRegex(ValueError, "requires --resume"):
+            _validate_run_arguments(
+                self._arguments(
+                    run_kind="diagnostic",
+                    max_epochs=100,
+                    extend_resume_schedule_horizon=True,
+                )
+            )
+        _validate_run_arguments(
+            self._arguments(
+                run_kind="diagnostic",
+                max_epochs=100,
+                early_stopping=True,
+                resume=Path("resume.ckpt"),
+                extend_resume_schedule_horizon=True,
             )
         )
 
