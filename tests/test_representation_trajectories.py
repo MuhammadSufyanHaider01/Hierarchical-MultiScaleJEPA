@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from models import Encoder
 from representation_trajectories import (
     CHECKPOINT_HORIZONS, COMPARISONS, HIERARCHY, LAYERS, METHODS, TEMPORAL_LEVELS, fit_pca, load_split_and_labels,
-    paired_bootstrap, temporal_token_indices, transform_pca, trajectory_metrics,
+    load_task_split, paired_bootstrap, temporal_token_indices, transform_pca, trajectory_metrics,
     validate_checkpoint_metadata, validate_source_metrics,
 )
 
@@ -174,6 +174,52 @@ class RepresentationTrajectoryTests(unittest.TestCase):
                         and r["temporal_columns"] == 2 and r["metric"] == "class_separation_ratio"]
         self.assertEqual(len(p2_contrasts), 3)
         self.assertGreater(len({(r["difference_low"], r["difference_high"]) for r in p2_contrasts}), 1)
+
+    def test_generic_task_split_preserves_order_and_unequal_class_counts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "splits.json"
+            path.write_text(json.dumps({
+                "schema_version": 3, "seed": 2025,
+                "tasks": {"rfs": {
+                    "spec": {"target_type": "classification", "num_outputs": 3},
+                    "counts": {"train": 6, "validation": 3, "test": 3},
+                    "indices": {"train": [0, 1, 2, 3, 4, 5], "validation": [6, 7, 8],
+                                "test": [9, 10, 11]},
+                }},
+            }))
+            labels = np.asarray([0, 1, 2, 0, 1, 2, 2, 0, 1, 1, 2, 0])
+            splits, returned = load_task_split(path, "rfs", labels, 3)
+            self.assertEqual(splits["test"], [9, 10, 11])
+            np.testing.assert_array_equal(returned, labels)
+            self.assertEqual(np.bincount(returned[splits["test"]]).tolist(), [1, 1, 1])
+            with self.assertRaisesRegex(ValueError, "every class"):
+                bad = labels.copy(); bad[10] = 1
+                load_task_split(path, "rfs", bad, 3)
+
+    def test_multiclass_separation_reduces_to_binary_definition(self):
+        labels = np.asarray([0, 0, 0, 1, 1, 1])
+        features = np.zeros((6, 4, 4, 256), dtype=np.float32)
+        features[labels == 0, :, :, 0] = 1.0
+        features[labels == 1, :, :, 1] = 1.0
+        features[:, :, :, 2] = np.arange(len(labels), dtype=np.float32)[:, None, None] * 0.1
+        row = next(r for r in trajectory_metrics({"p0": features}, labels)
+                   if r["layer"] == 2 and r["temporal_columns"] == 14)
+        centers = [features[labels == cls, -1, 0].mean(axis=0) for cls in (0, 1)]
+        radii = [np.sqrt(np.mean(np.sum((features[labels == cls, -1, 0] - centers[cls]) ** 2, axis=1)))
+                 for cls in (0, 1)]
+        expected = np.linalg.norm(centers[0] - centers[1]) / np.mean(radii)
+        self.assertAlmostEqual(row["class_separation_ratio"], expected)
+
+    def test_multiclass_bootstrap_is_deterministic_and_class_aligned(self):
+        rng = np.random.default_rng(51)
+        labels = np.asarray([0] * 5 + [1] * 6 + [2] * 7)
+        base = rng.normal(size=(len(labels), 4, 4, 256)).astype(np.float32)
+        features = {method: (base + i * .01).copy() for i, method in enumerate(METHODS)}
+        first = paired_bootstrap(features, labels, replicates=3, seed=19)
+        second = paired_bootstrap(features, labels, replicates=3, seed=19)
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 9 * 16 * 9)
+        self.assertTrue(any(r["class_id"] == 2 and r["metric"] == "cosine_similarity" for r in first))
 
 
 if __name__ == "__main__":

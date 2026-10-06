@@ -16,14 +16,14 @@ sys.path.insert(0, str(ROOT / "src"))
 from representation_trajectories import METHODS  # noqa: E402
 from temporal_head_robustness import HEAD_SEEDS, sha256_file, validate_head_packet  # noqa: E402
 
-DEFAULT_PROVENANCE = ROOT / "runs/representation_trajectories/multi_block_n6/interference/seed_000/test/provenance.json"
-DEFAULT_HEAD_ROOT = ROOT / "runs/representation_trajectories/multi_block_n6/interference/seed_000/temporal_head_robustness/heads"
+TASKS = ("interference", "human-activity", "rfs", "jamming")
 
 
 def _args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trajectory-provenance", type=Path, default=DEFAULT_PROVENANCE)
-    parser.add_argument("--head-root", type=Path, default=DEFAULT_HEAD_ROOT)
+    parser.add_argument("--task", choices=TASKS, default="interference")
+    parser.add_argument("--trajectory-provenance", type=Path)
+    parser.add_argument("--head-root", type=Path)
     parser.add_argument("--head-seeds", type=int, nargs="+", default=list(HEAD_SEEDS))
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -45,15 +45,17 @@ def main() -> int:
     args = _args()
     if len(set(args.head_seeds)) != len(args.head_seeds) or not args.head_seeds:
         raise ValueError("head seeds must be a non-empty unique list")
-    provenance_path = args.trajectory_provenance.resolve()
+    base = ROOT / "runs/representation_trajectories/multi_block_n6" / args.task / "seed_000"
+    provenance_path = (args.trajectory_provenance or base / "test/provenance.json").resolve()
     provenance = json.loads(provenance_path.read_text())
-    if provenance.get("task") != "interference" or provenance.get("split") != "test":
-        raise ValueError("trajectory provenance must describe the Interference test analysis")
+    if provenance.get("task") != args.task or provenance.get("split") != "test":
+        raise ValueError(f"trajectory provenance must describe the {args.task} test analysis")
+    num_classes = int(provenance.get("num_classes", provenance.get("task_spec", {}).get("num_outputs", 2)))
     canonical_split = _resolve(provenance["split_manifest"])
     expected_split_hash = provenance["split_manifest_sha256"]
     if sha256_file(canonical_split) != expected_split_hash:
         raise ValueError("canonical split manifest hash differs from trajectory provenance")
-    head_root = args.head_root.resolve()
+    head_root = (args.head_root or base / "temporal_head_robustness/heads").resolve()
     phase5_script = ROOT / "scripts/phase5_exits.py"
 
     commands = []
@@ -81,7 +83,8 @@ def main() -> int:
             if packet.is_file():
                 validate_head_packet(packet, method=method, head_seed=seed,
                                      checkpoint_path=checkpoint, checkpoint_sha256=checkpoint_hash,
-                                     split_manifest=split_copy, split_sha256=expected_split_hash)
+                                     split_manifest=split_copy, split_sha256=expected_split_hash,
+                                     task=args.task, num_classes=num_classes)
                 print(f"already prepared: {method} head_seed={seed}")
                 continue
             cmd = [
@@ -90,7 +93,7 @@ def main() -> int:
                 "--method", method, "--pretrain-seed", "0", "--head-seed", str(seed),
                 "--split-seed", "2025", "--config", str(config),
                 "--run-root", str(seed_root), "--dataset-suite", "primary",
-                "--task", "interference", "--epochs", str(args.epochs),
+                "--task", args.task, "--epochs", str(args.epochs),
                 "--batch-size", str(args.batch_size), "--num-workers", str(args.num_workers),
                 "--learning-rate", str(args.learning_rate), "--weight-decay", str(args.weight_decay),
                 "--head-early-stopping-patience", str(args.patience),
@@ -104,7 +107,8 @@ def main() -> int:
             subprocess.run(cmd, cwd=ROOT, check=True)
             validate_head_packet(packet, method=method, head_seed=seed,
                                  checkpoint_path=checkpoint, checkpoint_sha256=checkpoint_hash,
-                                 split_manifest=split_copy, split_sha256=expected_split_hash)
+                                 split_manifest=split_copy, split_sha256=expected_split_hash,
+                                 task=args.task, num_classes=num_classes)
     print(f"head preparation complete: {len(commands)} jobs requested")
     return 0
 

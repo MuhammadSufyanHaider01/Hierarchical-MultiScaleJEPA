@@ -1,4 +1,4 @@
-"""Matched multi-method intermediate representation trajectories for Interference."""
+"""Matched multi-method representation trajectories for Phase 5 tasks."""
 
 from __future__ import annotations
 
@@ -23,6 +23,16 @@ METHOD_LABELS = {"p0": "P0", "p1": "P1", "p2": "P2", "p2_reverse": "P2-Reverse"}
 COMPARISONS = (("p1", "p0"), ("p2", "p0"), ("p2_reverse", "p0"), ("p2", "p1"), ("p2", "p2_reverse"))
 HIERARCHY = {"p0": (False, None), "p1": (True, "same_scale"), "p2": (True, "mask_relative_fine_to_coarse"), "p2_reverse": (True, "mask_relative_coarse_to_fine")}
 CHECKPOINT_HORIZONS = {"p0": (59, 13560), "p1": (59, 13560), "p2": (59, 13560), "p2_reverse": (49, 11300)}
+TASK_SEMANTICS = {
+    "interference": {"prefix_axis": "width", "prefix_semantics": "temporal"},
+    "human-activity": {"prefix_axis": "width", "prefix_semantics": "temporal"},
+    "rfs": {"prefix_axis": "width", "prefix_semantics": "column"},
+    "jamming": {"prefix_axis": "width", "prefix_semantics": "column"},
+}
+TASK_LABELS = {
+    "interference": "Interference", "human-activity": "Human activity sensing",
+    "rfs": "RF signal classification", "jamming": "Jamming classification",
+}
 
 
 def canonical_mask_signature(config: Mapping[str, Any]) -> dict[str, Any]:
@@ -50,6 +60,21 @@ class IndexedSamples(Dataset):
         return sample, index
 
 
+class IndexedTaskSamples(Dataset):
+    """Return canonical dataset samples, mapped labels, and original indices."""
+    def __init__(self, base: Dataset, indices: list[int]):
+        self.base = base
+        self.indices = [int(i) for i in indices]
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, position: int):
+        index = self.indices[position]
+        sample, label = self.base[index][:2]
+        return sample, label, index
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as stream:
@@ -60,6 +85,16 @@ def sha256_file(path: Path) -> str:
 
 def sha256_indices(indices: list[int]) -> str:
     return hashlib.sha256(np.asarray(indices, dtype="<i8").tobytes()).hexdigest()
+
+
+def task_class_names(dataset: Dataset, num_classes: int) -> list[str]:
+    """Use canonical cache label names when their ordering matches the task IDs."""
+    names = getattr(dataset, "labels", None)
+    if names is None and hasattr(dataset, "dataset"):
+        names = getattr(dataset.dataset, "labels", None)
+    if names is not None and len(names) == int(num_classes):
+        return [str(name) for name in names]
+    return [f"Class {cls}" for cls in range(int(num_classes))]
 
 
 def temporal_token_indices(columns: int, *, grid_size: int = GRID_SIZE) -> torch.Tensor:
@@ -124,14 +159,14 @@ def validate_checkpoint_metadata(
     }
 
 
-def validate_source_metrics(path: Path, *, method: str, manifest_path: Path,
+def validate_source_metrics(path: Path, *, method: str, manifest_path: Path, task: str = "interference",
                             canonical_indices: Mapping[str, list[int]] | None = None,
                             allow_unverifiable_manifest: bool = False) -> dict[str, Any]:
     payload = json.loads(Path(path).read_text())
     if payload.get("method") != method or int(payload.get("pretrain_seed", -1)) != 0:
         raise ValueError(f"{path} must describe method={method}, pretrain_seed=0")
-    if "interference" not in payload.get("tasks", {}):
-        raise ValueError(f"{path} has no Interference task")
+    if task not in payload.get("tasks", {}):
+        raise ValueError(f"{path} has no {task} task")
     source_manifest = Path(payload.get("split_manifest", ""))
     if not source_manifest.is_absolute():
         relative_manifest = source_manifest
@@ -146,8 +181,8 @@ def validate_source_metrics(path: Path, *, method: str, manifest_path: Path,
                                            "reason": "Source manifest is missing; analysis uses the canonical manifest for all extracted samples."}
         return payload
     source_payload = json.loads(source_manifest.read_text())
-    source_indices = source_payload.get("tasks", {}).get("interference", {}).get("indices", {})
-    canonical = canonical_indices or json.loads(Path(manifest_path).read_text()).get("tasks", {}).get("interference", {}).get("indices", {})
+    source_indices = source_payload.get("tasks", {}).get(task, {}).get("indices", {})
+    canonical = canonical_indices or json.loads(Path(manifest_path).read_text()).get("tasks", {}).get(task, {}).get("indices", {})
     for split in ("train", "validation", "test"):
         if [int(i) for i in source_indices.get(split, [])] != [int(i) for i in canonical.get(split, [])]:
             raise ValueError(f"{METHOD_LABELS[method]} source metrics {split} indices differ from canonical split")
@@ -165,29 +200,51 @@ def _source_root(metrics_path: Path) -> Path:
     return metrics_path.resolve().parent
 
 
-def load_split_and_labels(manifest_path: Path, raw_labels: np.ndarray) -> tuple[dict[str, list[int]], np.ndarray]:
+def load_task_split(manifest_path: Path, task_name: str, labels: np.ndarray,
+                    num_classes: int) -> tuple[dict[str, list[int]], np.ndarray]:
+    """Validate a primary v3 split and return exact persisted order plus canonical labels."""
     manifest = json.loads(Path(manifest_path).read_text())
     if int(manifest.get("schema_version", -1)) != 3 or int(manifest.get("seed", -1)) != 2025:
         raise ValueError("expected primary split manifest schema v3, seed 2025")
-    task = manifest.get("tasks", {}).get("interference")
+    task = manifest.get("tasks", {}).get(task_name)
     if not isinstance(task, dict):
-        raise ValueError("split manifest is missing the Interference task")
-    raw_labels = np.asarray(raw_labels).reshape(-1)
-    values = np.unique(raw_labels)
-    label_map = {int(value): index for index, value in enumerate(values.tolist())}
-    mapped = np.asarray([label_map[int(v)] for v in raw_labels], dtype=np.int64)
+        raise ValueError(f"split manifest is missing task {task_name!r}")
+    mapped = np.asarray(labels, dtype=np.int64).reshape(-1)
+    if mapped.size == 0 or not np.array_equal(np.unique(mapped), np.arange(num_classes)):
+        raise ValueError(f"{task_name} dataset labels must cover contiguous IDs 0..{num_classes - 1}")
+    if task.get("spec", {}).get("target_type", "classification") != "classification":
+        raise ValueError(f"{task_name} is not a classification task")
+    declared_classes = task.get("spec", {}).get("num_outputs")
+    if declared_classes is not None and int(declared_classes) != int(num_classes):
+        raise ValueError(f"{task_name} split class count differs from dataset TaskSpec")
     indices = {key: [int(i) for i in task["indices"][key]] for key in ("train", "validation", "test")}
     for split, selected in indices.items():
         if len(selected) != len(set(selected)) or (selected and (min(selected) < 0 or max(selected) >= len(mapped))):
             raise ValueError(f"invalid {split} indices in manifest")
         declared = task.get("counts", {}).get(split)
-        if declared is not None and declared != len(selected):
+        if declared is not None and int(declared) != len(selected):
             raise ValueError(f"manifest {split} count does not match its indices")
+    all_indices = [index for selected in indices.values() for index in selected]
+    if len(all_indices) != len(set(all_indices)):
+        raise ValueError("persisted train/validation/test indices overlap")
     for split in ("validation", "test"):
-        labels = mapped[indices[split]]
-        counts = np.bincount(labels, minlength=len(values))
-        if len(values) != 2 or not np.array_equal(counts, np.full(2, 700)):
-            raise ValueError(f"{split} must contain 700 samples per class; got {counts.tolist()}")
+        counts = np.bincount(mapped[indices[split]], minlength=num_classes)
+        if np.any(counts == 0):
+            raise ValueError(f"{task_name} {split} split must contain every class; got {counts.tolist()}")
+    return indices, mapped
+
+
+def load_split_and_labels(manifest_path: Path, raw_labels: np.ndarray) -> tuple[dict[str, list[int]], np.ndarray]:
+    """Backward-compatible Interference split loader with its historical balance check."""
+    raw_labels = np.asarray(raw_labels).reshape(-1)
+    values = np.unique(raw_labels)
+    label_map = {int(value): index for index, value in enumerate(values.tolist())}
+    mapped = np.asarray([label_map[int(value)] for value in raw_labels], dtype=np.int64)
+    indices, mapped = load_task_split(manifest_path, "interference", mapped, 2)
+    for split in ("validation", "test"):
+        counts = np.bincount(mapped[indices[split]], minlength=2)
+        if not np.array_equal(counts, np.full(2, 700)):
+            raise ValueError(f"Interference {split} must contain 700 samples per class; got {counts.tolist()}")
     return indices, mapped
 
 
@@ -241,8 +298,14 @@ def transform_pca(pca: PCA, features: np.ndarray) -> np.ndarray:
 
 
 def trajectory_metrics(features_by_method: Mapping[str, np.ndarray], labels: np.ndarray) -> list[dict[str, Any]]:
+    labels = np.asarray(labels, dtype=np.int64).reshape(-1)
+    classes = np.unique(labels)
+    if not np.array_equal(classes, np.arange(len(classes))):
+        raise ValueError("labels must be contiguous class IDs starting at zero")
     rows: list[dict[str, Any]] = []
     for method, features in features_by_method.items():
+        if features.shape[0] != len(labels):
+            raise ValueError(f"{method} features do not align with labels")
         for li, layer in enumerate(LAYERS):
             full = features[:, -1, li, :].astype(np.float64)
             for ti, temporal in enumerate(TEMPORAL_LEVELS):
@@ -251,60 +314,119 @@ def trajectory_metrics(features_by_method: Mapping[str, np.ndarray], labels: np.
                 similarities = np.sum(current * full, axis=1) / (
                     np.linalg.norm(current, axis=1) * np.linalg.norm(full, axis=1) + 1e-12
                 )
-                per_class_distance = [float(distances[labels == cls].mean()) for cls in (0, 1)]
-                per_class_cosine = [float(similarities[labels == cls].mean()) for cls in (0, 1)]
-                centers = [current[labels == cls].mean(axis=0) for cls in (0, 1)]
-                within = [np.sqrt(np.mean(np.sum((current[labels == cls] - centers[cls]) ** 2, axis=1))) for cls in (0, 1)]
-                separation = float(np.linalg.norm(centers[0] - centers[1]) / (np.mean(within) + 1e-12))
-                rows.append({
+                per_class_distance = {int(cls): float(distances[labels == cls].mean()) for cls in classes}
+                per_class_cosine = {int(cls): float(similarities[labels == cls].mean()) for cls in classes}
+                centers = {int(cls): current[labels == cls].mean(axis=0) for cls in classes}
+                radii = {int(cls): float(np.sqrt(np.mean(np.sum(
+                    (current[labels == cls] - centers[int(cls)]) ** 2, axis=1)))) for cls in classes}
+                pair_distances = [float(np.linalg.norm(centers[int(a)] - centers[int(b)]))
+                                  for i, a in enumerate(classes) for b in classes[i + 1:]]
+                separation = float(np.mean(pair_distances) / (np.mean(list(radii.values())) + 1e-12))
+                row = {
                     "method": method, "layer": layer, "temporal_columns": temporal,
-                    "normalized_distance": float(np.mean(per_class_distance)),
-                    "cosine_similarity": float(np.mean(per_class_cosine)),
+                    "normalized_distance": float(np.mean(list(per_class_distance.values()))),
+                    "cosine_similarity": float(np.mean(list(per_class_cosine.values()))),
                     "class_separation_ratio": separation,
-                    "normalized_distance_class0": per_class_distance[0],
-                    "normalized_distance_class1": per_class_distance[1],
-                    "cosine_similarity_class0": per_class_cosine[0],
-                    "cosine_similarity_class1": per_class_cosine[1],
-                })
+                }
+                for cls in classes:
+                    row[f"normalized_distance_class{cls}"] = per_class_distance[int(cls)]
+                    row[f"cosine_similarity_class{cls}"] = per_class_cosine[int(cls)]
+                    row[f"class_radius_class{cls}"] = radii[int(cls)]
+                rows.append(row)
     return rows
 
 
 def paired_bootstrap(features_by_method: Mapping[str, np.ndarray], labels: np.ndarray,
                      *, replicates: int = 2000, seed: int = 2025) -> list[dict[str, Any]]:
-    """Class-stratified paired bootstrap with long-form method and contrast rows."""
+    """Fast class-stratified paired bootstrap; all methods reuse each sampled identity draw."""
     if set(features_by_method) != set(METHODS):
         raise ValueError(f"paired bootstrap requires exactly {METHODS}")
+    labels = np.asarray(labels, dtype=np.int64).reshape(-1)
+    classes = np.unique(labels)
+    if not np.array_equal(classes, np.arange(len(classes))):
+        raise ValueError("labels must be contiguous class IDs starting at zero")
     rng = np.random.default_rng(seed)
-    grouped = {cls: np.flatnonzero(labels == cls) for cls in (0, 1)}
-    keys = [(metric, cls) for metric in ("normalized_distance", "cosine_similarity") for cls in (None, 0, 1)]
+    groups = [np.flatnonzero(labels == cls) for cls in classes]
+    if any(not len(group) for group in groups):
+        raise ValueError("every class must be represented in the bootstrap sample")
+    # Precompute per-example trajectory distances/cosines and squared feature norms.
+    terms = {}
+    for method, features in features_by_method.items():
+        values = np.asarray(features, dtype=np.float64)
+        if values.shape[0] != len(labels):
+            raise ValueError(f"{method} features do not align with labels")
+        distances = np.empty((len(labels), len(TEMPORAL_LEVELS), len(LAYERS)), dtype=np.float64)
+        cosines = np.empty_like(distances)
+        squared_norms = np.sum(values * values, axis=-1)
+        for li in range(len(LAYERS)):
+            full = values[:, -1, li]
+            full_norm = np.linalg.norm(full, axis=1)
+            for ti in range(len(TEMPORAL_LEVELS)):
+                current = values[:, ti, li]
+                distances[:, ti, li] = np.linalg.norm(current - full, axis=1) / (full_norm + 1e-12)
+                cosines[:, ti, li] = np.sum(current * full, axis=1) / (
+                    np.linalg.norm(current, axis=1) * full_norm + 1e-12)
+        terms[method] = {"features": values, "distances": distances, "cosines": cosines,
+                         "squared_norms": squared_norms}
+
+    keys = [(metric, cls) for metric in ("normalized_distance", "cosine_similarity")
+            for cls in [None, *[int(c) for c in classes]]]
     keys += [("class_separation_ratio", None)]
-    boot = {(kind, method, reference, layer, temporal, metric, cls): []
+    boot = {(kind, method, reference, layer, temporal, metric, cls): np.empty(replicates, dtype=np.float64)
             for kind in ("method", "comparison")
             for method, reference in ([(m, "") for m in METHODS] if kind == "method" else list(COMPARISONS))
             for layer in LAYERS for temporal in TEMPORAL_LEVELS for metric, cls in keys}
-    for _ in range(replicates):
-        sampled = np.concatenate([rng.choice(grouped[cls], size=len(grouped[cls]), replace=True) for cls in (0, 1)])
-        sampled_labels = labels[sampled]
-        stats = trajectory_metrics({m: arr[sampled] for m, arr in features_by_method.items()}, sampled_labels)
-        lookup = {(r["method"], r["layer"], r["temporal_columns"]): r for r in stats}
+    for replicate in range(replicates):
+        sampled_by_class = [rng.choice(group, size=len(group), replace=True) for group in groups]
+        sampled_all = np.concatenate(sampled_by_class)
+        stats: dict[tuple[str, int, int], dict[str, float]] = {}
+        for method in METHODS:
+            record = terms[method]
+            feature = record["features"]
+            for li, layer in enumerate(LAYERS):
+                for ti, temporal in enumerate(TEMPORAL_LEVELS):
+                    class_distance = [float(record["distances"][draw, ti, li].mean()) for draw in sampled_by_class]
+                    class_cosine = [float(record["cosines"][draw, ti, li].mean()) for draw in sampled_by_class]
+                    centers = np.stack([feature[draw, ti, li].mean(axis=0) for draw in sampled_by_class])
+                    radii = []
+                    for cls_index, draw in enumerate(sampled_by_class):
+                        mean_sq = float(record["squared_norms"][draw, ti, li].mean())
+                        center_sq = float(np.dot(centers[cls_index], centers[cls_index]))
+                        radii.append(float(np.sqrt(max(0.0, mean_sq - center_sq))))
+                    if len(classes) == 2:
+                        # Preserve the historical binary equation exactly.
+                        pair_mean = float(np.linalg.norm(centers[0] - centers[1]))
+                    else:
+                        gram = centers @ centers.T
+                        norms = np.diag(gram)
+                        pairwise = np.sqrt(np.maximum(norms[:, None] + norms[None, :] - 2 * gram, 0.0))
+                        pair_mean = float(pairwise[np.triu_indices(len(classes), k=1)].mean())
+                    stats[(method, layer, temporal)] = {
+                        "normalized_distance": float(np.mean(class_distance)),
+                        "cosine_similarity": float(np.mean(class_cosine)),
+                        "class_separation_ratio": pair_mean / (float(np.mean(radii)) + 1e-12),
+                    }
+                    for cls_index, cls in enumerate(classes):
+                        stats[(method, layer, temporal)][f"normalized_distance_class{cls}"] = class_distance[cls_index]
+                        stats[(method, layer, temporal)][f"cosine_similarity_class{cls}"] = class_cosine[cls_index]
         for layer in LAYERS:
             for temporal in TEMPORAL_LEVELS:
                 for metric, cls in keys:
                     field = metric if cls is None else f"{metric}_class{cls}"
-                    values = {m: lookup[(m, layer, temporal)][field] for m in METHODS}
+                    values = {method: stats[(method, layer, temporal)][field] for method in METHODS}
                     for method, value in values.items():
-                        boot[("method", method, "", layer, temporal, metric, cls)].append(value)
+                        boot[("method", method, "", layer, temporal, metric, cls)][replicate] = value
                     for method, reference in COMPARISONS:
-                        boot[("comparison", method, reference, layer, temporal, metric, cls)].append(values[method] - values[reference])
+                        boot[("comparison", method, reference, layer, temporal, metric, cls)][replicate] = values[method] - values[reference]
     point_rows = trajectory_metrics(features_by_method, labels)
-    point = {(r["method"], r["layer"], r["temporal_columns"]): r for r in point_rows}
+    point = {(row["method"], row["layer"], row["temporal_columns"]): row for row in point_rows}
     rows = []
     for layer in LAYERS:
         for temporal in TEMPORAL_LEVELS:
             for metric, cls in keys:
                 field = metric if cls is None else f"{metric}_class{cls}"
                 for method in METHODS:
-                    sample = np.asarray(boot[("method", method, "", layer, temporal, metric, cls)])
+                    sample = boot[("method", method, "", layer, temporal, metric, cls)]
                     lo, hi = np.quantile(sample, [.025, .975])
                     rows.append({"record_type": "method", "method": method, "reference_method": "", "layer": layer,
                                  "temporal_columns": temporal, "metric": metric, "class_id": "" if cls is None else cls,
@@ -312,7 +434,7 @@ def paired_bootstrap(features_by_method: Mapping[str, np.ndarray], labels: np.nd
                                  "difference": "", "difference_low": "", "difference_high": "", "excludes_zero": "",
                                  "replicates": replicates, "seed": seed})
                 for method, reference in COMPARISONS:
-                    sample = np.asarray(boot[("comparison", method, reference, layer, temporal, metric, cls)])
+                    sample = boot[("comparison", method, reference, layer, temporal, metric, cls)]
                     lo, hi = np.quantile(sample, [.025, .975])
                     delta = point[(method, layer, temporal)][field] - point[(reference, layer, temporal)][field]
                     rows.append({"record_type": "comparison", "method": method, "reference_method": reference,
@@ -324,15 +446,30 @@ def paired_bootstrap(features_by_method: Mapping[str, np.ndarray], labels: np.nd
     return rows
 
 
+def per_class_metric_rows(metric_rows: list[dict[str, Any]], num_classes: int) -> list[dict[str, Any]]:
+    rows = []
+    for row in metric_rows:
+        for cls in range(num_classes):
+            rows.append({"method": row["method"], "layer": row["layer"],
+                         "temporal_columns": row["temporal_columns"], "class_id": cls,
+                         "normalized_distance": row[f"normalized_distance_class{cls}"],
+                         "cosine_similarity": row[f"cosine_similarity_class{cls}"],
+                         "class_radius": row[f"class_radius_class{cls}"]})
+    return rows
+
+
 def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Mapping[str, np.ndarray],
                   labels: np.ndarray, metric_rows: list[dict[str, Any]], interval_rows: list[dict[str, Any]],
-                  output_dir: Path, pca_explained_variance: Mapping[str, list[float]] | None = None) -> None:
+                  output_dir: Path, pca_explained_variance: Mapping[str, list[float]] | None = None,
+                  *, task: str = "interference", prefix_semantics: str = "column") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    colors = {0: "#277da1", 1: "#f94144"}
+    classes = np.unique(labels).astype(int).tolist()
+    cmap = plt.get_cmap("tab20", max(20, len(classes)))
+    colors = {cls: cmap(cls % 20) for cls in classes}
     pca_explained_variance = pca_explained_variance or {}
     method_colors = {"p0": "#277da1", "p1": "#f9c74f", "p2": "#f94144", "p2_reverse": "#7209b7"}
     fig, axes = plt.subplots(4, 4, figsize=(16, 13), constrained_layout=True, sharex="row", sharey="row")
@@ -340,12 +477,16 @@ def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Map
         coords = coordinates[method]
         for li, layer in enumerate(LAYERS):
             ax = axes[mi, li]
-            for cls in (0, 1):
-                centroids = np.stack([coords[labels == cls, ti, li].mean(axis=0) for ti in range(4)])
-                ax.plot(centroids[:, 0], centroids[:, 1], color=colors[cls], marker="o", linewidth=1.8,
+            for cls in classes:
+                centroids = np.stack([coords[labels == cls, ti, li].mean(axis=0) for ti in range(len(TEMPORAL_LEVELS))])
+                ax.plot(centroids[:, 0], centroids[:, 1], color=colors[cls], marker="o", linewidth=1.2,
+                        alpha=.7 if len(classes) > 8 else .95,
                         label=f"Class {cls}" if mi == 0 and li == 0 else None)
-                for ti, point in enumerate(centroids):
-                    ax.annotate(str(TEMPORAL_LEVELS[ti]), point, xytext=(3, 3), textcoords="offset points", fontsize=8)
+                if len(classes) > 8:
+                    ax.annotate(str(cls), centroids[-1], xytext=(2, 2), textcoords="offset points", fontsize=6)
+                else:
+                    for ti, point in enumerate(centroids):
+                        ax.annotate(str(TEMPORAL_LEVELS[ti]), point, xytext=(3, 3), textcoords="offset points", fontsize=7)
             ax.set_title(f"{METHOD_LABELS[method]} · L{layer}")
             if li == 0:
                 ratios = pca_explained_variance.get(method, [])
@@ -354,7 +495,8 @@ def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Map
             if mi == 3:
                 ax.set_xlabel("PC 1")
             ax.grid(alpha=.2)
-    fig.legend(loc="outside lower center", ncol=2)
+    if len(classes) <= 8:
+        fig.legend(loc="outside lower center", ncol=min(len(classes), 6))
     for ext in ("png", "pdf"):
         fig.savefig(output_dir / f"class_centroid_trajectories.{ext}", dpi=220)
     plt.close(fig)
@@ -386,36 +528,43 @@ def write_figures(features_by_method: Mapping[str, np.ndarray], coordinates: Map
             if li == 0:
                 ax.set_ylabel(titles[metric])
             if ri == 2:
-                ax.set_xlabel("Visible temporal patch columns")
+                ax.set_xlabel("Visible temporal columns" if prefix_semantics == "temporal" else "Visible input columns")
     axes[0, 0].legend(fontsize=8)
+    fig.suptitle(f"{TASK_LABELS.get(task, task)} representation trajectories")
     for ext in ("png", "pdf"):
         fig.savefig(output_dir / f"trajectory_metrics.{ext}", dpi=220)
     plt.close(fig)
 
 
-def write_summary(path: Path, metrics: list[dict[str, Any]], intervals: list[dict[str, Any]], provenance: dict[str, Any]) -> None:
-    lines = ["# Four-method Interference representation trajectories", "",
-             "Inference-only comparison of temporal-prefix trajectories. Each method has its own PCA fit on validation data; PCA coordinates are not comparable across methods. Primary scalar metrics are in the original 256-D feature space.", "",
+def write_summary(path: Path, metrics: list[dict[str, Any]], intervals: list[dict[str, Any]],
+                  provenance: dict[str, Any], *, task: str = "interference") -> None:
+    semantics = provenance.get("prefix_semantics", "column")
+    class_counts = provenance.get("class_counts", {})
+    count_text = ", ".join(f"class {key}: {value}" for key, value in sorted(class_counts.items(), key=lambda item: int(item[0])))
+    prefix_word = "temporal" if semantics == "temporal" else "input-column"
+    lines = [f"# Four-method {TASK_LABELS.get(task, task)} representation trajectories", "",
+             f"Inference-only comparison of {prefix_word} prefix trajectories. Each method has its own PCA fit on validation data; PCA coordinates are not comparable across methods. Primary scalar metrics use the original 256-D feature space.", "",
              "## Protocol", "",
              "- Methods: P0, P1 (same-scale intermediate supervision), P2 (fine-to-coarse), and P2-Reverse (coarse-to-fine).",
-             "- Selected checkpoints: P0 epoch 59 / step 13560 (run configured for 240 epochs); P1 epoch 59 / step 13560 (60 epochs); P2 epoch 59 / step 13560 (60 epochs); P2-Reverse epoch 49 / step 11300 (50 epochs). All are seed 0 and use the canonical six-mask multi_block/span_time signature.",
-             "- P0/P1/P2 are matched by selected update step, but their configured training schedules differ; P2-Reverse is also 10 epochs shorter than P1/P2. Method differences are descriptive and cannot isolate hierarchy/objective effects from schedule and horizon differences.",
-             "- The P2-Reverse source packet's split manifest is unavailable. All extracted features use the canonical seed-2025 split, but equality with the missing source packet manifest cannot be verified.",
-             "- Samples: 1,400 held-out test examples, balanced at 700 per class.",
-             "- Prefixes: 2, 4, 8, and 14 temporal columns (28, 56, 112, and 196 tokens), retaining the 14×14 positional grid.",
+             "- Checkpoints: P0/P1/P2 epoch 59 / step 13,560; P2-Reverse epoch 49 / step 11,300. All pretraining seeds are 0 and use the canonical six-mask multi_block/span_time signature.",
+             "- P2-Reverse is from a 50-epoch run while the other methods use 60-epoch runs; interpret its comparison as exploratory.",
+             "- P2-Reverse source split provenance is unverifiable because its original manifest is unavailable. All extracted representations and newly trained heads use the canonical seed-2025 split.",
+             f"- Test samples: {sum(int(value) for value in class_counts.values())} ({count_text}).",
+             "- Prefixes: 2, 4, 8, and 14 columns (28, 56, 112, and 196 tokens), retaining the original 14×14 positional grid.",
              "- Features: frozen context-encoder normalized tokens mean-pooled to 256 dimensions at L2/L4/L6/L8.",
-             "- Intervals: 2,000 class-stratified paired bootstrap resamples (seed 2025); uncertainty is conditional on seed 0.", "",
-             "## Predeclared Tp4 comparisons", "",
-             "Paired differences are method minus reference; the intervals below are 95% bootstrap intervals for class-separation ratio.", "",
+             "- Intervals: 2,000 class-stratified paired bootstrap resamples (seed 2025); uncertainty is conditional on pretraining seed 0.", "",
+             f"## Predeclared {'Tp4' if semantics == 'temporal' else 'P4'} comparisons", "",
+             "Paired differences are method minus reference; intervals below are 95% bootstrap intervals for class-separation ratio.", "",
              "| Layer | P1−P0 | P2−P0 | P2-Reverse−P0 | P2−P1 | P2−P2-Reverse |", "|---|---:|---:|---:|---:|---:|"]
     comparison = {(r["method"], r["reference_method"], r["layer"]): r for r in intervals
                   if r["record_type"] == "comparison" and r["temporal_columns"] == 4
                   and r["metric"] == "class_separation_ratio" and r["class_id"] == ""}
     for layer in LAYERS:
-        cells = [comparison[(m, ref, layer)] for m, ref in COMPARISONS]
-        rendered = ["{:.3f} [{:.3f}, {:.3f}]".format(r.get("difference"), r.get("difference_low"), r.get("difference_high")) for r in cells]
+        cells = [comparison[(method, reference, layer)] for method, reference in COMPARISONS]
+        rendered = ["{:.3f} [{:.3f}, {:.3f}]".format(r["difference"], r["difference_low"], r["difference_high"])
+                    for r in cells]
         lines.append(f"| L{layer} | " + " | ".join(rendered) + " |")
-    lines += ["", "These are descriptive estimates; no automatic winner or causal attribution is implied. The intervals quantify resampling uncertainty for this seed and do not capture across-seed variation.", "",
+    lines += ["", "These are descriptive estimates; no automatic winner or causal attribution is implied. Intervals quantify resampling uncertainty for pretraining seed 0 and do not capture across-seed variation.", "",
               "See `class_centroid_trajectories` for PCA-projected class centroids and `trajectory_metrics` for original-space metric trajectories.", ""]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines))

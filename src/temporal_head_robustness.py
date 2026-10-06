@@ -19,7 +19,6 @@ HEAD_SEEDS = (2025, 2026, 2027, 2028, 2029)
 COMPARISONS = (("p1", "p0"), ("p2", "p0"), ("p2_reverse", "p0"), ("p2", "p1"), ("p2", "p2_reverse"))
 METHOD_LABELS = {"p0": "P0", "p1": "P1", "p2": "P2", "p2_reverse": "P2-Reverse"}
 METHOD_COLORS = {"p0": "#277da1", "p1": "#f9c74f", "p2": "#f94144", "p2_reverse": "#7209b7"}
-CLASS_COUNT = 2
 EMBED_DIM = 256
 
 
@@ -42,6 +41,11 @@ def read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def save_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+
+
 def validate_head_packet(
     packet_path: Path,
     *,
@@ -51,6 +55,8 @@ def validate_head_packet(
     checkpoint_sha256: str,
     split_manifest: Path,
     split_sha256: str,
+    task: str = "interference",
+    num_classes: int = 2,
 ) -> dict[int, Path]:
     """Validate selection-only packet metadata and return its four head files."""
     packet = read_json(packet_path)
@@ -82,13 +88,13 @@ def validate_head_packet(
         raise ValueError(f"{packet_path} did not use the canonical split manifest")
     if sha256_file(split_manifest) != split_sha256:
         raise ValueError(f"canonical split hash changed: {split_manifest}")
-    task = packet.get("tasks", {}).get("interference")
-    if not isinstance(task, dict):
-        raise ValueError(f"{packet_path} has no Interference task")
-    spec = task.get("spec", {})
-    if spec.get("target_type") != "classification" or int(spec.get("num_outputs", -1)) != CLASS_COUNT:
-        raise ValueError(f"{packet_path} must describe binary Interference classification")
-    exits = task.get("exits", {})
+    task_record = packet.get("tasks", {}).get(task)
+    if not isinstance(task_record, dict):
+        raise ValueError(f"{packet_path} has no {task} task")
+    spec = task_record.get("spec", {})
+    if spec.get("target_type") != "classification" or int(spec.get("num_outputs", -1)) != int(num_classes):
+        raise ValueError(f"{packet_path} must describe {task} classification with {num_classes} outputs")
+    exits = task_record.get("exits", {})
     if set(exits) != {str(layer) for layer in LAYERS}:
         raise ValueError(f"{packet_path} must contain exactly exits {LAYERS}")
     head_paths: dict[int, Path] = {}
@@ -100,7 +106,7 @@ def validate_head_packet(
         saved = torch.load(head_path, map_location="cpu", weights_only=False)
         if not isinstance(saved, Mapping) or not isinstance(saved.get("head"), Mapping):
             raise ValueError(f"L{layer} head checkpoint is missing its head state")
-        head = ExitHead(EMBED_DIM, CLASS_COUNT)
+        head = ExitHead(EMBED_DIM, num_classes)
         try:
             head.load_state_dict(saved["head"], strict=True)
         except RuntimeError as exc:
@@ -109,11 +115,11 @@ def validate_head_packet(
     return head_paths
 
 
-def load_exit_heads(head_paths: Mapping[int, Path], *, device: torch.device) -> dict[int, nn.Module]:
+def load_exit_heads(head_paths: Mapping[int, Path], *, device: torch.device, num_classes: int = 2) -> dict[int, nn.Module]:
     heads: dict[int, nn.Module] = {}
     for layer in LAYERS:
         payload = torch.load(head_paths[layer], map_location="cpu", weights_only=False)
-        head = ExitHead(EMBED_DIM, CLASS_COUNT)
+        head = ExitHead(EMBED_DIM, num_classes)
         head.load_state_dict(payload["head"], strict=True)
         head.to(device).eval()
         heads[layer] = head
@@ -163,7 +169,12 @@ def evaluate_temporal_prefixes(
     """Return probabilities/predictions shaped [H,R,L,T,N,(2)/()]."""
     head_seeds = tuple(next(iter(heads_by_layer_seed.values())).keys())
     n = len(indices)
-    probabilities = np.empty((len(head_seeds), inference_repeats, len(LAYERS), len(TEMPORAL_LEVELS), n, 2),
+    first_head = next(iter(next(iter(heads_by_layer_seed.values())).values()))
+    num_classes = int(first_head.projection.out_features)
+    if any(int(head.projection.out_features) != num_classes
+           for layer_heads in heads_by_layer_seed.values() for head in layer_heads.values()):
+        raise ValueError("all temporal-evaluation heads must have the same output class count")
+    probabilities = np.empty((len(head_seeds), inference_repeats, len(LAYERS), len(TEMPORAL_LEVELS), n, num_classes),
                              dtype=np.float32)
     predictions = np.empty((len(head_seeds), inference_repeats, len(LAYERS), len(TEMPORAL_LEVELS), n),
                            dtype=np.int64)
@@ -210,25 +221,29 @@ def evaluate_temporal_prefixes(
     return probabilities, predictions
 
 
-def classification_metrics(predictions: np.ndarray, labels: np.ndarray) -> dict[str, float]:
+def classification_metrics(predictions: np.ndarray, labels: np.ndarray,
+                            num_classes: int | None = None) -> dict[str, float]:
     predictions = np.asarray(predictions).reshape(-1)
     labels = np.asarray(labels).reshape(-1).astype(np.int64)
     if predictions.shape != labels.shape:
         raise ValueError("predictions and labels must have identical shape")
-    class_accuracy = []
-    for cls in range(CLASS_COUNT):
+    num_classes = int(labels.max()) + 1 if num_classes is None and labels.size else int(num_classes or 0)
+    if num_classes < 2 or not np.array_equal(np.unique(labels), np.arange(num_classes)):
+        raise ValueError("labels must contain every contiguous class ID")
+    class_accuracy = {}
+    for cls in range(num_classes):
         select = labels == cls
-        if not np.any(select):
-            raise ValueError(f"class {cls} is absent from the evaluation sample")
-        class_accuracy.append(float(np.mean(predictions[select] == cls)))
-    return {"accuracy": float(np.mean(predictions == labels)),
-            "class0_accuracy": class_accuracy[0], "class1_accuracy": class_accuracy[1],
-            "macro_accuracy": float(np.mean(class_accuracy))}
+        class_accuracy[cls] = float(np.mean(predictions[select] == cls))
+    result = {"accuracy": float(np.mean(predictions == labels)),
+              "macro_accuracy": float(np.mean(list(class_accuracy.values())))}
+    result.update({f"class{cls}_accuracy": accuracy for cls, accuracy in class_accuracy.items()})
+    return result
 
 
 def build_metric_tables(probabilities: np.ndarray, predictions: np.ndarray, labels: np.ndarray,
-                        head_seeds: Sequence[int]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    return _build_metric_tables_impl(probabilities, predictions, labels, head_seeds)
+                        head_seeds: Sequence[int], num_classes: int | None = None
+                        ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    return _build_metric_tables_impl(probabilities, predictions, labels, head_seeds, num_classes)
 
 
 def hierarchical_paired_bootstrap(
@@ -239,10 +254,11 @@ def hierarchical_paired_bootstrap(
     replicates: int = 2000,
     seed: int = 2025,
     point_estimates: Mapping[tuple[str, int, int, str], float] | None = None,
+    num_classes: int | None = None,
 ) -> list[dict[str, Any]]:
     return _hierarchical_paired_bootstrap_impl(predictions, labels, head_seeds,
                                                replicates=replicates, seed=seed,
-                                               point_estimates=point_estimates)
+                                               point_estimates=point_estimates, num_classes=num_classes)
 
 
 def write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
@@ -256,13 +272,17 @@ def write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
         writer.writerows(rows)
 
 def _build_metric_tables_impl(probabilities: np.ndarray, predictions: np.ndarray, labels: np.ndarray,
-                              head_seeds: Sequence[int]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+                              head_seeds: Sequence[int], num_classes: int | None = None
+                              ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Create raw-repeat, per-head-seed and aggregate metrics."""
     probabilities = np.asarray(probabilities)
     predictions = np.asarray(predictions)
     labels = np.asarray(labels, dtype=np.int64)
+    num_classes = int(labels.max()) + 1 if num_classes is None and labels.size else int(num_classes or 0)
+    if num_classes < 2 or not np.array_equal(np.unique(labels), np.arange(num_classes)):
+        raise ValueError("metric labels must include all contiguous classes")
     expected_prob_shape = (len(METHODS), len(head_seeds), predictions.shape[2],
-                           len(LAYERS), len(TEMPORAL_LEVELS), len(labels), CLASS_COUNT)
+                           len(LAYERS), len(TEMPORAL_LEVELS), len(labels), num_classes)
     if predictions.ndim != 6 or predictions.shape[:2] != (len(METHODS), len(head_seeds)):
         raise ValueError("predictions must have shape [M,H,R,L,T,N]")
     if probabilities.shape != expected_prob_shape or predictions.shape[3:6] != (
@@ -284,7 +304,7 @@ def _build_metric_tables_impl(probabilities: np.ndarray, predictions: np.ndarray
                     baseline = predictions[mi, hi, 0, li, ti]
                     for ri in range(repeats):
                         pred = predictions[mi, hi, ri, li, ti]
-                        scores = classification_metrics(pred, labels)
+                        scores = classification_metrics(pred, labels, num_classes)
                         prob_delta = float(np.max(np.abs(
                             probabilities[mi, hi, ri, li, ti] - probabilities[mi, hi, 0, li, ti])))
                         disagree = int(np.count_nonzero(pred != baseline))
@@ -309,7 +329,7 @@ def _build_metric_tables_impl(probabilities: np.ndarray, predictions: np.ndarray
                     values: dict[str, list[float]] = {
                         metric: [repeat_scores[(method, int(head_seed), layer, temporal, ri)][metric]
                                  for ri in range(repeats)]
-                        for metric in ("macro_accuracy", "accuracy", "class0_accuracy", "class1_accuracy")
+                        for metric in ("macro_accuracy", "accuracy", *[f"class{cls}_accuracy" for cls in range(num_classes)])
                     }
                     means = {key: float(np.mean(value)) for key, value in values.items()}
                     stds = {key: float(np.std(value, ddof=1)) if repeats > 1 else 0.0
@@ -320,8 +340,7 @@ def _build_metric_tables_impl(probabilities: np.ndarray, predictions: np.ndarray
                         "macro_accuracy_std_over_repeats": stds["macro_accuracy"],
                         "accuracy_mean_over_repeats": means["accuracy"],
                         "accuracy_std_over_repeats": stds["accuracy"],
-                        "class0_accuracy": means["class0_accuracy"],
-                        "class1_accuracy": means["class1_accuracy"],
+                        **{f"class{cls}_accuracy": means[f"class{cls}_accuracy"] for cls in range(num_classes)},
                         "full_information_macro_accuracy": full,
                         "absolute_degradation": full - means["macro_accuracy"],
                         "relative_retention": means["macro_accuracy"] / max(full, 1e-12),
@@ -346,8 +365,8 @@ def _build_metric_tables_impl(probabilities: np.ndarray, predictions: np.ndarray
                     "std_macro_accuracy_across_head_seeds": float(accuracy.std(ddof=1)),
                     "min_macro_accuracy": float(accuracy.min()), "max_macro_accuracy": float(accuracy.max()),
                     "mean_accuracy": float(np.mean([row["accuracy_mean_over_repeats"] for row in rows])),
-                    "mean_class0_accuracy": float(np.mean([row["class0_accuracy"] for row in rows])),
-                    "mean_class1_accuracy": float(np.mean([row["class1_accuracy"] for row in rows])),
+                    **{f"mean_class{cls}_accuracy": float(np.mean([row[f"class{cls}_accuracy"] for row in rows]))
+                       for cls in range(num_classes)},
                     "mean_absolute_degradation": float(degradation.mean()),
                     "std_absolute_degradation_across_head_seeds": float(degradation.std(ddof=1)),
                     "mean_repeat_std": float(np.mean([row["macro_accuracy_std_over_repeats"] for row in rows])),
@@ -364,10 +383,14 @@ def _hierarchical_paired_bootstrap_impl(
     replicates: int,
     seed: int,
     point_estimates: Mapping[tuple[str, int, int, str], float] | None,
+    num_classes: int | None = None,
 ) -> list[dict[str, Any]]:
     """Resample test examples within class and head seeds, paired across methods."""
     predictions = np.asarray(predictions)
     labels = np.asarray(labels, dtype=np.int64)
+    num_classes = int(labels.max()) + 1 if num_classes is None and labels.size else int(num_classes or 0)
+    if num_classes < 2 or not np.array_equal(np.unique(labels), np.arange(num_classes)):
+        raise ValueError("bootstrap labels must include all contiguous classes")
     if predictions.ndim == 6:
         predictions = predictions[:, :, 0]
     if predictions.ndim != 5 or predictions.shape[:2] != (len(METHODS), len(head_seeds)):
@@ -376,9 +399,9 @@ def _hierarchical_paired_bootstrap_impl(
         raise ValueError("prediction dimensions do not match layers, temporal levels, and labels")
     if replicates < 1 or len(head_seeds) < 2:
         raise ValueError("bootstrap requires positive replicates and at least two head seeds")
-    class_positions = [np.flatnonzero(labels == cls) for cls in range(CLASS_COUNT)]
+    class_positions = [np.flatnonzero(labels == cls) for cls in range(num_classes)]
     if any(len(values) == 0 for values in class_positions):
-        raise ValueError("paired bootstrap requires both classes")
+        raise ValueError("paired bootstrap requires every class")
 
     rng = np.random.default_rng(seed)
     head_draws = rng.integers(0, len(head_seeds), size=(replicates, len(head_seeds)))
@@ -392,7 +415,7 @@ def _hierarchical_paired_bootstrap_impl(
             for ti in range(len(TEMPORAL_LEVELS)):
                 class_accuracies: list[np.ndarray] = []
                 class_drops: list[np.ndarray] = []
-                for cls in range(CLASS_COUNT):
+                for cls in range(num_classes):
                     sample_ids = class_draws[cls]
                     current = predictions[mi, head_draws[:, :, None], li, ti, sample_ids[:, None, :]]
                     current_correct = (current == cls).mean(axis=-1)
@@ -465,18 +488,21 @@ def join_geometry_metrics(geometry_rows: Sequence[Mapping[str, Any]],
     return output
 
 
-def write_figures(aggregate_rows: Sequence[Mapping[str, Any]], report_dir: Path) -> None:
+def write_figures(aggregate_rows: Sequence[Mapping[str, Any]], report_dir: Path,
+                  *, task: str = "interference", prefix_semantics: str = "temporal") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     lookup = {(row["method"], int(row["layer"]), int(row["temporal_columns"])): row for row in aggregate_rows}
     levels = np.asarray(TEMPORAL_LEVELS)
+    prefix_label = "temporal columns" if prefix_semantics == "temporal" else "input columns"
+    prefix_name = "temporal-prefix" if prefix_semantics == "temporal" else "column-prefix"
     for metric, std_metric, filename, ylabel, title in (
         ("mean_macro_accuracy", "std_macro_accuracy_across_head_seeds",
-         "temporal_head_robustness", "Macro accuracy", "Frozen full-information heads under temporal prefixes"),
+         "temporal_head_robustness", "Macro accuracy", f"Frozen full-information heads under {prefix_name} availability"),
         ("mean_absolute_degradation", "std_absolute_degradation_across_head_seeds",
-         "temporal_head_degradation", "Accuracy loss from Tp14", "Degradation relative to full temporal input"),
+         "temporal_head_degradation", "Accuracy loss from Tp14", f"Degradation relative to full {prefix_label}"),
     ):
         fig, axes = plt.subplots(1, len(LAYERS), figsize=(18, 4.5), sharey=True, constrained_layout=True)
         for li, layer in enumerate(LAYERS):
@@ -488,13 +514,13 @@ def write_figures(aggregate_rows: Sequence[Mapping[str, Any]], report_dir: Path)
                 ax.errorbar(levels, values, yerr=errors, color=METHOD_COLORS[method],
                             marker="o", capsize=3, linewidth=1.8, label=METHOD_LABELS[method])
             ax.set_title(f"L{layer}")
-            ax.set_xticks(levels, [f"Tp{value}" for value in levels])
-            ax.set_xlabel("Visible temporal columns")
+            ax.set_xticks(levels, [f"P{value}" for value in levels])
+            ax.set_xlabel(f"Visible {prefix_label}")
             ax.grid(alpha=0.25)
             if li == 0:
                 ax.set_ylabel(ylabel)
         axes[0].legend(fontsize=9)
-        fig.suptitle(title)
+        fig.suptitle(f"{task}: {title}")
         for ext in ("png", "pdf"):
             fig.savefig(report_dir / f"{filename}.{ext}", dpi=220)
         plt.close(fig)
@@ -508,64 +534,35 @@ def _format_ci(row: Mapping[str, Any], *, comparison: bool = False) -> str:
 
 
 def write_summary(path: Path, aggregate_rows: Sequence[Mapping[str, Any]],
-                  bootstrap_rows: Sequence[Mapping[str, Any]], provenance: Mapping[str, Any]) -> None:
+                  bootstrap_rows: Sequence[Mapping[str, Any]], provenance: Mapping[str, Any],
+                  *, task: str = "interference") -> None:
     aggregate = {(row["method"], int(row["layer"]), int(row["temporal_columns"])): row
                  for row in aggregate_rows}
     bootstrap = {(row["record_type"], row["method"], row["reference_method"],
                   int(row["layer"]), int(row["temporal_columns"]), row["metric"]): row
                  for row in bootstrap_rows}
+    semantics = provenance.get("prefix_semantics", "column")
+    prefix_word = "temporal" if semantics == "temporal" else "input-column"
+    counts = provenance.get("split", {}).get("class_counts", {})
+    count_text = ", ".join(f"class {cls}: {n}" for cls, n in sorted(counts.items(), key=lambda item: int(item[0])))
     lines = [
-        "# Temporal-head robustness under Interference",
-        "",
-        "## Protocol",
-        "",
-        "- Frozen P0, P1, P2, and P2-Reverse encoders; binary Interference classification.",
-        "- Heads were trained on Tp14 only with the backbone frozen and validation-only early stopping. The same saved head was evaluated at Tp2/Tp4/Tp8/Tp14.",
-        "- Five independent head-seed runs (2025–2029) are summarized as mean ± sample standard deviation. Five inference passes are a reproducibility audit, not independent trials.",
-        "- Each temporal condition retains the leading 2/4/8/14 columns of the fixed 14×14 patch grid (28/56/112/196 tokens). All L2/L4/L6/L8 exits use normalized context-encoder tokens mean-pooled to 256 dimensions.",
-        "- Test split: 1,400 persisted samples, balanced at 700 per class. Macro accuracy is primary; degradation is Tp14 macro accuracy minus partial-prefix macro accuracy.",
-        "- Bootstrap: 2,000 paired hierarchical resamples (head seeds and examples resampled within class), seed 2025. Intervals do not measure backbone pretraining-seed variability.",
-        "",
-        "## Tp4 test metrics (mean ± SD across head seeds)",
-        "",
-        "| Layer | P0 accuracy / drop | P1 accuracy / drop | P2 accuracy / drop | P2-Reverse accuracy / drop |",
-        "|---|---:|---:|---:|---:|",
-    ]
+        f"# Frozen-head robustness under {task}", "", "## Protocol", "",
+        f"- Same full-information L2/L4/L6/L8 heads are evaluated under Tp2/Tp4/Tp8/Tp14 {prefix_word} prefixes.",
+        "- Methods: P0, P1, P2, and P2-Reverse; each encoder remains frozen during evaluation.",
+        "- P2-Reverse uses epoch 49 / step 11,300 from a 50-epoch run, so its comparison with 60-epoch methods is exploratory.",
+        "- P2-Reverse source split provenance is unverifiable; extraction, head training, and evaluation use the canonical seed-2025 split.",
+        f"- Test class counts: {count_text}.",
+        "- Five head seeds are summarized with mean and standard deviation. Repeated inference passes are a determinism audit, not independent trials.",
+        "- Paired hierarchical bootstrap resamples head seeds and test examples within each class. Uncertainty is conditional on pretraining seed 0.", "",
+        f"## {'Tp4' if semantics == 'temporal' else 'P4'} paired method comparisons", "",
+        "Differences are method minus reference; intervals are 95% hierarchical-bootstrap intervals for macro accuracy.", "",
+        "| Layer | P1−P0 | P2−P0 | P2-Reverse−P0 | P2−P1 | P2−P2-Reverse |", "|---|---:|---:|---:|---:|---:|"]
     for layer in LAYERS:
-        cells = []
-        for method in METHODS:
-            row = aggregate[(method, layer, 4)]
-            cells.append(f'{row["mean_macro_accuracy"]:.3f} ± {row["std_macro_accuracy_across_head_seeds"]:.3f} / '
-                         f'{row["mean_absolute_degradation"]:.3f} ± {row["std_absolute_degradation_across_head_seeds"]:.3f}')
-        lines.append(f"| L{layer} | " + " | ".join(cells) + " |")
-    lines += [
-        "",
-        "## Paired method comparisons",
-        "",
-        "The following table reports method-minus-reference differences in macro accuracy at Tp4 with 95% hierarchical paired-bootstrap intervals.",
-        "",
-        "| Layer | P1−P0 | P2−P0 | P2-Reverse−P0 | P2−P1 | P2−P2-Reverse |",
-        "|---|---:|---:|---:|---:|---:|",
-    ]
-    for layer in LAYERS:
-        cells = []
-        for method, reference in COMPARISONS:
-            row = bootstrap[("comparison", method, reference, layer, 4, "macro_accuracy")]
-            cells.append(_format_ci(row, comparison=True))
-        lines.append(f"| L{layer} | " + " | ".join(cells) + " |")
-    lines += [
-        "",
-        "Interpret comparisons descriptively and alongside degradation and per-head-seed spread; do not select a winner from point estimates alone. Head-seed/test-sample intervals are conditional on the single pretraining seed 0.",
-        "",
-        "P2-Reverse uses epoch 49 / step 11,300 from a 50-epoch run, whereas P1/P2 use epoch 59 / step 13,560 from 60-epoch runs. P2-Reverse comparisons are exploratory and may be affected by this horizon mismatch.",
-        "",
-        "Repeated inference prediction disagreements are required to be zero. Small probability differences are retained in the raw-run table as a numerical stability diagnostic.",
-        "",
-        "See temporal_head_robustness.csv, temporal_head_degradation.png, and geometry_functional_alignment.csv for the full results.",
-        "",
-    ]
+        cells = [bootstrap[("comparison", method, reference, layer, 4, "macro_accuracy")]
+                 for method, reference in COMPARISONS]
+        rendered = [_format_ci(row, comparison=True) for row in cells]
+        lines.append(f"| L{layer} | " + " | ".join(rendered) + " |")
+    lines += ["", "Accuracy degradation is Tp14 macro accuracy minus current-prefix macro accuracy; Tp14 degradation is zero by construction.",
+              "Repeated inference passes are not counted as independent evidence.", ""]
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines))
-
-
-def save_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n")

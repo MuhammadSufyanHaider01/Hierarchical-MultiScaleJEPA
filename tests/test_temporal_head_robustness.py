@@ -204,6 +204,66 @@ class TemporalHeadRobustnessTests(unittest.TestCase):
         self.assertEqual(full_drop["ci_low"], 0.0)
         self.assertEqual(full_drop["ci_high"], 0.0)
 
+    def test_multiclass_accuracy_and_metric_tables(self):
+        labels = np.asarray([0, 1, 2, 0, 1, 2])
+        pred = np.asarray([0, 2, 2, 0, 1, 1])
+        scores = classification_metrics(pred, labels, num_classes=3)
+        self.assertAlmostEqual(scores["macro_accuracy"], (1.0 + 0.5 + 0.5) / 3)
+        self.assertAlmostEqual(scores["class2_accuracy"], 0.5)
+        m, h, r, l, t, n, k = 4, 2, 1, 4, 4, len(labels), 3
+        predictions = np.broadcast_to(labels, (m, h, r, l, t, n)).copy()
+        probabilities = np.eye(k, dtype=np.float32)[predictions]
+        raw, per_seed, aggregate = build_metric_tables(
+            probabilities, predictions, labels, (2025, 2026), num_classes=k)
+        self.assertEqual(len(raw), m * h * r * l * t)
+        self.assertEqual(len(per_seed), m * h * l * t)
+        self.assertEqual(len(aggregate), m * l * t)
+        self.assertAlmostEqual(aggregate[0]["mean_class2_accuracy"], 1.0)
+
+    def test_multiclass_hierarchical_bootstrap_is_paired_and_deterministic(self):
+        labels = np.asarray([0] * 4 + [1] * 5 + [2] * 6)
+        predictions = np.broadcast_to(labels, (4, 2, 1, 4, 4, len(labels))).copy()
+        first = hierarchical_paired_bootstrap(predictions, labels, (2025, 2026),
+                                               replicates=12, seed=23, num_classes=3)
+        second = hierarchical_paired_bootstrap(predictions, labels, (2025, 2026),
+                                                replicates=12, seed=23, num_classes=3)
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 288)
+        self.assertTrue(all(row["estimate"] == 1.0 for row in first
+                            if row["metric"] == "macro_accuracy"))
+
+    def test_multiclass_head_packet_validation_checks_task_and_output_dimension(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            checkpoint = root / "encoder.ckpt"; checkpoint.write_bytes(b"encoder")
+            split = root / "splits.json"; split.write_text('{"schema_version":3,"seed":2025}')
+            exits = {}
+            for layer in LAYERS:
+                head_path = root / f"rfs_L{layer}.pt"
+                torch.save({"head": ExitHead(256, 3).state_dict()}, head_path)
+                exits[str(layer)] = {"head_path": str(head_path)}
+            packet = root / "metrics.json"
+            packet.write_text(json.dumps({
+                "method": "p0", "pretrain_seed": 0, "head_seed": 2025,
+                "checkpoint": str(checkpoint), "split_manifest": str(split), "dataset_suite": "primary",
+                "protocol": {"selection_uses": "validation_only", "test_evaluation": False,
+                             "head_max_epochs": 200,
+                             "head_early_stopping": {"enabled": True, "patience": 20, "min_delta": 0.0},
+                             "batch_limits": {"train": None, "validation": None, "test": None}},
+                "tasks": {"rfs": {"spec": {"target_type": "classification", "num_outputs": 3},
+                                     "exits": exits}},
+            }))
+            paths = validate_head_packet(packet, method="p0", head_seed=2025,
+                                         checkpoint_path=checkpoint, checkpoint_sha256=sha256_file(checkpoint),
+                                         split_manifest=split, split_sha256=sha256_file(split),
+                                         task="rfs", num_classes=3)
+            self.assertEqual(set(paths), set(LAYERS))
+            with self.assertRaisesRegex(ValueError, "20 outputs"):
+                validate_head_packet(packet, method="p0", head_seed=2025,
+                                     checkpoint_path=checkpoint, checkpoint_sha256=sha256_file(checkpoint),
+                                     split_manifest=split, split_sha256=sha256_file(split),
+                                     task="rfs", num_classes=20)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate matched frozen heads across temporal-prefix conditions."""
+"""Evaluate matched frozen heads across fixed-grid input-prefix conditions."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import h5py
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -23,10 +22,10 @@ sys.path.insert(0, str(ROOT / "src"))
 os.environ.setdefault("WANDB_KEY", "offline")
 
 from configs import configure_method_variant, init_jepa_config  # noqa: E402
-from datasets import ImageDataset  # noqa: E402
 from models import build_encoder, load_context_encoder_checkpoint  # noqa: E402
+from phase5 import build_task_dataset, _labels  # noqa: E402
 from representation_trajectories import (  # noqa: E402
-    LAYERS, METHODS, TEMPORAL_LEVELS, IndexedSamples, load_split_and_labels,
+    LAYERS, METHODS, TEMPORAL_LEVELS, IndexedSamples, load_task_split,
 )
 from temporal_head_robustness import (  # noqa: E402
     COMPARISONS, HEAD_SEEDS, METHOD_LABELS, assert_full_input_logit_parity,
@@ -36,19 +35,15 @@ from temporal_head_robustness import (  # noqa: E402
     evaluate_temporal_prefixes,
 )
 
-DEFAULT_BASE = ROOT / "runs/representation_trajectories/multi_block_n6/interference/seed_000"
-DEFAULT_PROVENANCE = DEFAULT_BASE / "test/provenance.json"
-DEFAULT_FEATURES = DEFAULT_BASE / "test/features.npz"
-DEFAULT_HEAD_ROOT = DEFAULT_BASE / "temporal_head_robustness/heads"
-DEFAULT_OUTPUT = DEFAULT_BASE / "temporal_head_robustness/evaluation"
-DEFAULT_REPORT = ROOT / "reports/representation_trajectories/multi_block_n6/interference/seed_000"
+TASKS = ("interference", "human-activity", "rfs", "jamming")
 
 
 def _args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trajectory-provenance", type=Path, default=DEFAULT_PROVENANCE)
-    parser.add_argument("--trajectory-test-features", type=Path, default=DEFAULT_FEATURES)
-    parser.add_argument("--head-root", type=Path, default=DEFAULT_HEAD_ROOT)
+    parser.add_argument("--task", choices=TASKS, default="interference")
+    parser.add_argument("--trajectory-provenance", type=Path)
+    parser.add_argument("--trajectory-test-features", type=Path)
+    parser.add_argument("--head-root", type=Path)
     parser.add_argument("--head-seeds", type=int, nargs="+", default=list(HEAD_SEEDS))
     parser.add_argument("--inference-repeats", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -56,8 +51,8 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--device", choices=("cuda", "cpu", "auto"), default="cuda")
     parser.add_argument("--bootstrap-replicates", type=int, default=2000)
     parser.add_argument("--bootstrap-seed", type=int, default=2025)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--report-root", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--report-root", type=Path)
     return parser.parse_args()
 
 
@@ -92,29 +87,32 @@ def _load_geometry_rows(provenance: dict, provenance_path: Path) -> tuple[Path, 
 
 
 def _prepare_inputs(args: argparse.Namespace):
-    provenance_path = args.trajectory_provenance.resolve()
-    features_path = args.trajectory_test_features.resolve()
+    base = ROOT / "runs/representation_trajectories/multi_block_n6" / args.task / "seed_000"
+    provenance_path = (args.trajectory_provenance or base / "test/provenance.json").resolve()
+    features_path = (args.trajectory_test_features or base / "test/features.npz").resolve()
     provenance = read_json(provenance_path)
-    if provenance.get("task") != "interference" or provenance.get("split") != "test":
-        raise ValueError("trajectory provenance must describe the Interference test run")
+    if provenance.get("task") != args.task or provenance.get("split") != "test":
+        raise ValueError(f"trajectory provenance must describe the {args.task} test run")
     if set(provenance.get("checkpoints", {})) != set(METHODS):
         raise ValueError(f"trajectory provenance must contain methods {METHODS}")
     split_path = _resolve(provenance["split_manifest"])
     if sha256_file(split_path) != provenance.get("split_manifest_sha256"):
         raise ValueError("trajectory split manifest hash changed")
-    data_path = Path(provenance["data"]["path"])
-    if not data_path.is_file():
-        raise FileNotFoundError(f"Interference HDF5 cache is missing: {data_path}")
-    with h5py.File(data_path, "r") as h5:
-        raw_labels = np.asarray(h5["cls_labels"][:]).reshape(-1)
-        sample_shape = tuple(h5["cls_spectrograms"].shape[1:])
-    if list(sample_shape) != provenance["data"]["sample_shape"]:
-        raise ValueError("Interference HDF5 sample geometry differs from trajectory provenance")
-    split_indices, mapped_labels = load_split_and_labels(split_path, raw_labels)
+    dataset, spec = build_task_dataset(args.task, ROOT)
+    if spec.target_type != "classification":
+        raise ValueError(f"{args.task} is not a classification")
+    num_classes = int(spec.num_outputs)
+    labels_by_index = _labels(dataset)
+    if labels_by_index is None:
+        raise ValueError(f"Phase-5 dataset did not expose canonical labels for {args.task}")
+    split_indices, mapped_labels = load_task_split(split_path, args.task, np.asarray(labels_by_index), num_classes)
     indices = np.asarray(split_indices["test"], dtype=np.int64)
     labels = mapped_labels[indices]
-    if not np.array_equal(np.bincount(labels, minlength=2), np.asarray([700, 700])):
-        raise ValueError("production test split must contain exactly 700 examples per class")
+    counts = np.bincount(labels, minlength=num_classes)
+    if np.any(counts == 0):
+        raise ValueError(f"test split lacks one or more {args.task} classes: {counts.tolist()}")
+    if list(spec.sample_shape) != provenance["data"]["sample_shape"]:
+        raise ValueError(f"{args.task} cache geometry differs from trajectory provenance")
     if sha256_indices(indices) != provenance.get("split_indices_sha256"):
         raise ValueError("persisted test indices differ from trajectory provenance")
     if not features_path.is_file():
@@ -124,7 +122,7 @@ def _prepare_inputs(args: argparse.Namespace):
         cached_labels = np.asarray(values["labels"], dtype=np.int64)
         cached_indices = np.asarray(values["indices"], dtype=np.int64)
     if not np.array_equal(cached_labels, labels) or not np.array_equal(cached_indices, indices):
-        raise ValueError("trajectory features do not align to the canonical test samples and labels")
+        raise ValueError("trajectory features do not align to canonical test samples and labels")
     expected = (len(indices), len(TEMPORAL_LEVELS), len(LAYERS), 256)
     for method in METHODS:
         if cached[method].shape != expected or not np.isfinite(cached[method]).all():
@@ -133,7 +131,10 @@ def _prepare_inputs(args: argparse.Namespace):
         checkpoint_path = Path(provenance["checkpoints"][method]["path"])
         if not checkpoint_path.is_file() or sha256_file(checkpoint_path) != expected_hash:
             raise ValueError(f"{method} trajectory checkpoint missing or changed")
-    return provenance_path, features_path, provenance, split_path, data_path, indices, labels, cached
+    data_path = Path(spec.path)
+    if not data_path.is_absolute():
+        data_path = ROOT / data_path
+    return provenance_path, features_path, provenance, split_path, dataset, indices, labels, cached, num_classes, data_path
 
 
 def _load_config_and_encoder(method: str, provenance: dict, device: torch.device):
@@ -166,11 +167,12 @@ def run(args: argparse.Namespace) -> None:
     device = _device(args.device)
     torch.set_float32_matmul_precision("high")
 
-    (provenance_path, features_path, trajectory, split_path, data_path,
-     indices, labels, cached_features) = _prepare_inputs(args)
-    head_root = args.head_root.resolve()
-    output_dir = args.output_dir.resolve()
-    report_dir = args.report_root.resolve()
+    (provenance_path, features_path, trajectory, split_path, base_dataset,
+     indices, labels, cached_features, num_classes, data_path) = _prepare_inputs(args)
+    task_base = ROOT / "runs/representation_trajectories/multi_block_n6" / args.task / "seed_000"
+    head_root = (args.head_root or task_base / "temporal_head_robustness/heads").resolve()
+    output_dir = (args.output_dir or task_base / "temporal_head_robustness/evaluation").resolve()
+    report_dir = (args.report_root or ROOT / "reports/representation_trajectories/multi_block_n6" / args.task / "seed_000").resolve()
     geometry_path, geometry_rows = _load_geometry_rows(trajectory, provenance_path)
     split_hash = trajectory["split_manifest_sha256"]
 
@@ -184,18 +186,18 @@ def run(args: argparse.Namespace) -> None:
             packet = head_root / f"head_seed_{seed}" / method / "seed_000" / "downstream" / "exit_metrics.json"
             paths = validate_head_packet(
                 packet, method=method, head_seed=seed, checkpoint_path=checkpoint,
-                checkpoint_sha256=checkpoint_hash, split_manifest=split_path, split_sha256=split_hash)
+                checkpoint_sha256=checkpoint_hash, split_manifest=split_path, split_sha256=split_hash,
+                task=args.task, num_classes=num_classes)
             head_paths[(method, seed)] = paths
             packet_records[(method, seed)] = read_json(packet)
 
-    base_dataset = ImageDataset(data_path, sample_key="cls_spectrograms", label_key="cls_labels", label_dtype=None)
     loader = DataLoader(
         IndexedSamples(base_dataset, indices.tolist()),
         batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
         pin_memory=device.type == "cuda", persistent_workers=args.num_workers > 0,
     )
     all_probabilities = np.empty((len(METHODS), len(args.head_seeds), args.inference_repeats,
-                                  len(LAYERS), len(TEMPORAL_LEVELS), len(indices), 2), dtype=np.float32)
+                                  len(LAYERS), len(TEMPORAL_LEVELS), len(indices), num_classes), dtype=np.float32)
     all_predictions = np.empty(all_probabilities.shape[:-1], dtype=np.int64)
     head_file_records: dict[str, Any] = {}
     for mi, method in enumerate(METHODS):
@@ -203,7 +205,7 @@ def run(args: argparse.Namespace) -> None:
         encoder, config_path = _load_config_and_encoder(method, trajectory, device)
         heads_by_layer_seed = {layer: {} for layer in LAYERS}
         for seed_index, seed in enumerate(args.head_seeds):
-            loaded = load_exit_heads(head_paths[(method, seed)], device=device)
+            loaded = load_exit_heads(head_paths[(method, seed)], device=device, num_classes=num_classes)
             for layer in LAYERS:
                 heads_by_layer_seed[layer][seed] = loaded[layer]
                 head_file_records.setdefault(f"{method}/head_seed_{seed}", {})[str(layer)] = {
@@ -225,7 +227,7 @@ def run(args: argparse.Namespace) -> None:
     if np.any(all_predictions != all_predictions[:, :, :1]):
         raise RuntimeError("repeat-level prediction instability detected; reports were not published")
     raw_rows, per_seed_rows, aggregate_rows = build_metric_tables(
-        all_probabilities, all_predictions, labels, args.head_seeds)
+        all_probabilities, all_predictions, labels, args.head_seeds, num_classes)
     if len(raw_rows) != len(METHODS) * len(args.head_seeds) * args.inference_repeats * len(LAYERS) * len(TEMPORAL_LEVELS):
         raise RuntimeError("unexpected raw inference row count")
     if len(per_seed_rows) != len(METHODS) * len(args.head_seeds) * len(LAYERS) * len(TEMPORAL_LEVELS):
@@ -239,12 +241,13 @@ def run(args: argparse.Namespace) -> None:
             point_estimates[(row["method"], row["layer"], row["temporal_columns"], metric)] = row[key]
     bootstrap_rows = hierarchical_paired_bootstrap(
         all_predictions, labels, args.head_seeds, replicates=args.bootstrap_replicates,
-        seed=args.bootstrap_seed, point_estimates=point_estimates)
+        seed=args.bootstrap_seed, point_estimates=point_estimates, num_classes=num_classes)
     alignment_rows = join_geometry_metrics(geometry_rows, aggregate_rows)
     report_aggregate = [dict(row) for row in aggregate_rows]
     provenance_out = {
         "schema_version": 1,
-        "task": "interference",
+        "task": args.task,
+        "num_classes": num_classes,
         "pretraining_seed": 0,
         "git_revision": subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True,
                                        text=True, capture_output=True).stdout.strip(),
@@ -254,7 +257,7 @@ def run(args: argparse.Namespace) -> None:
         "data": {"path": str(data_path.resolve()), "sample_shape": list(trajectory["data"]["sample_shape"])},
         "split": {"path": str(split_path.resolve()), "sha256": sha256_file(split_path),
                   "indices_sha256": sha256_indices(indices), "sample_indices_sha256": sha256_indices(indices),
-                  "class_counts": {str(cls): int(np.sum(labels == cls)) for cls in (0, 1)}},
+                  "class_counts": {str(cls): int(np.sum(labels == cls)) for cls in range(num_classes)}},
         "checkpoints": trajectory["checkpoints"],
         "configs": trajectory["configs"],
         "head_seeds": list(args.head_seeds),
@@ -272,9 +275,11 @@ def run(args: argparse.Namespace) -> None:
                           "backbone_frozen": True, "epochs_max": 200, "batch_size": 32,
                           "learning_rate": 1e-3, "weight_decay": 0.05,
                           "early_stopping_patience": 20, "minimum_delta": 0.0},
+        "prefix_axis": trajectory.get("prefix_axis", "width"),
+        "prefix_semantics": trajectory.get("prefix_semantics", "temporal"),
         "evaluation": {"temporal_columns": list(TEMPORAL_LEVELS),
                        "token_counts": [28, 56, 112, 196],
-                       "token_selection": "row-major leading temporal columns on unchanged 14x14 positional grid",
+                       "token_selection": "row-major leading width columns on unchanged 14x14 positional grid",
                        "layers": list(LAYERS), "feature_definition": trajectory["feature_definition"],
                        "inference_repeats": args.inference_repeats, "shuffle": False,
                        "batch_size": args.batch_size, "num_workers": args.num_workers,
@@ -306,9 +311,10 @@ def run(args: argparse.Namespace) -> None:
 
         write_csv(report_stage / "temporal_head_robustness.csv", report_aggregate)
         write_csv(report_stage / "geometry_functional_alignment.csv", alignment_rows)
-        write_figures(aggregate_rows, report_stage)
+        write_figures(aggregate_rows, report_stage, task=args.task,
+                      prefix_semantics=trajectory.get("prefix_semantics", "temporal"))
         write_summary(report_stage / "temporal_head_robustness_summary.md",
-                      aggregate_rows, bootstrap_rows, provenance_out)
+                      aggregate_rows, bootstrap_rows, provenance_out, task=args.task)
 
         output_dir.mkdir(parents=True, exist_ok=True)
         report_dir.mkdir(parents=True, exist_ok=True)
