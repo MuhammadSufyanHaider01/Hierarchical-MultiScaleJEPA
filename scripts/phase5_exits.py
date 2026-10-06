@@ -135,6 +135,14 @@ def _loader(dataset, *, batch_size: int, shuffle: bool, num_workers: int, seed: 
     )
 
 
+def _batch_progress(label: str, completed: int, total: int, *, width: int = 28) -> str:
+    """Format an in-place progress bar suitable for a live Slurm log tail."""
+
+    total = max(1, total)
+    completed = min(max(0, completed), total)
+    filled = round(width * completed / total)
+    return f"[{label}] [{('█' * filled) + ('░' * (width - filled))}] {completed:03d}/{total:03d} batches"
+
 def _class_weights(spec: TaskSpec, device: torch.device) -> torch.Tensor | None:
     attr = {
         "deepmimo-beam": "class_weights_beam_16",
@@ -247,6 +255,9 @@ def _train_exit(
     non_improving_epochs = 0
     stopped_early = False
     epochs_completed = 0
+    total_batches = len(train_loader)
+    if args.limit_train_batches is not None:
+        total_batches = min(total_batches, args.limit_train_batches)
     for epoch in range(args.epochs):
         model.train()
         train_loss_sum = 0.0
@@ -267,6 +278,17 @@ def _train_exit(
             if any(parameter.grad is not None for parameter in encoder.parameters()):
                 raise RuntimeError(f"context backbone received gradients at L{exit_layer}")
             optimizer.step()
+            print(
+                _batch_progress(
+                    f"{spec.name} L{exit_layer} epoch {epoch + 1:03d}",
+                    batch_index + 1,
+                    total_batches,
+                ),
+                flush=True,
+            )
+
+        if train_examples:
+            print(flush=True)
 
         validation = _evaluate(
             model,

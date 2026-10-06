@@ -1,100 +1,104 @@
-# Detailed batch-1 inference cost
-
-| Approach | Task | Exit | FLOPs (B) | Mean ms | P95 ms | FLOPs saving | Latency saving |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | RF sensing | L2 | 0.721 | 0.4533 | 0.4842 | 74.3% | 59.7% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | RF sensing | L4 | 1.416 | 0.6903 | 0.7766 | 49.5% | 38.7% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | RF sensing | L6 | 2.111 | 0.8981 | 0.9808 | 24.8% | 20.2% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | RF sensing | L8 | 2.807 | 1.1259 | 1.2477 | 0.0% | 0.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L2 | 0.721 | 0.4559 | 0.4861 | 74.3% | 59.2% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L4 | 1.416 | 0.6809 | 0.7705 | 49.5% | 39.1% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L6 | 2.111 | 0.9049 | 1.0111 | 24.8% | 19.1% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Jamming classification | L8 | 2.807 | 1.1180 | 1.2667 | 0.0% | 0.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L2 | 2.635 | 0.4585 | 0.6210 | 74.4% | 61.6% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L4 | 5.193 | 0.6990 | 0.8777 | 49.6% | 41.5% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L6 | 7.750 | 0.9481 | 1.1484 | 24.8% | 20.6% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Human activity sensing | L8 | 10.308 | 1.1939 | 1.3596 | 0.0% | 0.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Interference classification | L2 | 0.721 | 0.4493 | 0.4954 | 74.3% | 59.8% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Interference classification | L4 | 1.416 | 0.6744 | 0.7613 | 49.5% | 39.7% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Interference classification | L6 | 2.111 | 0.9005 | 1.0228 | 24.8% | 19.5% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | Interference classification | L8 | 2.807 | 1.1184 | 1.2317 | 0.0% | 0.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | NR positioning | L2 | 3.828 | 0.5577 | 0.7190 | 74.5% | 64.2% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | NR positioning | L4 | 7.553 | 0.8867 | 1.0755 | 49.7% | 43.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | NR positioning | L6 | 11.278 | 1.2147 | 1.3986 | 24.8% | 21.9% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | NR positioning | L8 | 15.003 | 1.5560 | 1.7544 | 0.0% | 0.0% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L2 | 0.026 | 0.5903 | 0.7066 | 74.2% | 51.7% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L4 | 0.052 | 0.8039 | 0.9136 | 49.5% | 34.2% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L6 | 0.077 | 1.0210 | 1.1488 | 24.7% | 16.5% |
-| P0 — LatentWave with Post-hoc Frozen Early Exits | DeepMIMO beam | L8 | 0.102 | 1.2222 | 1.2982 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | RF sensing | L2 | 0.721 | 0.4453 | 0.4697 | 74.3% | 59.3% |
-| P1 — Same-scale Multi-depth JEPA | RF sensing | L4 | 1.416 | 0.6706 | 0.7150 | 49.5% | 38.7% |
-| P1 — Same-scale Multi-depth JEPA | RF sensing | L6 | 2.111 | 0.8748 | 0.9622 | 24.8% | 20.0% |
-| P1 — Same-scale Multi-depth JEPA | RF sensing | L8 | 2.807 | 1.0941 | 1.2155 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | Jamming classification | L2 | 0.721 | 0.4554 | 0.4805 | 74.3% | 58.8% |
-| P1 — Same-scale Multi-depth JEPA | Jamming classification | L4 | 1.416 | 0.6757 | 0.7234 | 49.5% | 38.8% |
-| P1 — Same-scale Multi-depth JEPA | Jamming classification | L6 | 2.111 | 0.8852 | 0.9649 | 24.8% | 19.9% |
-| P1 — Same-scale Multi-depth JEPA | Jamming classification | L8 | 2.807 | 1.1047 | 1.1961 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | Human activity sensing | L2 | 2.635 | 0.4445 | 0.4498 | 74.4% | 62.4% |
-| P1 — Same-scale Multi-depth JEPA | Human activity sensing | L4 | 5.193 | 0.6872 | 0.7957 | 49.6% | 41.9% |
-| P1 — Same-scale Multi-depth JEPA | Human activity sensing | L6 | 7.750 | 0.9297 | 1.1955 | 24.8% | 21.4% |
-| P1 — Same-scale Multi-depth JEPA | Human activity sensing | L8 | 10.308 | 1.1826 | 1.4365 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | Interference classification | L2 | 0.721 | 0.4480 | 0.4726 | 74.3% | 59.5% |
-| P1 — Same-scale Multi-depth JEPA | Interference classification | L4 | 1.416 | 0.6692 | 0.7237 | 49.5% | 39.5% |
-| P1 — Same-scale Multi-depth JEPA | Interference classification | L6 | 2.111 | 0.8828 | 0.9540 | 24.8% | 20.2% |
-| P1 — Same-scale Multi-depth JEPA | Interference classification | L8 | 2.807 | 1.1057 | 1.1944 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | NR positioning | L2 | 3.828 | 0.5411 | 0.5403 | 74.5% | 64.4% |
-| P1 — Same-scale Multi-depth JEPA | NR positioning | L4 | 7.553 | 0.8697 | 0.9019 | 49.7% | 42.8% |
-| P1 — Same-scale Multi-depth JEPA | NR positioning | L6 | 11.278 | 1.1907 | 1.4632 | 24.8% | 21.7% |
-| P1 — Same-scale Multi-depth JEPA | NR positioning | L8 | 15.003 | 1.5204 | 1.7843 | 0.0% | 0.0% |
-| P1 — Same-scale Multi-depth JEPA | DeepMIMO beam | L2 | 0.026 | 0.6164 | 0.6534 | 74.2% | 52.9% |
-| P1 — Same-scale Multi-depth JEPA | DeepMIMO beam | L4 | 0.052 | 0.8457 | 0.9367 | 49.5% | 35.4% |
-| P1 — Same-scale Multi-depth JEPA | DeepMIMO beam | L6 | 0.077 | 1.0978 | 1.2236 | 24.7% | 16.1% |
-| P1 — Same-scale Multi-depth JEPA | DeepMIMO beam | L8 | 0.102 | 1.3086 | 1.3859 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | RF sensing | L2 | 0.721 | 0.5170 | 0.7086 | 74.3% | 56.9% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | RF sensing | L4 | 1.416 | 0.7326 | 0.8937 | 49.5% | 38.9% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | RF sensing | L6 | 2.111 | 0.9761 | 1.1960 | 24.8% | 18.6% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | RF sensing | L8 | 2.807 | 1.1988 | 1.4799 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L2 | 0.721 | 0.4821 | 0.5706 | 74.3% | 59.5% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L4 | 1.416 | 0.7376 | 0.8430 | 49.5% | 38.1% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L6 | 2.111 | 0.9890 | 1.2134 | 24.8% | 17.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Jamming classification | L8 | 2.807 | 1.1914 | 1.4280 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L2 | 2.635 | 0.4931 | 0.6314 | 74.4% | 62.5% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L4 | 5.193 | 0.7665 | 1.0774 | 49.6% | 41.7% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L6 | 7.750 | 1.0181 | 1.3125 | 24.8% | 22.5% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Human activity sensing | L8 | 10.308 | 1.3140 | 2.3789 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Interference classification | L2 | 0.721 | 0.5121 | 0.6582 | 74.3% | 57.9% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Interference classification | L4 | 1.416 | 0.7602 | 0.9142 | 49.5% | 37.4% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Interference classification | L6 | 2.111 | 0.9814 | 1.2573 | 24.8% | 19.2% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | Interference classification | L8 | 2.807 | 1.2151 | 1.7694 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | NR positioning | L2 | 3.828 | 0.6167 | 0.9022 | 74.5% | 63.2% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | NR positioning | L4 | 7.553 | 0.9776 | 1.2880 | 49.7% | 41.7% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | NR positioning | L6 | 11.278 | 1.3338 | 2.4615 | 24.8% | 20.4% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | NR positioning | L8 | 15.003 | 1.6759 | 2.7483 | 0.0% | 0.0% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L2 | 0.026 | 0.6414 | 0.7627 | 74.2% | 51.1% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L4 | 0.052 | 0.8844 | 1.0191 | 49.5% | 32.6% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L6 | 0.077 | 1.0857 | 1.2107 | 24.7% | 17.2% |
-| P2 — Proposed Hierarchical Multi-Scale JEPA | DeepMIMO beam | L8 | 0.102 | 1.3115 | 1.5230 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | RF sensing | L2 | 0.721 | 1.2471 | 1.2593 | 74.3% | 61.4% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | RF sensing | L4 | 1.416 | 1.9101 | 1.9214 | 49.5% | 40.8% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | RF sensing | L6 | 2.111 | 2.5769 | 2.5938 | 24.8% | 20.2% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | RF sensing | L8 | 2.807 | 3.2274 | 3.2449 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Jamming classification | L2 | 0.721 | 1.2533 | 1.2643 | 74.3% | 61.5% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Jamming classification | L4 | 1.416 | 1.9184 | 1.9334 | 49.5% | 41.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Jamming classification | L6 | 2.111 | 2.5819 | 2.5981 | 24.8% | 20.6% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Jamming classification | L8 | 2.807 | 3.2528 | 3.2569 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Human activity sensing | L2 | 2.635 | 1.1999 | 1.2101 | 74.4% | 60.4% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Human activity sensing | L4 | 5.193 | 1.8140 | 1.8255 | 49.6% | 40.2% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Human activity sensing | L6 | 7.750 | 2.4230 | 2.4384 | 24.8% | 20.1% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Human activity sensing | L8 | 10.308 | 3.0324 | 3.0479 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Interference classification | L2 | 0.721 | 1.2507 | 1.2613 | 74.3% | 61.4% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Interference classification | L4 | 1.416 | 1.9190 | 1.9285 | 49.5% | 40.8% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Interference classification | L6 | 2.111 | 2.5835 | 2.5951 | 24.8% | 20.3% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | Interference classification | L8 | 2.807 | 3.2403 | 3.2641 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | NR positioning | L2 | 3.828 | 1.2181 | 1.2285 | 74.5% | 59.9% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | NR positioning | L4 | 7.553 | 1.8313 | 1.8449 | 49.7% | 39.6% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | NR positioning | L6 | 11.278 | 2.4354 | 2.4493 | 24.8% | 19.7% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | NR positioning | L8 | 15.003 | 3.0338 | 3.0496 | 0.0% | 0.0% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | DeepMIMO beam | L2 | 0.026 | 1.4228 | 1.4517 | 74.2% | 56.3% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | DeepMIMO beam | L4 | 0.052 | 2.0450 | 2.0886 | 49.5% | 37.2% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | DeepMIMO beam | L6 | 0.077 | 2.6288 | 2.6589 | 24.7% | 19.3% |
-| P2-Reverse — Coarse-to-fine Hierarchical JEPA | DeepMIMO beam | L8 | 0.102 | 3.2590 | 3.3209 | 0.0% | 0.0% |
+| method | task | exit | flops | latency_mean_ms | latency_sd_ms | checkpoint_sha256 | benchmark_sha256 | derived_from |
+|---|---|---|---|---|---|---|---|---|
+| p0 | rfs | 2 | 720939008 | 1.2679638500000001 | 0.029273502593608267 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | rfs | 4 | 1416177664 | 1.967636555 | 0.1528952312047789 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | rfs | 6 | 2111416320 | 2.63976545 | 0.07266151951361625 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | rfs | 8 | 2806654976 | 3.337779185 | 0.07827868719187356 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | jamming | 2 | 720931840 | 1.301630195 | 0.10111045666041352 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | jamming | 4 | 1416170496 | 1.9839472200000001 | 0.12762577731267663 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | jamming | 6 | 2111409152 | 2.6622509250000004 | 0.15368314923773363 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | jamming | 8 | 2806647808 | 3.3280796550000002 | 0.1053235341632589 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | human-activity | 2 | 2634845184 | 1.707727515 | 0.11068398147035743 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | human-activity | 4 | 5192616960 | 2.821618105 | 0.09044258208007182 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | human-activity | 6 | 7750388736 | 3.9833298050000003 | 0.1347428791149197 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | human-activity | 8 | 10308160512 | 5.09197724 | 0.11938216526541856 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | interference | 2 | 720929792 | 1.2974902700000002 | 0.09019095304732634 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | interference | 4 | 1416168448 | 1.9888390150000002 | 0.10675720841515933 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | interference | 6 | 2111407104 | 2.664559515 | 0.09678948090873661 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | interference | 8 | 2806645760 | 3.34898658 | 0.111497989706526 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | nrpos-outdoor | 2 | 3827828224 | 2.32711812 | 0.09104518392173368 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | nrpos-outdoor | 4 | 7552894464 | 3.9938270549999997 | 0.09805513790326396 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | nrpos-outdoor | 6 | 11277960704 | 5.64241982 | 0.08191957060162958 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | nrpos-outdoor | 8 | 15003026944 | 7.303735685 | 0.10176518632377846 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | deepmimo-beam | 2 | 26353152 | 1.4605895899999999 | 0.12477357037567438 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | deepmimo-beam | 4 | 51650048 | 2.08463404 | 0.12464092646324675 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | deepmimo-beam | 6 | 76946944 | 2.712630215 | 0.16573025310894976 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p0 | deepmimo-beam | 8 | 102243840 | 3.316152555 | 0.12458570321652784 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 |  |
+| p1 | rfs | 2 | 720939008 | 1.22487635 | 0.05196471946003655 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | rfs | 4 | 1416177664 | 1.88351434 | 0.034154002791000025 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | rfs | 6 | 2111416320 | 2.53210964 | 0.029798392723685212 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | rfs | 8 | 2806654976 | 3.197732825 | 0.07806361372807309 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | jamming | 2 | 720931840 | 1.27382728 | 0.18318638756163352 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | jamming | 4 | 1416170496 | 1.90386408 | 0.07098141414535196 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | jamming | 6 | 2111409152 | 2.563032265 | 0.0956033424861148 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | jamming | 8 | 2806647808 | 3.213349215 | 0.1336866927357465 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | human-activity | 2 | 2634845184 | 1.696407825 | 0.09546285064447962 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | human-activity | 4 | 5192616960 | 2.8410968100000003 | 0.09372350510013576 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | human-activity | 6 | 7750388736 | 3.9897374500000002 | 0.08466892504786694 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | human-activity | 8 | 10308160512 | 5.221985 | 0.1081594220916328 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | interference | 2 | 720929792 | 1.25138694 | 0.10253163875102775 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | interference | 4 | 1416168448 | 1.9127315050000002 | 0.0819675263866104 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | interference | 6 | 2111407104 | 2.56729119 | 0.0950947358124523 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | interference | 8 | 2806645760 | 3.20761634 | 0.09795958166126811 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | nrpos-outdoor | 2 | 3827828224 | 2.3648210599999997 | 0.12132846027242243 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | nrpos-outdoor | 4 | 7552894464 | 4.046084675 | 0.0717796958435765 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | nrpos-outdoor | 6 | 11277960704 | 5.75931728 | 0.10698938975474186 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | nrpos-outdoor | 8 | 15003026944 | 7.427403184999999 | 0.05259771635297979 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | deepmimo-beam | 2 | 26353152 | 1.410436705 | 0.09564576556907496 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | deepmimo-beam | 4 | 51650048 | 2.009246985 | 0.1250997856255661 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | deepmimo-beam | 6 | 76946944 | 2.614859245 | 0.12867377942007535 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p1 | deepmimo-beam | 8 | 102243840 | 3.17943497 | 0.08929828205919033 | 2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025 | 35f98da7907eb4f0f636741559ce6539a347d779bf4fa77968620c2db2cc2349 |  |
+| p2 | rfs | 2 | 720939008 | 1.265986015 | 0.05564968600330199 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | rfs | 4 | 1416177664 | 1.9472152299999999 | 0.04429593583053205 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | rfs | 6 | 2111416320 | 2.6082514750000003 | 0.015512587315644765 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | rfs | 8 | 2806654976 | 3.32136635 | 0.18286367132635248 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | jamming | 2 | 720931840 | 1.305373745 | 0.11096918371440416 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | jamming | 4 | 1416170496 | 1.9572659799999998 | 0.0738784827608474 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | jamming | 6 | 2111409152 | 2.63917614 | 0.07898288979591063 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | jamming | 8 | 2806647808 | 3.323538725 | 0.1543770598143194 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | human-activity | 2 | 2634845184 | 1.703545985 | 0.09223369595550664 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | human-activity | 4 | 5192616960 | 2.841146705 | 0.08639207156402487 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | human-activity | 6 | 7750388736 | 3.99338487 | 0.08695039346085842 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | human-activity | 8 | 10308160512 | 5.244453549999999 | 0.10712963519963806 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | interference | 2 | 720929792 | 1.2919534400000001 | 0.11246781756107459 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | interference | 4 | 1416168448 | 1.9728884400000002 | 0.09123562332754806 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | interference | 6 | 2111407104 | 2.65422363 | 0.10381537222988341 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | interference | 8 | 2806645760 | 3.314546605 | 0.08723430192769953 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | nrpos-outdoor | 2 | 3827828224 | 2.3799172 | 0.11461752301226605 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | nrpos-outdoor | 4 | 7552894464 | 4.05710586 | 0.07721923751327162 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | nrpos-outdoor | 6 | 11277960704 | 5.748065245 | 0.07849359273422644 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | nrpos-outdoor | 8 | 15003026944 | 7.4320570550000005 | 0.0760369219562766 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | deepmimo-beam | 2 | 26353152 | 1.445549685 | 0.10351670008539017 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | deepmimo-beam | 4 | 51650048 | 2.05800405 | 0.11029396075434915 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | deepmimo-beam | 6 | 76946944 | 2.67209699 | 0.10577922943840541 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2 | deepmimo-beam | 8 | 102243840 | 3.279919875 | 0.10387110984088531 | 36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993 | 6b8b9084f68c93a85337ea8626c859436af879c112f4a53d52827d910f5c1e62 |  |
+| p2_reverse | rfs | 2 | 720939008 | 1.2470857 | 0.006920210718027992 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | rfs | 4 | 1416177664 | 1.91013327 | 0.006492139330183271 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | rfs | 6 | 2111416320 | 2.57685353 | 0.01174126515826482 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | rfs | 8 | 2806654976 | 3.227373285 | 0.01033957292372368 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | jamming | 2 | 720931840 | 1.2532752 | 0.00749109144552556 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | jamming | 4 | 1416170496 | 1.91842277 | 0.008478013718445542 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | jamming | 6 | 2111409152 | 2.581921315 | 0.010402604230656531 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | jamming | 8 | 2806647808 | 3.2528422949999998 | 0.19212188793962393 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | human-activity | 2 | 2634845184 | 1.19991865 | 0.0054185884287609 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | human-activity | 4 | 5192616960 | 1.814015855 | 0.0072406224123736694 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | human-activity | 6 | 7750388736 | 2.423012555 | 0.009228952755420516 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | human-activity | 8 | 10308160512 | 3.032428765 | 0.009846899591118131 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | interference | 2 | 720929792 | 1.25071018 | 0.005612831728070794 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | interference | 4 | 1416168448 | 1.91902265 | 0.007074475794455136 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | interference | 6 | 2111407104 | 2.5834655800000004 | 0.10483199226344607 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | interference | 8 | 2806645760 | 3.24029742 | 0.012529695317418417 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | nrpos-outdoor | 2 | 3827828224 | 1.218053045 | 0.006075616901735849 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | nrpos-outdoor | 4 | 7552894464 | 1.8312703300000002 | 0.008122252810933905 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | nrpos-outdoor | 6 | 11277960704 | 2.4354223200000003 | 0.020854725026893475 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | nrpos-outdoor | 8 | 15003026944 | 3.03379133 | 0.009201254968539909 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | deepmimo-beam | 2 | 26353152 | 1.42275982 | 0.01605699784131454 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | deepmimo-beam | 4 | 51650048 | 2.04504548 | 0.02101779644483652 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | deepmimo-beam | 6 | 76946944 | 2.6287602249999997 | 0.019063824227453705 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| p2_reverse | deepmimo-beam | 8 | 102243840 | 3.25899155 | 0.033333144243580096 | 78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d | 01bcdcdda91b19864ef4ed007c05d14676142ef119ca034ee633b467cdf290aa |  |
+| b0 | rfs | 8 | 2806654976 | 3.337779185 | 0.07827868719187356 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
+| b0 | jamming | 8 | 2806647808 | 3.3280796550000002 | 0.1053235341632589 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
+| b0 | human-activity | 8 | 10308160512 | 5.09197724 | 0.11938216526541856 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
+| b0 | interference | 8 | 2806645760 | 3.34898658 | 0.111497989706526 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
+| b0 | nrpos-outdoor | 8 | 15003026944 | 7.303735685 | 0.10176518632377846 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
+| b0 | deepmimo-beam | 8 | 102243840 | 3.316152555 | 0.12458570321652784 | 8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28 | 5e88fa4a1d53e1c4a187396ba71c5d7b50eebb4b05eeb83ae40f4fbfdcb6cc75 | p0:L8 |
