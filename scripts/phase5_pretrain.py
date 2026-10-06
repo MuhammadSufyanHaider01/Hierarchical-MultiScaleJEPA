@@ -921,7 +921,7 @@ def main() -> int:
         class ResumeScheduleHorizonCallback(callbacks.Callback):
             """Rebase restored schedulers before the first resumed batch."""
 
-            def on_fit_start(self, trainer, pl_module):
+            def on_train_start(self, trainer, pl_module):
                 audit = _rebase_resumed_schedulers(
                     trainer.lr_scheduler_configs,
                     total_steps=optimizer_steps_per_epoch * args.max_epochs,
