@@ -5,6 +5,10 @@ LatentWave ViT path and its existing checkpoints. This document records the
 implemented interfaces and the approved first experiment. It does not authorize
 or launch formal GPU jobs.
 
+The CNN implementation is now also reachable from `main`; the executable
+M-block experiment sequence and existing-artifact status are maintained in
+[`cnn_hierjepa_main_execution_plan.md`](cnn_hierjepa_main_execution_plan.md).
+
 ## Backbone and representation interface
 
 - The ConvNeXt V2-style encoder uses stage depths `[2, 2, 6, 2]` and widths
