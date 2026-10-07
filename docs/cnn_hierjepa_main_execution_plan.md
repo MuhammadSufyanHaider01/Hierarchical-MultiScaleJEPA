@@ -2,6 +2,16 @@
 
 ## Scope and branch status
 
+## Current approved M-block packet
+
+The immediate CNN report is intentionally limited to **CNN-P0** and
+**CNN-P2**. It is CNN-only: no ViT B0/P0 rows, CNN-P1, or CNN-P2-Reverse rows
+are included. Both methods use a matched staged protocol: five full-data
+epochs using the original 60-epoch scheduler horizon, then a 100-epoch maximum
+90/10 validation-monitored continuation. The operational commands, artifact
+paths, and gates are in
+[`cnn_mblock_p0_p2_execution.md`](cnn_mblock_p0_p2_execution.md).
+
 The CNN-HierJEPA implementation is already present on `main`: `cnn-jepa` is
 an ancestor of `main` at commit `336e678`.  No merge commit is required.
 
@@ -11,7 +21,7 @@ This plan covers the first formal CNN comparison only:
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
 - a 60-epoch maximum pretraining horizon;
-- CNN-P0, CNN-P1, CNN-P2, and CNN-P2-Reverse.
+- CNN-P0 and CNN-P2.
 
 The existing ViT B0/P0 and P1/P2/P2-Reverse M-block packets remain comparison
 references.  Frequency, time, region, and random masking are deferred until
@@ -84,7 +94,7 @@ LatentWave.
 | Downstream | frozen context-encoder exits L2/L4/L6/L8 on the six persisted-split tasks |
 | Evaluation | one held-out test pass and batch-1 FLOPs/latency benchmark |
 
-### CNN-P1 — same-scale multi-depth JEPA
+### CNN-P1 — same-scale multi-depth JEPA (existing, excluded from current packet)
 
 Pretraining completed successfully.
 
@@ -149,7 +159,7 @@ checkpoint but must be labelled as an extended validation-monitored protocol.
 A direct fixed-horizon comparison would require matching P1 and P2-Reverse
 extensions.
 
-### CNN-P2-Reverse — coarse-to-fine JEPA
+### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
 No formal pretraining, downstream, or benchmark artifact exists.  This method
 starts as a new 60-epoch run after CNN-P2 is complete.
@@ -181,9 +191,9 @@ Before launching a GPU job:
    not alter the P1 checkpoint weights, but this provenance must appear in the
    final report.
 
-### Gate 1 — preserve and audit CNN-P1
+### Gate 1 — preserve CNN-P1 without including it
 
-No CNN-P1 pretraining rerun is planned.  Verify that its existing
+No CNN-P1 pretraining rerun is planned. Its existing
 `exit_metrics.json` has all six tasks, all L2/L4/L6/L8 heads, validation-only
 selection metadata, one held-out test result, and the shared split manifest.
 Verify that `benchmarks.json` has batch-1 FLOPs and synchronized CUDA latency
@@ -201,19 +211,20 @@ benchmark stage from the saved CNN-P1 checkpoint.
 4. Run the selected saved heads exactly once on the held-out test splits.
 5. Measure FLOPs and synchronized batch-1 CUDA latency for all four exits.
 
-### Gate 3 — CNN-P2-Reverse
+### Gate 3 — CNN-P2-Reverse (deferred)
 
-Repeat the same five operations for a new CNN-P2-Reverse run.  Its only
+Do not launch CNN-P2-Reverse in the current packet. A later extension may
+repeat the same five operations for a new CNN-P2-Reverse run. Its only
 objective difference is the coarse-to-fine region mapping; all architecture,
 data, seed, horizon, masks, loader profile, optimizer, EMA, and downstream
 protocol settings remain identical to CNN-P2.
 
-### Gate 4 — unified M-block CNN report
+### Gate 4 — CNN-P0 vs CNN-P2 M-block report
 
-Once all three CNN method packets are complete:
+Once CNN-P0 and CNN-P2 packets are complete:
 
-1. Run the report generator with `--cnn-run-root` pointing at the directory
-   containing `cnn_p1`, `cnn_p2`, and `cnn_p2_reverse`.
+1. Run the report generator with `--comparison-mode cnn_only --cnn-methods cnn_p0 cnn_p2`
+   and `--cnn-run-root` pointing at the M-block run directory.
 2. Generate downstream tables for every task and L2/L4/L6/L8 exit, as well as
    validation-selected best-exit tables.
 3. Generate matching FLOP, latency, relative-compute, and relative-latency
@@ -229,10 +240,10 @@ Once all three CNN method packets are complete:
 
 The M-block CNN study is complete only when:
 
-- CNN-P1, CNN-P2, and CNN-P2-Reverse each have a 60-epoch checkpoint;
-- all three have complete six-task frozen-head selection packets;
+- CNN-P0 and CNN-P2 each have a matched prefix and completed validation-monitored continuation;
+- both have complete six-task frozen-head selection packets;
 - each selected head has one held-out test evaluation;
-- every method has L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;
+- both methods have L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;
 - the report uses only traceable, compatible artifacts; and
 - the manifest records all source checkpoints, current code revision, training
   revisions where different, masks, split manifest, and execution profile.

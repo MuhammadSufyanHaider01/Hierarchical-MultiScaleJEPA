@@ -65,6 +65,7 @@ METHOD_CONFIGS = {
 }
 FORMAL_EPOCHS = 60
 P3_EPOCHS = 50
+STAGED_PREFIX_EPOCHS = 5
 
 
 def _rebase_resumed_schedulers(scheduler_configs, *, total_steps: int) -> list[dict[str, int]]:
@@ -147,10 +148,10 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--run-kind",
-        choices=("formal", "matched_horizon", "diagnostic"),
+        choices=("formal", "matched_horizon", "staged_prefix", "diagnostic"),
         default="formal",
         help=(
-            "formal uses the fixed 60-epoch Phase 5 pilot schedule; matched_horizon runs the approved fixed 50-epoch P3 schedule while recording its P2 reference; diagnostic permits "
+            "formal uses the fixed 60-epoch Phase 5 pilot schedule; matched_horizon runs the approved fixed 50-epoch P3 schedule while recording its P2 reference; staged_prefix completes the first five full-data epochs of a 60-epoch schedule; diagnostic permits "
             "short runs and latent-loss early stopping that cannot be reported as a main result"
         ),
     )
@@ -523,6 +524,22 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
             raise ValueError("matched_horizon P3 jobs require --matched-reference-checkpoint")
         if args.max_epochs != P3_EPOCHS:
             raise ValueError(f"matched_horizon P3 jobs require the approved {P3_EPOCHS}-epoch cap, got {args.max_epochs}")
+    elif args.run_kind == "staged_prefix":
+        if args.method != "cnn_p0":
+            raise ValueError("staged_prefix is reserved for the matched CNN-P0 prefix")
+        if args.early_stopping:
+            raise ValueError("staged_prefix cannot use latent-loss early stopping")
+        if args.resume is not None:
+            raise ValueError("staged_prefix starts from initialization and cannot resume")
+        if args.max_epochs != FORMAL_EPOCHS:
+            raise ValueError(
+                "staged_prefix preserves the original 60-epoch scheduler horizon; "
+                f"got --max-epochs {args.max_epochs}"
+            )
+        if args.limit_train_batches != 1.0 or args.limit_val_batches != 1.0:
+            raise ValueError("staged_prefix requires full training batches")
+        if args.validate_every:
+            raise ValueError("staged_prefix does not run downstream probes")
     elif args.early_stopping is False and args.validate_every:
         # The legacy downstream probe is neither a source-style reproducibility
         # check nor the fixed-exit protocol.  Keep it out of this runner.
@@ -669,7 +686,11 @@ def main() -> int:
             else (
                 "fixed_p3_50_epoch_horizon"
                 if args.run_kind == "matched_horizon"
-                else ("diagnostic_latent_validation_early_stopping" if args.early_stopping else "diagnostic_fixed_horizon")
+                else (
+                    "staged_full_data_prefix_checkpoint"
+                    if args.run_kind == "staged_prefix"
+                    else ("diagnostic_latent_validation_early_stopping" if args.early_stopping else "diagnostic_fixed_horizon")
+                )
             )
         ),
         "seed": args.seed,
@@ -680,6 +701,10 @@ def main() -> int:
         "microbatches_per_epoch": microbatches_per_epoch,
         "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
         "max_epochs": args.max_epochs,
+        "trainer_max_epochs": STAGED_PREFIX_EPOCHS if args.run_kind == "staged_prefix" else args.max_epochs,
+        "schedule_horizon_epochs": args.max_epochs,
+        "staged_prefix_epochs": STAGED_PREFIX_EPOCHS if args.run_kind == "staged_prefix" else None,
+        "staged_prefix_uses_full_data": args.run_kind == "staged_prefix",
         "precision": args.precision,
         "attention_backend": args.attention_backend,
         "epoch_metrics_only": args.epoch_metrics_only,
@@ -960,7 +985,7 @@ def main() -> int:
     trainer = L.Trainer(
         accelerator="gpu" if args.device == "cuda" else "cpu",
         devices=1,
-        max_epochs=args.max_epochs,
+        max_epochs=STAGED_PREFIX_EPOCHS if args.run_kind == "staged_prefix" else args.max_epochs,
         accumulate_grad_batches=args.accumulate_grad_batches,
         callbacks=callbacks_list,
         logger=CSVLogger(save_dir=str(run_dir), name="logs"),

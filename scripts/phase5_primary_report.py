@@ -14,6 +14,8 @@ the frozen-head evaluation protocol.
 from __future__ import annotations
 
 import argparse
+import csv
+import hashlib
 import json
 import os
 import subprocess
@@ -128,6 +130,19 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument("--cnn-run-root", type=Path, default=None, help="Root containing cnn_p0, cnn_p1, cnn_p2, and cnn_p2_reverse result directories.")
     parser.add_argument(
+        "--comparison-mode",
+        choices=("legacy", "cnn_only"),
+        default="legacy",
+        help="cnn_only builds a report solely from the selected CNN method packets.",
+    )
+    parser.add_argument(
+        "--cnn-methods",
+        nargs="+",
+        choices=("cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"),
+        default=None,
+        help="Ordered CNN methods included by --comparison-mode cnn_only.",
+    )
+    parser.add_argument(
         "--p2-reverse-import-root",
         type=Path,
         default=None,
@@ -182,6 +197,37 @@ def _split_manifest_signature(path: str) -> str:
         if isinstance(spec, dict):
             spec.pop("path", None)
     return json.dumps(manifest, sort_keys=True, separators=(",", ":"))
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _discover_tasks_from_packets(packets: dict[str, dict[str, Any]]) -> tuple[tuple[str, ...], str]:
+    """Validate task-suite and persisted-split compatibility for local packets."""
+    if not packets:
+        raise ValueError("report requires at least one result packet")
+    task_sets = {method: set(packet.get("tasks", {})) for method, packet in packets.items()}
+    if len(set(map(frozenset, task_sets.values()))) != 1:
+        raise ValueError(f"included methods have different downstream task suites: {task_sets}")
+    first_method = next(iter(packets))
+    unknown = task_sets[first_method].difference(TASK_ORDER)
+    split_manifests = {method: packet.get("split_manifest") for method, packet in packets.items()}
+    if None in split_manifests.values():
+        raise ValueError(f"included methods are missing a persisted split manifest: {split_manifests}")
+    split_signatures = {method: _split_manifest_signature(path) for method, path in split_manifests.items()}
+    if len(set(split_signatures.values())) != 1:
+        raise ValueError(f"included methods have different persisted split assignments: {split_manifests}")
+    if unknown:
+        raise ValueError(f"report does not recognise downstream tasks: {sorted(unknown)}")
+    tasks = tuple(task for task in TASK_ORDER if task in task_sets[first_method])
+    if not tasks:
+        raise ValueError("report requires at least one downstream task")
+    return tasks, next(iter(split_signatures.values()))
 
 
 def _discover_tasks(
@@ -744,6 +790,45 @@ def _build_headline_rows(
             )
     return rows
 
+
+def _build_selected_headline_rows(
+    comparable_rows: list[dict[str, Any]], benchmark_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Build validation-best deployment rows without injecting a source baseline."""
+    rows = []
+    for task in TASKS:
+        for method in METHODS:
+            selected = next(
+                row for row in comparable_rows
+                if row["method"] == method and row["task"] == task
+                and row["evaluation"] == "best_validation"
+            )
+            benchmark = next(
+                (row for row in benchmark_rows
+                 if row["method"] == method and row["task"] == task
+                 and row["exit_layer"] == selected["exit_layer"]),
+                None,
+            )
+            rows.append(
+                {
+                    "method": method,
+                    "method_label": METHOD_LABELS[method],
+                    "task": task,
+                    "task_label": TASK_LABELS[task],
+                    "metric": selected["metric"],
+                    "metric_label": selected["metric_label"],
+                    "value": selected["value"],
+                    "display_value": selected["display_value"],
+                    "exit_layer": selected["exit_layer"],
+                    "selection": "best validation-performing exit",
+                    "protocol": "frozen context encoder, shared 80/10/10 split",
+                    "flops": None if benchmark is None else benchmark["flops"],
+                    "latency_mean_ms": None if benchmark is None else benchmark["latency_mean_ms"],
+                    "latency_p95_ms": None if benchmark is None else benchmark["latency_p95_ms"],
+                }
+            )
+    return rows
+
 def _plot_all_method_performance(
     output_dir: Path,
     source_rows: list[dict[str, Any]],
@@ -932,6 +1017,163 @@ def _plot_all_method_inference(output_dir: Path, headline_rows: list[dict[str, A
         paths.append(str(path))
     plt.close(fig)
     return paths
+
+
+def _write_cnn_only_report(
+    output_dir: Path,
+    packets: dict[str, dict[str, Any]],
+    headline_rows: list[dict[str, Any]],
+    benchmark_rows: list[dict[str, Any]],
+    figure_paths: list[str],
+    *,
+    masking_label: str,
+    report_title: str,
+    provenance_note: str | None,
+    split_signature: str,
+) -> None:
+    """Write the CNN-P0/CNN-P2 packet without injecting legacy ViT artifacts."""
+    comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
+    fixed_rows = [row for row in comparable_rows if row["evaluation"] == "fixed_exit"]
+    selected_rows = [row for row in comparable_rows if row["evaluation"] == "best_validation"]
+    fixed_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", row["metric_label"], row["display_value"], _fmt_metric(row["task"], row["validation_value"]), row["best_epoch"]] for row in fixed_rows]
+    selected_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", row["display_value"]] for row in selected_rows]
+    headline_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", row["display_value"]] for row in headline_rows]
+    headline_inference_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", f"{row['flops'] / 1e9:.3f}", f"{row['latency_mean_ms']:.4f}", f"{row['latency_p95_ms']:.4f}"] for row in headline_rows]
+    inference_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", f"{row['flops'] / 1e9:.3f}", f"{row['latency_mean_ms']:.4f}", f"{row['latency_p95_ms']:.4f}", f"{row['flops_savings_vs_l8'] * 100:.1f}%", f"{row['latency_savings_vs_l8'] * 100:.1f}%"] for row in benchmark_rows]
+    scope = [
+        ["CNN-P0 — Original L8 JEPA Objective", "ConvNeXt V2; one L8 predictor and masked-token MSE", "Frozen CNN context encoder at S1/S2/S3/S4", "single-objective CNN baseline"],
+        ["CNN-P2 — Mask-relative Fine-to-coarse", "ConvNeXt V2; L8 anchor plus L2/L4/L6 mask-relative losses", "Frozen CNN context encoder at S1/S2/S3/S4", "hierarchical CNN method"],
+    ]
+    report = f"""# {report_title}
+
+This CNN-only M-block packet compares CNN-P0 and CNN-P2 at seed 0. It contains
+single-seed point estimates, not a statistical superiority claim.
+
+## Scope and comparability
+
+{_markdown_table(['Approach', 'Pretraining', 'Downstream representation', 'Role'], scope)}
+
+CNN stages S1/S2/S3/S4 map to logical exits L2/L4/L6/L8. Every row uses
+independent frozen task heads and the same persisted 80/10/10 downstream split.
+The selected exit is the best validation-performing layer for that task; the
+held-out test split is read only after selection. CNN-P0 and CNN-P2 use a
+matched five-epoch full-data prefix followed by a 100-epoch-maximum,
+validation-monitored continuation.
+
+{f"## Run-specific provenance\n\n{provenance_note}\n" if provenance_note else ""}
+
+## Task suite
+
+{", ".join(TASK_LABELS[task] for task in TASKS)}. None of these downstream
+caches participates in pretraining.
+
+## Validation-best held-out performance
+
+{_markdown_table(['Approach', 'Task', 'Exit', 'Test value'], headline_table)}
+
+## Validation-best inference cost
+
+{_markdown_table(['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table)}
+
+## Fixed-exit downstream metrics
+
+{_markdown_table(['Approach', 'Task', 'Exit', 'Metric', 'Test value', 'Validation value', 'Head epoch'], fixed_table)}
+
+## Detailed validation-best exits
+
+{_markdown_table(['Approach', 'Task', 'Exit', 'Test value'], selected_table)}
+
+## Detailed batch-1 inference cost
+
+{_markdown_table(['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms', 'FLOPs saving', 'Latency saving'], inference_table)}
+
+## Figures
+
+{chr(10).join(f'- `{Path(path).name}`' for path in figure_paths)}
+"""
+    (output_dir / "README.md").write_text(report)
+    markdown_tables = {
+        "table_primary_fixed_exits.md": ("# Fixed-exit downstream metrics\n\n", ['Approach', 'Task', 'Exit', 'Metric', 'Test value', 'Validation value', 'Head epoch'], fixed_table),
+        "table_selected_exits.md": ("# Validation-best exits\n\n", ['Approach', 'Task', 'Exit', 'Test value'], selected_table),
+        "table_inference_cost.md": ("# Batch-1 inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms', 'FLOPs saving', 'Latency saving'], inference_table),
+        "table_all_methods_downstream.md": ("# CNN-only validation-best held-out performance\n\n", ['Approach', 'Task', 'Exit', 'Test value'], headline_table),
+        "table_all_methods_inference.md": ("# CNN-only validation-best inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table),
+    }
+    for filename, (title, headers, rows) in markdown_tables.items():
+        (output_dir / filename).write_text(title + _markdown_table(headers, rows) + "\n")
+    csv_rows = {
+        "table_primary_fixed_exits.csv": fixed_rows,
+        "table_selected_exits.csv": selected_rows,
+        "table_inference_cost.csv": benchmark_rows,
+        "table_all_methods_downstream.csv": headline_rows,
+        "table_all_methods_inference.csv": headline_rows,
+    }
+    for filename, rows in csv_rows.items():
+        fields = sorted({key for row in rows for key in row})
+        with (output_dir / filename).open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+    provenance = {}
+    for method, packet in packets.items():
+        checkpoint = Path(packet["checkpoint"])
+        experiment = checkpoint.parents[1] / "experiment.json"
+        experiment_payload = _read(experiment) if experiment.is_file() else None
+        provenance[method] = {
+            "checkpoint": str(checkpoint),
+            "checkpoint_sha256": _sha256(checkpoint),
+            "pretraining_experiment": str(experiment),
+            "pretraining_metadata": None if experiment_payload is None else experiment_payload.get("metadata"),
+            "pretraining_runtime": None if experiment_payload is None else experiment_payload.get("runtime"),
+            "metrics_path": packet["metrics_path"],
+            "benchmark_path": packet["benchmark_path"],
+        }
+    _write_json(output_dir / "manifest.json", {
+        "report": "cnn_mblock_p0_p2_single_seed",
+        "comparison_mode": "cnn_only",
+        "git_revision": _git_revision(),
+        "methods": [METHOD_LABELS[method] for method in METHODS],
+        "seed": 0,
+        "masking": masking_label,
+        "task_suite": list(TASKS),
+        "headline_exit_policy": "best_validation",
+        "downstream_split_signature": hashlib.sha256(split_signature.encode()).hexdigest(),
+        "method_provenance": provenance,
+        "figures": [Path(path).name for path in figure_paths],
+        "provenance_note": provenance_note,
+    })
+
+
+def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_dir: Path) -> int:
+    if tuple(args.cnn_methods or ()) != ("cnn_p0", "cnn_p2"):
+        raise ValueError("cnn_only currently requires exactly: --cnn-methods cnn_p0 cnn_p2")
+    global TASKS, METHODS
+    METHODS = tuple(args.cnn_methods)
+    raw_packets = {
+        method: _read(cnn_run_root / method / "seed_000/downstream/exit_metrics.json")
+        for method in METHODS
+    }
+    for method, packet in raw_packets.items():
+        if packet.get("method") != method:
+            raise ValueError(f"{method} metrics packet identifies {packet.get('method')!r}")
+    TASKS, split_signature = _discover_tasks_from_packets(raw_packets)
+    packets = {method: _load_exit_results(cnn_run_root, method, source_method=method)[0] for method in METHODS}
+    comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
+    benchmark_rows = [row for packet in packets.values() for row in packet["benchmark_rows"]]
+    if len(benchmark_rows) != len(METHODS) * len(TASKS) * len(EXIT_LAYERS):
+        raise ValueError("cnn_only requires a complete benchmark packet for every method, task, and exit")
+    headline_rows = _build_selected_headline_rows(comparable_rows, benchmark_rows)
+    figure_paths = []
+    figure_paths.extend(_plot_performance(output_dir, comparable_rows))
+    figure_paths.extend(_plot_selected(output_dir, comparable_rows))
+    figure_paths.extend(_plot_efficiency(output_dir, benchmark_rows))
+    _write_cnn_only_report(
+        output_dir, packets, headline_rows, benchmark_rows, figure_paths,
+        masking_label=args.masking_label, report_title=args.report_title,
+        provenance_note=args.provenance_note, split_signature=split_signature,
+    )
+    print(json.dumps({"output_dir": str(output_dir), "figures": len(figure_paths), "methods": [METHOD_LABELS[method] for method in METHODS]}, indent=2))
+    return 0
 
 def _build_report(
     output_dir: Path,
@@ -1193,6 +1435,14 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     os.environ["MPLCONFIGDIR"] = str(output_dir / ".matplotlib")
     cnn_run_root = _repo_path(args.cnn_run_root) if args.cnn_run_root is not None else None
+    if args.comparison_mode == "cnn_only":
+        if cnn_run_root is None:
+            raise ValueError("--comparison-mode cnn_only requires --cnn-run-root")
+        if args.cnn_methods is None:
+            raise ValueError("--comparison-mode cnn_only requires --cnn-methods cnn_p0 cnn_p2")
+        return _run_cnn_only_report(args, cnn_run_root, output_dir)
+    if args.cnn_methods is not None:
+        raise ValueError("--cnn-methods is only valid with --comparison-mode cnn_only")
     if cnn_run_root is not None and (p1_run_root is not None or p3_run_root is not None or p2_reverse_root is not None):
         raise ValueError("--cnn-run-root supplies CNN P1/P2/P2-Reverse; do not combine it with ViT P1, P3, or P2-Reverse inputs")
     global TASKS, METHODS
