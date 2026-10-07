@@ -20,12 +20,62 @@ class CNNOnlyReportTest(unittest.TestCase):
             "tasks": {task: {"spec": {"path": f"host-specific/{task}.h5"}} for task in report.TASK_ORDER[:6]},
         }))
 
-    def _packet(self, root: Path, method: str, manifest: Path) -> None:
+    def _profile_metadata(self, name: str, *, resolved_marker: str = "shared") -> dict:
+        profile, path, checksum = report.load_mask_profile(name)
+        return {
+            "name": name,
+            "path": str(path.relative_to(REPOSITORY_ROOT)),
+            "sha256": checksum,
+            "overrides": profile["masks"],
+            "resolved": {"profile": name, "marker": resolved_marker},
+        }
+
+    def _packet(
+        self,
+        root: Path,
+        method: str,
+        manifest: Path,
+        *,
+        mask_profile: dict | None = None,
+        pretrain_split_marker: int = 0,
+    ) -> None:
         seed_root = root / method / "seed_000"
         checkpoint = seed_root / "checkpoints" / "best.ckpt"
         checkpoint.parent.mkdir(parents=True)
         checkpoint.write_bytes(f"{method}-checkpoint".encode())
-        (seed_root / "experiment.json").write_text(json.dumps({"metadata": {"phase5": {"method": method}}}))
+        (seed_root / "experiment.json").write_text(json.dumps({
+            "metadata": {
+                "phase5": {"method": method},
+                "seed": 0,
+                "config": {"encoder": {"backbone": "convnext_v2_hier"}},
+                "mask_profile": mask_profile,
+            },
+            "runtime": {
+                "method": method,
+                "seed": 0,
+                "mask_profile": mask_profile,
+                "microbatch_size": 16,
+                "accumulate_grad_batches": 4,
+                "effective_batch_size": 64,
+                "max_epochs": 100,
+                "schedule_horizon_epochs": 100,
+                "precision": "bf16-mixed",
+                "attention_backend": "fused",
+                "epoch_metrics_only": True,
+                "performance_safe": True,
+                "data_loader_workers": 3,
+                "hdf5_worker_budget": 12,
+                "data_loader_workers_per_cache": [3, 3, 3, 3],
+                "data_loader_prefetch_factor": 4,
+                "early_stopping": True,
+                "validation_fraction": 0.1,
+                "validation_seed": 2025,
+                "early_stopping_patience": 20,
+                "early_stopping_min_delta": 1.0e-4,
+                "resume_schedule_horizon_extended": True,
+            },
+        }))
+        self._split_manifest(seed_root / "pretrain_split.json", marker=pretrain_split_marker)
         tasks = {}
         entries = []
         for task in report.TASK_ORDER[:6]:
@@ -58,7 +108,7 @@ class CNNOnlyReportTest(unittest.TestCase):
                 "selected_test_earliest_within_tolerance": exits["2"]["test"],
             }
         downstream = seed_root / "downstream"
-        downstream.mkdir()
+        downstream.mkdir(exist_ok=True)
         (downstream / "exit_metrics.json").write_text(json.dumps({
             "method": method,
             "pretrain_seed": 0,
@@ -114,6 +164,54 @@ class CNNOnlyReportTest(unittest.TestCase):
             }
             with self.assertRaisesRegex(ValueError, "different persisted split assignments"):
                 report._discover_tasks_from_packets(packets)
+
+    def test_profiled_packet_records_region_identity_and_validates_provenance(self):
+        original_tasks, original_methods = report.TASKS, report.METHODS
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "runs"
+                manifest = Path(directory) / "downstream-split.json"
+                self._split_manifest(manifest)
+                profile = self._profile_metadata("region_n6")
+                self._packet(root, "cnn_p0", manifest, mask_profile=profile)
+                self._packet(root, "cnn_p2", manifest, mask_profile=profile)
+                output = Path(directory) / "report"
+                output.mkdir()
+                args = argparse.Namespace(
+                    cnn_methods=["cnn_p0", "cnn_p2"],
+                    mask_profile="region_n6",
+                    masking_label="Region masking / random 2D blocks, N_m=6",
+                    report_title="Synthetic region CNN-only packet",
+                    provenance_note=None,
+                )
+                report._run_cnn_only_report(args, root, output)
+                generated = json.loads((output / "manifest.json").read_text())
+                self.assertEqual(generated["report"], "cnn_region_n6_p0_p2_single_seed")
+                self.assertEqual(generated["canonical_mask_profile"]["name"], "region_n6")
+                self.assertIn("random contiguous two-dimensional", (output / "README.md").read_text())
+        finally:
+            report.TASKS, report.METHODS = original_tasks, original_methods
+
+    def test_profiled_packet_rejects_mismatched_profile_or_pretraining_split(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            root, manifest = directory / "runs", directory / "downstream-split.json"
+            self._split_manifest(manifest)
+            region = self._profile_metadata("region_n6")
+            time = self._profile_metadata("time_n6")
+            self._packet(root, "cnn_p0", manifest, mask_profile=region)
+            self._packet(root, "cnn_p2", manifest, mask_profile=time)
+            packets = {
+                method: report._load_exit_results(root, method)[0]
+                for method in ("cnn_p0", "cnn_p2")
+            }
+            with self.assertRaisesRegex(ValueError, "mask profile 'name'"):
+                report._validate_cnn_profile_provenance(packets, "region_n6")
+
+            self._packet(root, "cnn_p2", manifest, mask_profile=region, pretrain_split_marker=1)
+            packets["cnn_p2"] = report._load_exit_results(root, "cnn_p2")[0]
+            with self.assertRaisesRegex(ValueError, "validation splits differ"):
+                report._validate_cnn_profile_provenance(packets, "region_n6")
 
 
 if __name__ == "__main__":

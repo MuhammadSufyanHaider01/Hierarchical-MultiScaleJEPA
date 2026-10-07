@@ -19,11 +19,17 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
+
+from masking_profiles import load_mask_profile  # noqa: E402
+
 EXIT_LAYERS = (2, 4, 6, 8)
 TASK_ORDER = (
     "rfs",
@@ -99,6 +105,29 @@ SOURCE_METRICS = {
     "deepmimo-beam": ("beam_pca", "Balanced accuracy (source probe)", True),
     "deepmimo-los": ("los_pca", "Balanced accuracy (source probe)", True),
 }
+CNN_MASK_PROFILE_DETAILS = {
+    "frequency_n6": {
+        "geometry": "six span-time blocks (contiguous frequency bands across the full time axis)",
+        "repeated_geometry_caveat": (
+            "frequency_n6 is a separately trained historical-style repeat of "
+            "multi_block_n6 with the same nominal span-time geometry; the two "
+            "packets are not independent mask-family evidence."
+        ),
+    },
+    "region_n6": {
+        "geometry": "six random contiguous two-dimensional time-frequency blocks",
+        "repeated_geometry_caveat": None,
+    },
+    "time_n6": {
+        "geometry": "six span-frequency blocks (contiguous time bands across the full frequency axis)",
+        "repeated_geometry_caveat": None,
+    },
+    "multi_block_n6": {
+        "geometry": "six span-time blocks (contiguous frequency bands across the full time axis)",
+        "repeated_geometry_caveat": None,
+    },
+}
+CNN_MASK_PROFILE_NAMES = tuple(CNN_MASK_PROFILE_DETAILS)
 
 
 def _arguments() -> argparse.Namespace:
@@ -141,6 +170,15 @@ def _arguments() -> argparse.Namespace:
         choices=("cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"),
         default=None,
         help="Ordered CNN methods included by --comparison-mode cnn_only.",
+    )
+    parser.add_argument(
+        "--mask-profile",
+        choices=CNN_MASK_PROFILE_NAMES,
+        default=None,
+        help=(
+            "Canonical registered profile for a CNN-only packet. When supplied, "
+            "the report verifies matching P0/P2 pretraining provenance."
+        ),
     )
     parser.add_argument(
         "--p2-reverse-import-root",
@@ -205,6 +243,96 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _cnn_pretraining_experiment(packet: dict[str, Any]) -> tuple[Path, dict[str, Any]]:
+    checkpoint = Path(packet["checkpoint"])
+    experiment = checkpoint.parents[1] / "experiment.json"
+    if not experiment.is_file():
+        raise FileNotFoundError(
+            f"{packet['method']} checkpoint has no experiment metadata: {experiment}"
+        )
+    return experiment, _read(experiment)
+
+
+def _validate_cnn_profile_provenance(
+    packets: dict[str, dict[str, Any]], profile_name: str
+) -> dict[str, Any]:
+    """Require comparable CNN continuations before emitting a named packet."""
+
+    profile, profile_path, profile_sha256 = load_mask_profile(profile_name)
+    expected_profile = {
+        "name": profile_name,
+        "path": str(profile_path.relative_to(REPOSITORY_ROOT)),
+        "sha256": profile_sha256,
+        "overrides": profile["masks"],
+    }
+    runtime_keys = (
+        "seed", "microbatch_size", "accumulate_grad_batches", "effective_batch_size",
+        "max_epochs", "schedule_horizon_epochs", "precision", "attention_backend",
+        "epoch_metrics_only", "performance_safe", "data_loader_workers",
+        "hdf5_worker_budget", "data_loader_workers_per_cache",
+        "data_loader_prefetch_factor", "early_stopping", "validation_fraction",
+        "validation_seed", "early_stopping_patience", "early_stopping_min_delta",
+        "resume_schedule_horizon_extended",
+    )
+    runtime_reference = None
+    resolved_masks_reference = None
+    split_hashes = set()
+    for method, packet in packets.items():
+        experiment_path, payload = _cnn_pretraining_experiment(packet)
+        metadata = payload.get("metadata")
+        runtime = payload.get("runtime")
+        if not isinstance(metadata, dict) or not isinstance(runtime, dict):
+            raise ValueError(f"{method} experiment metadata is incomplete: {experiment_path}")
+        if metadata.get("seed") != 0 or runtime.get("seed") != 0:
+            raise ValueError(f"{method} does not use the required pretraining seed 0")
+        if runtime.get("method") != method:
+            raise ValueError(f"{method} experiment identifies {runtime.get('method')!r}")
+        if metadata.get("config", {}).get("encoder", {}).get("backbone") != "convnext_v2_hier":
+            raise ValueError(f"{method} experiment is not a ConvNeXt V2 CNN run")
+        actual_profile = metadata.get("mask_profile")
+        if not isinstance(actual_profile, dict):
+            raise ValueError(f"{method} experiment does not record a mask profile")
+        for key, expected in expected_profile.items():
+            if actual_profile.get(key) != expected:
+                raise ValueError(
+                    f"{method} mask profile {key!r} does not match {profile_name!r}"
+                )
+        resolved_masks = actual_profile.get("resolved")
+        if not isinstance(resolved_masks, dict):
+            raise ValueError(f"{method} experiment does not record resolved mask settings")
+        if resolved_masks_reference is None:
+            resolved_masks_reference = resolved_masks
+        elif resolved_masks != resolved_masks_reference:
+            raise ValueError("CNN-P0 and CNN-P2 resolved mask settings differ")
+        if runtime.get("mask_profile") != actual_profile:
+            raise ValueError(f"{method} runtime and checkpoint mask-profile metadata differ")
+        runtime_contract = {key: runtime.get(key) for key in runtime_keys}
+        if runtime_reference is None:
+            runtime_reference = runtime_contract
+        elif runtime_contract != runtime_reference:
+            raise ValueError("CNN-P0 and CNN-P2 pretraining execution profiles differ")
+        validation_manifest = experiment_path.parent / "pretrain_split.json"
+        if not validation_manifest.is_file():
+            raise FileNotFoundError(
+                f"{method} continuation has no pretraining validation split: {validation_manifest}"
+            )
+        split_hashes.add(_sha256(validation_manifest))
+    if len(split_hashes) != 1:
+        raise ValueError("CNN-P0 and CNN-P2 pretraining validation splits differ")
+    detail = CNN_MASK_PROFILE_DETAILS.get(profile_name, {})
+    return {
+        "name": profile_name,
+        "path": expected_profile["path"],
+        "sha256": profile_sha256,
+        "overrides": profile["masks"],
+        "resolved": resolved_masks_reference,
+        "geometry": detail.get("geometry"),
+        "repeated_geometry_caveat": detail.get("repeated_geometry_caveat"),
+        "pretraining_validation_split_sha256": next(iter(split_hashes)),
+        "execution_profile": runtime_reference,
+    }
 
 
 def _discover_tasks_from_packets(packets: dict[str, dict[str, Any]]) -> tuple[tuple[str, ...], str]:
@@ -1030,6 +1158,7 @@ def _write_cnn_only_report(
     report_title: str,
     provenance_note: str | None,
     split_signature: str,
+    condition: dict[str, Any] | None,
 ) -> None:
     """Write the CNN-P0/CNN-P2 packet without injecting legacy ViT artifacts."""
     comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
@@ -1044,10 +1173,22 @@ def _write_cnn_only_report(
         ["CNN-P0 — Original L8 JEPA Objective", "ConvNeXt V2; one L8 predictor and masked-token MSE", "Frozen CNN context encoder at S1/S2/S3/S4", "single-objective CNN baseline"],
         ["CNN-P2 — Mask-relative Fine-to-coarse", "ConvNeXt V2; L8 anchor plus L2/L4/L6 mask-relative losses", "Frozen CNN context encoder at S1/S2/S3/S4", "hierarchical CNN method"],
     ]
+    condition_sentence = (
+        f"This CNN-only {masking_label} packet compares CNN-P0 and CNN-P2 at seed 0."
+    )
+    geometry_note = ""
+    if condition is not None and condition.get("geometry"):
+        geometry_note += f"\nThe canonical mask geometry is {condition['geometry']}.\n"
+    if condition is not None and condition.get("repeated_geometry_caveat"):
+        geometry_note += f"\n{condition['repeated_geometry_caveat']}\n"
+    provenance_section = (
+        f"## Run-specific provenance\n\n{provenance_note}\n"
+        if provenance_note else ""
+    )
     report = f"""# {report_title}
 
-This CNN-only M-block packet compares CNN-P0 and CNN-P2 at seed 0. It contains
-single-seed point estimates, not a statistical superiority claim.
+{condition_sentence} It contains single-seed point estimates, not a statistical
+superiority claim.{geometry_note}
 
 ## Scope and comparability
 
@@ -1060,7 +1201,7 @@ held-out test split is read only after selection. CNN-P0 and CNN-P2 use a
 matched five-epoch full-data prefix followed by a 100-epoch-maximum,
 validation-monitored continuation.
 
-{f"## Run-specific provenance\n\n{provenance_note}\n" if provenance_note else ""}
+{provenance_section}
 
 ## Task suite
 
@@ -1129,12 +1270,16 @@ caches participates in pretraining.
             "benchmark_path": packet["benchmark_path"],
         }
     _write_json(output_dir / "manifest.json", {
-        "report": "cnn_mblock_p0_p2_single_seed",
+        "report": (
+            f"cnn_{condition['name']}_p0_p2_single_seed"
+            if condition is not None else "cnn_mblock_p0_p2_single_seed"
+        ),
         "comparison_mode": "cnn_only",
         "git_revision": _git_revision(),
         "methods": [METHOD_LABELS[method] for method in METHODS],
         "seed": 0,
         "masking": masking_label,
+        "canonical_mask_profile": condition,
         "task_suite": list(TASKS),
         "headline_exit_policy": "best_validation",
         "downstream_split_signature": hashlib.sha256(split_signature.encode()).hexdigest(),
@@ -1158,6 +1303,11 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
             raise ValueError(f"{method} metrics packet identifies {packet.get('method')!r}")
     TASKS, split_signature = _discover_tasks_from_packets(raw_packets)
     packets = {method: _load_exit_results(cnn_run_root, method, source_method=method)[0] for method in METHODS}
+    profile_name = getattr(args, "mask_profile", None)
+    condition = (
+        _validate_cnn_profile_provenance(packets, profile_name)
+        if profile_name is not None else None
+    )
     comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
     benchmark_rows = [row for packet in packets.values() for row in packet["benchmark_rows"]]
     if len(benchmark_rows) != len(METHODS) * len(TASKS) * len(EXIT_LAYERS):
@@ -1171,6 +1321,7 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
         output_dir, packets, headline_rows, benchmark_rows, figure_paths,
         masking_label=args.masking_label, report_title=args.report_title,
         provenance_note=args.provenance_note, split_signature=split_signature,
+        condition=condition,
     )
     print(json.dumps({"output_dir": str(output_dir), "figures": len(figure_paths), "methods": [METHOD_LABELS[method] for method in METHODS]}, indent=2))
     return 0
@@ -1278,6 +1429,19 @@ def _build_report(
             approach_scope.append(["CNN-HierJEPA P2-Reverse — Coarse-to-fine", "ConvNeXt V2 CNN pretraining with reversed mask-relative target scales", "Frozen CNN context encoder at S1/S2/S3/S4 (L2/L4/L6/L8)", "Hierarchy-direction ablation"])
         else:
             approach_scope.append(["P2-Reverse — Coarse-to-fine Hierarchical JEPA", "Imported reverse-hierarchy pretraining artifact", "Frozen context encoder at L2/L4/L6/L8", "Exploratory hierarchy-direction ablation"])
+    provenance_section = (
+        f"## Run-specific provenance\n\n{provenance_note}\n"
+        if provenance_note else ""
+    )
+    p1_provenance_section = ""
+    if p1_packet is not None:
+        p1_checkpoint = p1_packet["checkpoint"]
+        p1_experiment = Path(p1_checkpoint).parents[1] / "experiment.json"
+        p1_provenance_section = (
+            "## P1 checkpoint provenance\n\n"
+            f"{p1_packet['label']} checkpoint: `{p1_checkpoint}`.\n\n"
+            f"Pretraining experiment metadata: `{p1_experiment}`.\n"
+        )
     report = f"""# {report_title}
 
 This directory contains the submission-oriented result tables and figures for
@@ -1300,11 +1464,11 @@ match; imported ViT P2-Reverse artifacts may lack that manifest.
 
 All values are single-seed pilot point estimates.
 
-{f"## Run-specific provenance\n\n{provenance_note}\n" if provenance_note else ""}
+{provenance_section}
 
 ## Task-suite note
 
-{f"## P1 checkpoint provenance\n\n{p1_packet['label']} checkpoint: `{p1_packet['checkpoint']}`.\n\nPretraining experiment metadata: `{Path(p1_packet['checkpoint']).parents[1] / 'experiment.json'}`.\n" if p1_packet is not None else ""}
+{p1_provenance_section}
 This packet covers **{masking_label}** and the following downstream task suite:
 {", ".join(TASK_LABELS[task] for task in TASKS)}. Jamming and interference
 are labelled frozen-head tasks only; none of the six downstream caches is used

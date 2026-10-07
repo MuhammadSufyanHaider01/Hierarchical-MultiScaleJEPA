@@ -24,8 +24,10 @@ This plan covers the first formal CNN comparison only:
 - CNN-P0 and CNN-P2.
 
 The existing ViT B0/P0 and P1/P2/P2-Reverse M-block packets remain comparison
-references.  Frequency, time, region, and random masking are deferred until
-the M-block CNN packet has been completed and reviewed.
+references. The executable follow-on protocol for separate CNN-P0/CNN-P2
+frequency, region, and time packets is maintained in
+[`cnn_frequency_region_time_p0_p2_execution.md`](cnn_frequency_region_time_p0_p2_execution.md).
+Random masking remains deferred.
 
 ## Implemented architecture contract
 

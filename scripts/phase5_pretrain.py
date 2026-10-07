@@ -66,6 +66,7 @@ METHOD_CONFIGS = {
 FORMAL_EPOCHS = 60
 P3_EPOCHS = 50
 STAGED_PREFIX_EPOCHS = 5
+CNN_STAGED_PREFIX_METHODS = frozenset(("cnn_p0", "cnn_p2"))
 
 
 def _rebase_resumed_schedulers(scheduler_configs, *, total_steps: int) -> list[dict[str, int]]:
@@ -299,6 +300,38 @@ def _allow_trusted_checkpoint_metadata_for_resume() -> None:
     torch.serialization.add_safe_globals([torch.torch_version.TorchVersion])
 
 
+def _validate_resume_checkpoint_metadata(args, config, mask_profile) -> None:
+    """Reject a continuation whose immutable pretraining contract changed."""
+
+    if args.resume is None:
+        return
+    _allow_trusted_checkpoint_metadata_for_resume()
+    checkpoint = torch.load(args.resume, map_location="cpu", weights_only=False)
+    if not isinstance(checkpoint, dict):
+        raise ValueError("resume checkpoint has an invalid payload")
+    metadata = checkpoint.get("metadata")
+    if not isinstance(metadata, dict):
+        raise ValueError("resume checkpoint is missing reproducibility metadata")
+    phase5 = metadata.get("phase5")
+    checkpoint_method = phase5.get("method") if isinstance(phase5, dict) else None
+    if checkpoint_method != args.method:
+        raise ValueError(
+            "resume checkpoint method does not match the requested method: "
+            f"expected {args.method!r}, got {checkpoint_method!r}"
+        )
+    checkpoint_config = metadata.get("config")
+    encoder = checkpoint_config.get("encoder", {}) if isinstance(checkpoint_config, dict) else {}
+    checkpoint_backbone = encoder.get("backbone")
+    requested_backbone = getattr(config.encoder, "backbone", "vit")
+    if checkpoint_backbone != requested_backbone:
+        raise ValueError(
+            "resume checkpoint backbone does not match the requested configuration: "
+            f"expected {requested_backbone!r}, got {checkpoint_backbone!r}"
+        )
+    if metadata.get("mask_profile") != mask_profile:
+        raise ValueError("resume checkpoint mask profile does not match the requested profile")
+
+
 def _loader_options(config, *, num_workers: int, prefetch_factor: int) -> dict:
     """Return worker settings without passing prefetching to a zero-worker loader."""
 
@@ -525,8 +558,10 @@ def _validate_run_arguments(args: argparse.Namespace) -> None:
         if args.max_epochs != P3_EPOCHS:
             raise ValueError(f"matched_horizon P3 jobs require the approved {P3_EPOCHS}-epoch cap, got {args.max_epochs}")
     elif args.run_kind == "staged_prefix":
-        if args.method != "cnn_p0":
-            raise ValueError("staged_prefix is reserved for the matched CNN-P0 prefix")
+        if args.method not in CNN_STAGED_PREFIX_METHODS:
+            raise ValueError(
+                "staged_prefix is reserved for matched CNN-P0/CNN-P2 prefixes"
+            )
         if args.early_stopping:
             raise ValueError("staged_prefix cannot use latent-loss early stopping")
         if args.resume is not None:
@@ -633,6 +668,7 @@ def main() -> int:
     config = init_jepa_config(str(config_path))
     configure_method_variant(config, args.method)
     mask_profile = apply_mask_profile(config, args.mask_profile) if args.mask_profile else None
+    _validate_resume_checkpoint_metadata(args, config, mask_profile)
     config.seed = args.seed
     config.data.batch_size = args.batch_size
     config.data.num_workers = args.num_workers

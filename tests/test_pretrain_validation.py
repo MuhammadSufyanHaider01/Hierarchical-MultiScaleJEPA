@@ -17,6 +17,7 @@ from phase5_pretrain import (  # noqa: E402
     _rebase_resumed_schedulers,
     _split_pretrain_indices,
     _uses_expandable_segments,
+    _validate_resume_checkpoint_metadata,
     _validate_run_arguments,
     _worker_allocation,
 )
@@ -146,13 +147,14 @@ class PretrainValidationSplitTest(unittest.TestCase):
             )
         )
 
-    def test_staged_prefix_is_a_five_epoch_full_data_cnn_p0_checkpoint(self):
+    def test_staged_prefix_is_a_five_epoch_full_data_cnn_checkpoint(self):
         self.assertEqual(STAGED_PREFIX_EPOCHS, 5)
-        _validate_run_arguments(
-            self._arguments(method="cnn_p0", run_kind="staged_prefix", max_epochs=FORMAL_EPOCHS)
-        )
-        with self.assertRaisesRegex(ValueError, "reserved for the matched CNN-P0"):
-            _validate_run_arguments(self._arguments(method="cnn_p2", run_kind="staged_prefix"))
+        for method in ("cnn_p0", "cnn_p2"):
+            _validate_run_arguments(
+                self._arguments(method=method, run_kind="staged_prefix", max_epochs=FORMAL_EPOCHS)
+            )
+        with self.assertRaisesRegex(ValueError, "CNN-P0/CNN-P2"):
+            _validate_run_arguments(self._arguments(method="p2", run_kind="staged_prefix"))
         with self.assertRaisesRegex(ValueError, "60-epoch scheduler horizon"):
             _validate_run_arguments(
                 self._arguments(method="cnn_p0", run_kind="staged_prefix", max_epochs=100)
@@ -161,6 +163,31 @@ class PretrainValidationSplitTest(unittest.TestCase):
             _validate_run_arguments(
                 self._arguments(method="cnn_p0", run_kind="staged_prefix", early_stopping=True)
             )
+
+    def test_resume_metadata_requires_matching_method_backbone_and_profile(self):
+        profile = {"name": "time_n6", "sha256": "expected", "resolved": {"type": "multi_block"}}
+        config = SimpleNamespace(encoder=SimpleNamespace(backbone="convnext_v2_hier"))
+        metadata = {
+            "phase5": {"method": "cnn_p2"},
+            "config": {"encoder": {"backbone": "convnext_v2_hier"}},
+            "mask_profile": profile,
+        }
+        args = self._arguments(method="cnn_p2", resume=Path("prefix.ckpt"))
+        with patch("phase5_pretrain.torch.load", return_value={"metadata": metadata}):
+            _validate_resume_checkpoint_metadata(args, config, profile)
+        with patch("phase5_pretrain.torch.load", return_value={"metadata": metadata}):
+            with self.assertRaisesRegex(ValueError, "method"):
+                _validate_resume_checkpoint_metadata(
+                    self._arguments(method="cnn_p0", resume=Path("prefix.ckpt")), config, profile
+                )
+        bad_backbone = dict(metadata)
+        bad_backbone["config"] = {"encoder": {"backbone": "vit"}}
+        with patch("phase5_pretrain.torch.load", return_value={"metadata": bad_backbone}):
+            with self.assertRaisesRegex(ValueError, "backbone"):
+                _validate_resume_checkpoint_metadata(args, config, profile)
+        with patch("phase5_pretrain.torch.load", return_value={"metadata": metadata}):
+            with self.assertRaisesRegex(ValueError, "mask profile"):
+                _validate_resume_checkpoint_metadata(args, config, {"name": "region_n6"})
 
     def test_expandable_allocator_setting_is_detected(self):
         self.assertTrue(_uses_expandable_segments("expandable_segments:True"))
