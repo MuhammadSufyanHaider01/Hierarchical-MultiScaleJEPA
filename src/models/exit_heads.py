@@ -65,6 +65,120 @@ class FrozenEncoderExit(nn.Module):
         return self.head(tokens)
 
 
+class CausalFusionExitHead(nn.Module):
+    """Mean-pool and learn a convex fusion of causal encoder exits."""
+
+    def __init__(self, embed_dim: int, num_outputs: int, source_layers):
+        super().__init__()
+        layers = tuple(int(layer) for layer in source_layers)
+        if not layers or tuple(sorted(set(layers))) != layers:
+            raise ValueError("source_layers must be a non-empty, strictly increasing sequence")
+        self.source_layers = layers
+        self.fusion_logits = nn.Parameter(torch.zeros(len(layers))) if len(layers) > 1 else None
+        self.norm = nn.LayerNorm(embed_dim)
+        self.projection = nn.Linear(embed_dim, num_outputs)
+
+    @property
+    def fusion_weights(self) -> dict[int, float]:
+        if self.fusion_logits is None:
+            return {self.source_layers[0]: 1.0}
+        weights = self.fusion_logits.detach().softmax(dim=0).cpu().tolist()
+        return dict(zip(self.source_layers, map(float, weights)))
+
+    def forward(self, representations: Mapping[int, torch.Tensor]) -> torch.Tensor:
+        missing = set(self.source_layers).difference(representations)
+        if missing:
+            raise ValueError(f"missing source-layer representations: {sorted(missing)}")
+        pooled = []
+        shape = None
+        for layer in self.source_layers:
+            tokens = representations[layer]
+            if tokens.ndim != 3:
+                raise ValueError(f"L{layer} tokens must have shape [B,N,D], got {tuple(tokens.shape)}")
+            if shape is None:
+                shape = (tokens.shape[0], tokens.shape[2])
+            elif (tokens.shape[0], tokens.shape[2]) != shape:
+                raise ValueError("source layers must have matching batch and embedding dimensions")
+            pooled.append(tokens.mean(dim=1))
+        if self.fusion_logits is None:
+            fused = pooled[0]
+        else:
+            weights = self.fusion_logits.softmax(dim=0)
+            fused = torch.stack(pooled, dim=1).mul(weights.view(1, -1, 1)).sum(dim=1)
+        return self.projection(self.norm(fused))
+
+
+class FrozenEncoderFusionExit(nn.Module):
+    """A causal fusion head attached to a frozen encoder prefix."""
+
+    def __init__(self, encoder: nn.Module, exit_layer: int, num_outputs: int):
+        super().__init__()
+        depth = int(getattr(encoder, "logical_depth", len(encoder.blocks)))
+        self.exit_layer = int(exit_layer)
+        if self.exit_layer not in (2, 4, 6, 8) or self.exit_layer > depth:
+            raise ValueError(f"unsupported fusion exit L{self.exit_layer} for encoder depth {depth}")
+        self.source_layers = tuple(layer for layer in (2, 4, 6, 8) if layer <= self.exit_layer)
+        self.encoder = encoder
+        embed_dim = getattr(encoder, "exit_embed_dim", None)
+        if embed_dim is None:
+            embed_dim = encoder.pos_embed.shape[-1]
+        self.head = CausalFusionExitHead(int(embed_dim), int(num_outputs), self.source_layers)
+        self.freeze_backbone()
+
+    def freeze_backbone(self) -> None:
+        for parameter in self.encoder.parameters():
+            parameter.requires_grad = False
+        self.encoder.eval()
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        self.encoder.eval()
+        return self
+
+    def representations(self, x: torch.Tensor) -> dict[int, torch.Tensor]:
+        self.encoder.eval()
+        with torch.no_grad():
+            return self.encoder.forward_to_layers(x, self.source_layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.representations(x))
+
+
+class FrozenEncoderFusionTeacherStudent(nn.Module):
+    """Frozen causal teacher and trainable single-exit student over one prefix."""
+
+    def __init__(self, encoder: nn.Module, exit_layer: int, num_outputs: int,
+                 teacher_state: Mapping[str, torch.Tensor]):
+        super().__init__()
+        self.exit_layer = int(exit_layer)
+        self.source_layers = tuple(layer for layer in (2, 4, 6, 8) if layer <= self.exit_layer)
+        self.encoder = encoder
+        embed_dim = getattr(encoder, "exit_embed_dim", None) or encoder.pos_embed.shape[-1]
+        self.teacher = CausalFusionExitHead(int(embed_dim), int(num_outputs), self.source_layers)
+        self.teacher.load_state_dict(teacher_state, strict=True)
+        self.student = ExitHead(int(embed_dim), int(num_outputs))
+        for parameter in self.encoder.parameters():
+            parameter.requires_grad = False
+        for parameter in self.teacher.parameters():
+            parameter.requires_grad = False
+        self.encoder.eval()
+        self.teacher.eval()
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        self.encoder.eval()
+        self.teacher.eval()
+        return self
+
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        self.encoder.eval()
+        with torch.no_grad():
+            representations = self.encoder.forward_to_layers(x, self.source_layers)
+            teacher_output = self.teacher(representations)
+        student_output = self.student(representations[self.exit_layer])
+        return student_output, teacher_output
+
+
 def _checkpoint_state_dict(checkpoint: object) -> Mapping[str, torch.Tensor]:
     if not isinstance(checkpoint, Mapping):
         raise TypeError(f"expected a checkpoint mapping, got {type(checkpoint).__name__}")

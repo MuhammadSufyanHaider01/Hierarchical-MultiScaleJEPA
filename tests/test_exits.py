@@ -76,6 +76,21 @@ class ExitTest(unittest.TestCase):
         self.assertEqual(calls[:2], [1, 1])
         self.assertEqual(calls[2:], [0] * (len(self.encoder.blocks) - 2))
 
+    def test_forward_to_layers_matches_individual_exits_and_stops_at_deepest(self):
+        calls = [0] * len(self.encoder.blocks)
+        handles = [block.register_forward_hook(
+            lambda *_args, index=index: calls.__setitem__(index, calls[index] + 1)
+        ) for index, block in enumerate(self.encoder.blocks)]
+        try:
+            outputs = self.encoder.forward_to_layers(self.inputs, [2, 4, 6, 6])
+        finally:
+            for handle in handles:
+                handle.remove()
+        self.assertEqual(set(outputs), {2, 4, 6})
+        for layer in (2, 4, 6):
+            torch.testing.assert_close(outputs[layer], self.encoder.forward_to_layer(self.inputs, layer), rtol=0, atol=0)
+        self.assertEqual(calls, [1, 1, 1, 1, 1, 1, 0, 0])
+
     def test_invalid_exit_layers_fail(self):
         with self.assertRaises(ValueError):
             self.encoder(self.inputs, return_layers=[0])

@@ -173,6 +173,22 @@ class Encoder(nn.Module):
             stop_at_last_requested=True,
         )[int(exit_layer)]
 
+    def forward_to_layers(self, x, exit_layers):
+        """Run one encoder prefix and return normalized tokens at each tap.
+
+        Requested exits are deduplicated while preserving their numeric keys;
+        the encoder stops after the deepest requested block. This is the
+        inference path used by causal multi-exit heads.
+        """
+        layers = tuple(dict.fromkeys(int(layer) for layer in exit_layers))
+        return self._forward_layers(
+            x,
+            masks=None,
+            return_layers=layers,
+            normalize_exits=True,
+            stop_at_last_requested=True,
+        )
+
     def forward_pair_local_layers(self, x, masks, return_layers):
         """Return auxiliary exits with gradients isolated to two-block pairs.
 
