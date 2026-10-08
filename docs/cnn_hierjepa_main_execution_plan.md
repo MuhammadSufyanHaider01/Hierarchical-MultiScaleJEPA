@@ -14,9 +14,10 @@ retain `cnn_p0`/`cnn_p2` for compatibility.
 The immediate CNN report compares **C0** and **C2** with the matching-mask
 ViT **P0** baseline and its derived full-depth **B0** reference. B0 is the
 fixed L8 result from the same ViT P0 checkpoint, not separate pretraining.
-CNN-P1 and CNN-P2-Reverse rows are not included. Both CNN methods start from
-initialization and use a 100-epoch-maximum, 90/10 validation-monitored run with
-early stopping. The operational commands, artifact
+CNN-P1 and CNN-P2-Reverse rows are not included. Both CNN methods use a
+five-epoch full-data prefix under the original 60-epoch schedule, followed by
+a resumed deterministic 90/10 validation-monitored continuation with a
+100-epoch maximum and early stopping. The operational commands, artifact
 paths, and gates are in
 [`cnn_mblock_p0_p2_execution.md`](cnn_mblock_p0_p2_execution.md).
 
@@ -28,7 +29,8 @@ This plan covers the first formal CNN comparison only:
 - M-block / span-time masking with six prediction masks;
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
-- a 100-epoch maximum pretraining horizon with validation early stopping;
+- a five-epoch full-data prefix under a 60-epoch schedule, then a 100-epoch
+  maximum resumed validation-monitored continuation with early stopping;
 - C0 and C2.
 
 The existing per-mask ViT P0 packets provide the baselines for the CNN reports;
@@ -88,9 +90,9 @@ execution profile:
 
 The pretraining process must record the resolved configuration, backbone type,
 CNN stage configuration, precision profile, mask profile, seed, and split/data
-manifest. C0 and C2 start directly from initialization; neither uses a staged
-prefix. The `checkpoint_for_downstream` value in each completed summary is the
-only checkpoint used for downstream work.
+manifest. Both C0 and C2 use matched five-epoch full-data prefixes followed by
+validation-monitored continuations. The `checkpoint_for_downstream` value in
+each completed summary is the only checkpoint used for downstream work.
 
 ## Current artifact audit
 
@@ -104,7 +106,7 @@ LatentWave.
 
 | Item | Required protocol |
 | --- | --- |
-| Pretraining | direct-from-initialization, 100-epoch maximum, seed 0, validation early stopping |
+| Pretraining | matched five-epoch full-data prefix, then resumed 100-epoch-maximum validation-monitored continuation, seed 0 |
 | Objective | one final predictor and L8 masked-token MSE only |
 | Downstream | frozen context-encoder exits L2/L4/L6/L8 on the six persisted-split tasks |
 | Evaluation | one held-out test pass and batch-1 FLOPs/latency benchmark |
@@ -136,16 +138,18 @@ not silently replace its reported results.
 
 ### C2 (`cnn_p2`) — mask-relative fine-to-coarse JEPA
 
-The current C2 packet uses the direct-from-initialization, validation-monitored
-protocol described above; its downstream work starts only after the run
-summary identifies the checkpoint to use.
+The C2 prefix was completed as five full-data epochs under the 60-epoch
+schedule. Its validation-monitored continuation is active in
+`cnn_p2_extended100_es`; downstream work starts only after that run's summary
+identifies the validation-best checkpoint.
 
 | Item | State |
 | --- | --- |
-| Observed terminal progress | epoch 8 completed |
-| Durable checkpoint | epoch 4 / step 1,130 and `last.ckpt` |
+| Observed terminal progress (2026-10-08) | epoch 71, 225/813 batches at last audit |
+| Best validation checkpoint | epoch 70, `val_loss=0.466410` |
+| Current resumable checkpoint at last audit | epoch 69 / step 14,390 in `cnn_p2_extended100_es` |
 | Downstream heads, held-out test, benchmark | not run |
-| Loss behaviour through epoch 8 | finite and decreasing; not enough evidence to assess convergence |
+| Loss behaviour | finite; epoch 70 improved the best validation loss |
 
 The P2 intermediate losses are L2/L4/L6; each is finite-checked on the first
 continuation epoch before downstream work. The report labels the approach C2
@@ -153,11 +157,12 @@ while preserving `cnn_p2` in artifact paths and provenance.
 
 #### C2 loss and selection protocol
 
-C2 uses the direct-from-initialization 100-epoch-maximum protocol with a
-deterministic 90/10 cache split (seed 2025), minimizing mean pretraining
-`val_loss` with patience 20 and minimum improvement `1e-4`. Its L2/L4/L6
-intermediate losses must be finite on the first continuation epoch. Use only
-the `checkpoint_for_downstream` recorded in the completed run summary.
+C2 resumes the matched five-epoch full-data prefix into a 100-epoch-maximum
+run, with a deterministic 90/10 cache split (seed 2025), rebased scheduler
+horizon, and early stopping on mean pretraining `val_loss` (patience 20,
+minimum improvement `1e-4`). Its L2/L4/L6 intermediate losses are finite in
+the logged epochs. Use only the `checkpoint_for_downstream` recorded in the
+completed run summary.
 
 ### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
@@ -202,10 +207,11 @@ benchmark stage from the saved CNN-P1 checkpoint.
 
 ### Gate 2 — finish C2
 
-1. Resume the epoch-4 C2 checkpoint through the documented 100-epoch
-   validation-monitored extension using a separate output directory.
-2. Require finite anchor and L2/L4/L6 auxiliary losses through a short resume
-   check before continuing the full fit.
+1. Allow the active C2 100-epoch-maximum validation-monitored continuation to
+   finish or stop by its configured early-stopping rule; retain both
+   `last.ckpt` and the validation-best checkpoint.
+2. Require a completed summary with finite best validation loss and an
+   existing `checkpoint_for_downstream` before starting downstream jobs.
 3. Train independent frozen L2/L4/L6/L8 heads on the six tasks; use only
    validation metrics to select each task's best exit.
 4. Run the selected saved heads exactly once on the held-out test splits.
@@ -241,7 +247,8 @@ Once C0 and C2 packets are complete:
 
 The M-block CNN study is complete only when:
 
-- C0 and C2 each have a completed direct-from-initialization, validation-monitored pretraining run;
+- C0 and C2 each have the matched five-epoch full-data prefix and a completed
+  validation-monitored continuation;
 - both have complete six-task frozen-head selection packets;
 - each selected head has one held-out test evaluation;
 - both methods have L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;

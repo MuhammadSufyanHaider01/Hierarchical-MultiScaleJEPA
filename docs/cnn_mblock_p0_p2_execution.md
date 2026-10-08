@@ -22,7 +22,7 @@ P0/P2 methods. Internal method keys and artifact paths keep their historical
 | Microbatch / accumulation / effective batch | 16 / 4 / 64 |
 | Precision and attention | BF16 mixed / fused scaled-dot-product attention |
 | HDF5 loading | 12 total workers, 3 per cache, prefetch factor 4 |
-| Pretraining | Direct from initialization; 100 epochs maximum; deterministic 90/10 pretraining split, seed 2025 |
+| Pretraining | Five full-data prefix epochs under the original 60-epoch schedule, then resume with deterministic 90/10 split and a rebased 100-epoch maximum |
 | Early stopping | Minimize `val_loss`; patience 20; minimum delta `1e-4` |
 | Downstream selection | Frozen context heads; best validation-performing exit, never test-selected |
 
@@ -45,8 +45,23 @@ PY=../MultiScaleJEPA/.venv/bin/python
    `runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/`.
    Use the `checkpoint_for_downstream` field in its completed `summary.json`.
 
-2. **Run C0 (`cnn_p0`) directly from initialization with validation early stopping.**
-   This is a 100-epoch-maximum run with a 90/10 training/validation split.
+2. **Run C0 (`cnn_p0`) five-epoch full-data prefix.** Preserve the original
+   60-epoch scheduler horizon and do not use validation in this prefix.
+
+   ```bash
+   bash scripts/run_logged_job.sh \
+     runs/masking_study/multi_block_n6/cnn_p0_prefix60/terminal_logs/pretrain.log \
+     env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
+       --method cnn_p0 --seed 0 --run-root runs/masking_study/multi_block_n6 \
+       --run-name cnn_p0_prefix60 --run-kind staged_prefix --max-epochs 60 \
+       --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
+       --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
+       --performance-safe --epoch-metrics-only --progress-every-n-batches 25
+   ```
+
+3. **Resume C0 from the prefix with validation early stopping.** Use the same
+   90/10 split seed, patience, minimum delta, and runtime profile as the C2
+   continuation.
 
    ```bash
    bash scripts/run_logged_job.sh \
@@ -54,23 +69,10 @@ PY=../MultiScaleJEPA/.venv/bin/python
      env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
        --method cnn_p0 --seed 0 --run-root runs/masking_study/multi_block_n6 \
        --run-name cnn_p0 --run-kind diagnostic --max-epochs 100 \
+       --resume runs/masking_study/multi_block_n6/cnn_p0_prefix60/seed_000/checkpoints/last.ckpt \
+       --extend-resume-schedule-horizon \
        --early-stopping --validation-fraction 0.1 --validation-seed 2025 \
        --early-stopping-patience 20 --early-stopping-min-delta 1e-4 \
-       --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
-       --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
-       --performance-safe --epoch-metrics-only --progress-every-n-batches 25
-   ```
-
-3. **Run C2 (`cnn_p2`) directly from initialization with the same validation protocol.**
-
-   ```bash
-   bash scripts/run_logged_job.sh \
-     runs/masking_study/multi_block_n6/cnn_p2_extended100_es/terminal_logs/pretrain.log \
-     env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
-       --method cnn_p2 --seed 0 --run-root runs/masking_study/multi_block_n6 \
-       --run-name cnn_p2_extended100_es --run-kind diagnostic --max-epochs 100 \
-       --early-stopping --validation-fraction 0.1 \
-       --validation-seed 2025 --early-stopping-patience 20 --early-stopping-min-delta 1e-4 \
        --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
        --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
        --performance-safe --epoch-metrics-only --progress-every-n-batches 25
@@ -119,12 +121,13 @@ PY=../MultiScaleJEPA/.venv/bin/python
      --output-dir reports/cnn_backbone/multi_block_n6/cnn_p0_vs_cnn_p2 \
      --masking-label "M-block / span-time, N_m=6" \
      --report-title "M-block: ViT B0/P0 vs CNN C0/C2, single-seed packet" \
-     --provenance-note "Both CNN methods start from initialization and use a 100-epoch-maximum validation-monitored run with early stopping."
+     --provenance-note "Both CNN methods use a matched five-epoch full-data prefix under the original 60-epoch schedule, then resume into a 100-epoch-maximum validation-monitored continuation with early stopping."
    ```
 
 ## Completion checks
 
-- Both continuation summaries identify a finite validation-best checkpoint.
+- C0 and C2 prefix/continuation provenance is recorded; both continuation
+  summaries identify a finite validation-best checkpoint.
 - Both six-task packets share the persisted downstream split signature.
 - Every task has L2/L4/L6/L8 head records, a validation-best exit, and one test result.
 - Every task/exit pair has FLOPs and synchronized CUDA mean/p95 latency.
