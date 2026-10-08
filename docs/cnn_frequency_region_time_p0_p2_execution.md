@@ -1,6 +1,10 @@
-# CNN frequency, region, and time P0 vs P2 execution protocol
+# CNN frequency, region, and time C0 vs C2 execution protocol
 
 This runbook produces three separate CNN-only, single-seed comparison packets.
+For human-facing names, **C0** is CNN method `cnn_p0` and **C2** is CNN method
+`cnn_p2`. The ViT methods retain their distinct **P0/P2** names. CLI method
+keys, run directories, and report-directory names remain `cnn_p0`/`cnn_p2` for
+compatibility.
 
 | Profile | Mask geometry | Run root | Report directory |
 | --- | --- | --- | --- |
@@ -25,16 +29,18 @@ Every pretraining command uses seed `0`, BF16 mixed precision, fused attention,
 microbatch `16`, accumulation `4`, three workers per cache (`--hdf5-worker-budget 12`),
 prefetch factor `4`, expandable allocator segments, and epoch-only telemetry.
 The CNN variant enables activation checkpointing automatically. Submit the six
-direct-from-initialization jobs (P0 and P2 for each profile) without staged
-prefixes or checkpoint resumes. They may run concurrently as GPU capacity
-allows; downstream work waits for all six to finish.
+direct-from-initialization jobs (C0 and C2 for each profile) without staged
+prefixes. They may run concurrently as GPU capacity allows. A method's
+downstream jobs may start as soon as that method's continuation finishes; C0
+does not need to wait for C2. Each report still waits for both methods' complete
+downstream packets.
 
 ## Pretraining commands
 
 For each literal `PROFILE` (`frequency_n6`, `region_n6`, `time_n6`), submit
 these two commands through `scripts/run_logged_job.sh`:
 
-### CNN-P0 direct validation-monitored pretraining
+### C0 (`cnn_p0`) direct validation-monitored pretraining
 
 ```bash
 bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p0/terminal_logs/pretrain.log \
@@ -48,7 +54,7 @@ bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p0/terminal_logs/p
   --performance-safe --epoch-metrics-only --progress-every-n-batches 25
 ```
 
-### CNN-P2 direct validation-monitored pretraining
+### C2 (`cnn_p2`) direct validation-monitored pretraining
 
 ```bash
 bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p2/terminal_logs/pretrain.log \
@@ -67,14 +73,14 @@ validation-loss early stopping with patience 20 and minimum delta `1e-4`. Use
 each run's `summary.json["checkpoint_for_downstream"]`; do not select a checkpoint
 ad hoc.
 
-Before downstream work, require every continuation `summary.json` to name a
-finite `checkpoint_for_downstream` and compare each profile's P0/P2
-`pretrain_split.json` files for equality.
+Before each method's downstream work, require its continuation `summary.json`
+to name a valid `checkpoint_for_downstream`. Before report generation, compare
+each profile's C0/C2 `pretrain_split.json` files for equality.
 
 ## Downstream and benchmark commands
 
-After all six direct pretraining runs complete, process each `PROFILE` and each `METHOD`
-(`cnn_p0`, then `cnn_p2`). Resolve only the selected continuation checkpoint:
+For each completed method, process its `PROFILE` and `METHOD` (`cnn_p0` for C0,
+then `cnn_p2` for C2). Resolve only the selected continuation checkpoint:
 
 ```bash
 CKPT=$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["checkpoint_for_downstream"])' \
@@ -111,7 +117,7 @@ every L2/L4/L6/L8 head, a held-out test result, and a benchmark entry.
   --cnn-methods cnn_p0 cnn_p2 --mask-profile PROFILE \
   --output-dir reports/cnn_backbone/PROFILE/cnn_p0_vs_cnn_p2 \
   --masking-label "PROFILE_LABEL" \
-  --report-title "CNN PROFILE_TITLE: CNN-P0 vs CNN-P2, single-seed packet" \
+  --report-title "CNN PROFILE_TITLE: C0 vs C2, single-seed packet" \
   --provenance-note "Both methods start from initialization and use a 100-epoch-maximum validation-monitored run with early stopping."
 ```
 

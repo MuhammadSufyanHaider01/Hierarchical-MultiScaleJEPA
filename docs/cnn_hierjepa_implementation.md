@@ -9,6 +9,10 @@ The CNN implementation is now also reachable from `main`; the executable
 M-block experiment sequence and existing-artifact status are maintained in
 [`cnn_hierjepa_main_execution_plan.md`](cnn_hierjepa_main_execution_plan.md).
 
+Human-facing CNN approach labels are **C0** (`cnn_p0`) and **C2** (`cnn_p2`);
+ViT P0/P2 labels remain unchanged. The internal CNN method keys and artifact
+paths retain the `cnn_p0`/`cnn_p2` spelling.
+
 ## Backbone and representation interface
 
 - The ConvNeXt V2-style encoder uses stage depths `[2, 2, 6, 2]` and widths

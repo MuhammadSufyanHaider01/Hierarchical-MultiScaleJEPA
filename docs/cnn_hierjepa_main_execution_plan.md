@@ -2,10 +2,17 @@
 
 ## Scope and branch status
 
+## CNN naming convention
+
+In human-facing descriptions, **C0** denotes CNN method `cnn_p0` and **C2**
+denotes CNN method `cnn_p2`. ViT P0/P2 remain distinct approaches and keep
+their P0/P2 names. Executable method keys, run directories, and report paths
+retain `cnn_p0`/`cnn_p2` for compatibility.
+
 ## Current approved M-block packet
 
-The immediate CNN report is intentionally limited to **CNN-P0** and
-**CNN-P2**. It is CNN-only: no ViT B0/P0 rows, CNN-P1, or CNN-P2-Reverse rows
+The immediate CNN report is intentionally limited to **C0** and
+**C2**. It is CNN-only: no ViT B0/P0 rows, CNN-P1, or CNN-P2-Reverse rows
 are included. Both methods use a matched staged protocol: five full-data
 epochs using the original 60-epoch scheduler horizon, then a 100-epoch maximum
 90/10 validation-monitored continuation. The operational commands, artifact
@@ -21,10 +28,10 @@ This plan covers the first formal CNN comparison only:
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
 - a 60-epoch maximum pretraining horizon;
-- CNN-P0 and CNN-P2.
+- C0 and C2.
 
 The existing ViT B0/P0 and P1/P2/P2-Reverse M-block packets remain comparison
-references. The executable follow-on protocol for separate CNN-P0/CNN-P2
+references. The executable follow-on protocol for separate C0/C2
 frequency, region, and time packets is maintained in
 [`cnn_frequency_region_time_p0_p2_execution.md`](cnn_frequency_region_time_p0_p2_execution.md).
 Random masking remains deferred.
@@ -48,11 +55,11 @@ zero before the CNN; the EMA target encoder sees unmasked inputs.  S4's
 upsampling duplicates 7x7 features on the canonical 14x14 grid, so this
 representation is not equivalent to 196 independent native S4 tokens.
 
-CNN-P0 is the single-scale architecture baseline: it uses the same masked CNN
+C0 is the single-scale architecture baseline: it uses the same masked CNN
 context encoder, EMA CNN target encoder, and one original L8 predictor with
 the original masked-token MSE loss. It has no auxiliary predictors and no
-L2/L4/L6 losses. CNN P1/P2/P2-Reverse objectives use the existing independent L2/L4/L6
-auxiliary predictors and the original L8 JEPA anchor.  Intermediate CNN losses
+L2/L4/L6 losses. CNN P1/C2/P2-Reverse objectives use the existing independent
+L2/L4/L6 auxiliary predictors and the original L8 JEPA anchor. Intermediate CNN losses
 are stage-local: L2 trains the stem plus S1; L4 trains the S1-to-S2 transition
 plus S2; L6 trains the S2-to-S3 transition plus S3.  The L8 anchor remains
 end-to-end.  Target-encoder parameters remain frozen and are updated only by
@@ -81,12 +88,12 @@ used to select a formal checkpoint.
 
 ## Current artifact audit
 
-### CNN-P0 — original L8 CNN-JEPA baseline
+### C0 (`cnn_p0`) — original L8 CNN-JEPA baseline
 
-CNN-P0 is not the paper-faithful ViT LatentWave reference. It isolates the
+C0 is not the paper-faithful ViT LatentWave reference. It isolates the
 backbone change by retaining the original single L8 JEPA objective under the
 same CNN execution profile as the hierarchical CNN variants. It must be
-reported as **CNN-P0 — Original L8 JEPA objective**, never as Original
+reported as **C0 — Original L8 JEPA objective**, never as Original
 LatentWave.
 
 | Item | Required protocol |
@@ -121,7 +128,7 @@ contains saved heads and held-out results for DeepMIMO as well.  Before report
 generation, verify the packet paths, checkpoint hash, and split manifest; do
 not silently replace its reported results.
 
-### CNN-P2 — mask-relative fine-to-coarse JEPA
+### C2 (`cnn_p2`) — mask-relative fine-to-coarse JEPA
 
 This run is incomplete and cannot be compared or reported.
 
@@ -154,9 +161,9 @@ validation loss.
 | Scheduler handling | preserve optimizer/EMA/completed step; rebase LR and weight-decay cosine horizons to the new loader's 100-epoch horizon |
 | Status | diagnostic extension, not interchangeable with the 60-epoch fixed-horizon P1 comparison |
 
-The extension retains the original CNN-P2 directory untouched. Because
+The extension retains the original C2 directory untouched. Because
 validation removes 10% of each pretraining cache from resumed training and
-changes the schedule horizon, it is useful for choosing a CNN-P2 candidate
+changes the schedule horizon, it is useful for choosing a C2 candidate
 checkpoint but must be labelled as an extended validation-monitored protocol.
 A direct fixed-horizon comparison would require matching P1 and P2-Reverse
 extensions.
@@ -164,7 +171,7 @@ extensions.
 ### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
 No formal pretraining, downstream, or benchmark artifact exists.  This method
-starts as a new 60-epoch run after CNN-P2 is complete.
+starts as a new 60-epoch run after C2 is complete.
 
 ### Non-formal attempts
 
@@ -202,9 +209,9 @@ Verify that `benchmarks.json` has batch-1 FLOPs and synchronized CUDA latency
 for every exit.  If this audit fails, refresh only the missing downstream or
 benchmark stage from the saved CNN-P1 checkpoint.
 
-### Gate 2 — finish CNN-P2
+### Gate 2 — finish C2
 
-1. Resume the epoch-4 CNN-P2 checkpoint through the documented 100-epoch
+1. Resume the epoch-4 C2 checkpoint through the documented 100-epoch
    validation-monitored extension using a separate output directory.
 2. Require finite anchor and L2/L4/L6 auxiliary losses through a short resume
    check before continuing the full fit.
@@ -219,11 +226,11 @@ Do not launch CNN-P2-Reverse in the current packet. A later extension may
 repeat the same five operations for a new CNN-P2-Reverse run. Its only
 objective difference is the coarse-to-fine region mapping; all architecture,
 data, seed, horizon, masks, loader profile, optimizer, EMA, and downstream
-protocol settings remain identical to CNN-P2.
+protocol settings remain identical to C2.
 
-### Gate 4 — CNN-P0 vs CNN-P2 M-block report
+### Gate 4 — C0 vs C2 M-block report
 
-Once CNN-P0 and CNN-P2 packets are complete:
+Once C0 and C2 packets are complete:
 
 1. Run the report generator with `--comparison-mode cnn_only --cnn-methods cnn_p0 cnn_p2`
    and `--cnn-run-root` pointing at the M-block run directory.
@@ -242,7 +249,7 @@ Once CNN-P0 and CNN-P2 packets are complete:
 
 The M-block CNN study is complete only when:
 
-- CNN-P0 and CNN-P2 each have a matched prefix and completed validation-monitored continuation;
+- C0 and C2 each have a matched prefix and completed validation-monitored continuation;
 - both have complete six-task frozen-head selection packets;
 - each selected head has one held-out test evaluation;
 - both methods have L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;

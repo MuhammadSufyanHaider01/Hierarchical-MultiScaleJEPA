@@ -1,11 +1,15 @@
-# CNN M-block P0 vs P2 execution protocol
+# CNN M-block C0 vs C2 execution protocol
 
 This document defines the first CNN-only M-block comparison. It includes
-**CNN-P0 — Original L8 JEPA Objective** and **CNN-P2 — Mask-relative
+**C0 (`cnn_p0`) — Original L8 JEPA Objective** and **C2 (`cnn_p2`) — Mask-relative
 Fine-to-coarse JEPA** only. The output packet is separate from the ViT report:
 `reports/cnn_backbone/multi_block_n6/cnn_p0_vs_cnn_p2/`. This is deliberately
 separate from `reports/masking_study/`, which remains reserved for the ViT
 masking-study packets.
+
+The human-facing labels C0/C2 distinguish these CNN approaches from the ViT
+P0/P2 methods. Internal method keys and artifact paths keep their historical
+`cnn_p0`/`cnn_p2` names.
 
 ## Locked protocol
 
@@ -22,7 +26,7 @@ masking-study packets.
 | Early stopping | Minimize `val_loss`; patience 20; minimum delta `1e-4` |
 | Downstream selection | Frozen context heads; best validation-performing exit, never test-selected |
 
-CNN-P0 has only the original L8 predictor and masked-token MSE. CNN-P2 keeps
+C0 has only the original L8 predictor and masked-token MSE. C2 keeps
 the L8 anchor plus L2/L4/L6 mask-relative losses with stage-local CNN routing.
 
 ## Ordered jobs
@@ -37,11 +41,11 @@ From the `MultiScaleJEPA-main` repository root, set:
 PY=../MultiScaleJEPA/.venv/bin/python
 ```
 
-1. **Finish CNN-P2 continuation already in progress.** Its output is
+1. **Finish C2 (`cnn_p2`) continuation already in progress.** Its output is
    `runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/`.
    Use the `checkpoint_for_downstream` field in its completed `summary.json`.
 
-2. **Run the matched CNN-P0 full-data prefix.** This deliberately saves the
+2. **Run the matched C0 (`cnn_p0`) full-data prefix.** This deliberately saves the
    epoch-4 / step-1,130-style resume checkpoint while retaining the original
    60-epoch scheduler horizon.
 
@@ -56,7 +60,7 @@ PY=../MultiScaleJEPA/.venv/bin/python
        --performance-safe --epoch-metrics-only --progress-every-n-batches 25
    ```
 
-3. **Resume CNN-P0 into its matched validation-monitored continuation.**
+3. **Resume C0 (`cnn_p0`) into its matched validation-monitored continuation.**
 
    ```bash
    bash scripts/run_logged_job.sh \
@@ -72,7 +76,7 @@ PY=../MultiScaleJEPA/.venv/bin/python
        --performance-safe --epoch-metrics-only --progress-every-n-batches 25
    ```
 
-4. **For CNN-P0, then CNN-P2, run three downstream stages in order.** Resolve
+4. **For C0, then C2, run three downstream stages in order.** Resolve
    the two validation-best pretraining checkpoints after their summaries exist:
 
    ```bash
@@ -113,7 +117,7 @@ PY=../MultiScaleJEPA/.venv/bin/python
      --cnn-methods cnn_p0 cnn_p2 \
      --output-dir reports/cnn_backbone/multi_block_n6/cnn_p0_vs_cnn_p2 \
      --masking-label "M-block / span-time, N_m=6" \
-     --report-title "CNN M-block: CNN-P0 vs CNN-P2, single-seed packet" \
+     --report-title "CNN M-block: C0 vs C2, single-seed packet" \
      --provenance-note "Both methods use a matched five-epoch full-data prefix and a 100-epoch-maximum validation-monitored continuation."
    ```
 
@@ -123,4 +127,4 @@ PY=../MultiScaleJEPA/.venv/bin/python
 - Both six-task packets share the persisted downstream split signature.
 - Every task has L2/L4/L6/L8 head records, a validation-best exit, and one test result.
 - Every task/exit pair has FLOPs and synchronized CUDA mean/p95 latency.
-- The CNN-only report includes only CNN-P0 and CNN-P2 and leaves the ViT M-block report untouched.
+- The CNN-only report includes only C0 and C2 and leaves the ViT M-block report untouched.
