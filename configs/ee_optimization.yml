@@ -1,0 +1,28 @@
+study:
+  mask: multi_block_n6
+  methods: [p0, p2]
+  head_algorithms: [current, causal_fusion, fusion_teacher_kd]
+pretrain_seed: 0
+head_seeds: [0, 1, 2, 3, 4, 5, 6]
+split_seed: 2025
+exit_layers: [2, 4, 6, 8]
+tasks: [rfs, jamming, human-activity, interference, nrpos-outdoor, deepmimo-beam]
+training:
+  epochs: 200
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.05
+  early_stopping_patience: 20
+  early_stopping_min_delta: 0.0
+fusion:
+  pooling: mean
+  weights: softmax_normalized_scalars
+  initialization: uniform
+distillation:
+  temperature: 2.0
+  weight: 0.5
+  teacher: same_depth_causal_fusion
+selection:
+  policy: best_validation
+  tie_break: shallower
+  test_used_for_selection: false
