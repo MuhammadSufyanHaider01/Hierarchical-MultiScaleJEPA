@@ -14,82 +14,58 @@ independent mask-family evidence and the generated report retains that caveat.
 
 ## Locked settings and order
 
-Set the project interpreter from the repository root:
+Set the project interpreter from the repository root (this checkout's local
+Python 3.13 environment):
 
 ```bash
-PY=../MultiScaleJEPA/.venv/bin/python
+PY=.venv/bin/python
 ```
 
 Every pretraining command uses seed `0`, BF16 mixed precision, fused attention,
 microbatch `16`, accumulation `4`, three workers per cache (`--hdf5-worker-budget 12`),
 prefetch factor `4`, expandable allocator segments, and epoch-only telemetry.
-The CNN variant enables activation checkpointing automatically. Run all twelve
-pretraining jobs before downstream work, in this order: `frequency_n6`,
-`region_n6`, `time_n6`.
+The CNN variant enables activation checkpointing automatically. Submit the six
+direct-from-initialization jobs (P0 and P2 for each profile) without staged
+prefixes or checkpoint resumes. They may run concurrently as GPU capacity
+allows; downstream work waits for all six to finish.
 
 ## Pretraining commands
 
-For each literal `PROFILE` in that order, execute the following four commands
-through `scripts/run_logged_job.sh`.
+For each literal `PROFILE` (`frequency_n6`, `region_n6`, `time_n6`), submit
+these two commands through `scripts/run_logged_job.sh`:
 
-### 1. CNN-P0 five-epoch full-data prefix
-
-```bash
-bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p0_prefix60/terminal_logs/pretrain.log \
-  env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
-  --method cnn_p0 --seed 0 --mask-profile PROFILE --run-root runs/masking_study/PROFILE \
-  --run-name cnn_p0_prefix60 --run-kind staged_prefix --max-epochs 60 \
-  --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
-  --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
-  --performance-safe --epoch-metrics-only --progress-every-n-batches 25
-```
-
-### 2. CNN-P0 validation-monitored continuation
+### CNN-P0 direct validation-monitored pretraining
 
 ```bash
 bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p0/terminal_logs/pretrain.log \
   env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
   --method cnn_p0 --seed 0 --mask-profile PROFILE --run-root runs/masking_study/PROFILE \
   --run-name cnn_p0 --run-kind diagnostic --max-epochs 100 \
-  --resume runs/masking_study/PROFILE/cnn_p0_prefix60/seed_000/checkpoints/last.ckpt \
-  --extend-resume-schedule-horizon --early-stopping --validation-fraction 0.1 \
+  --early-stopping --validation-fraction 0.1 \
   --validation-seed 2025 --early-stopping-patience 20 --early-stopping-min-delta 1e-4 \
   --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
   --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
   --performance-safe --epoch-metrics-only --progress-every-n-batches 25
 ```
 
-### 3. CNN-P2 five-epoch full-data prefix
-
-```bash
-bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p2_prefix60/terminal_logs/pretrain.log \
-  env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
-  --method cnn_p2 --seed 0 --mask-profile PROFILE --run-root runs/masking_study/PROFILE \
-  --run-name cnn_p2_prefix60 --run-kind staged_prefix --max-epochs 60 \
-  --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
-  --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
-  --performance-safe --epoch-metrics-only --progress-every-n-batches 25
-```
-
-### 4. CNN-P2 validation-monitored continuation
+### CNN-P2 direct validation-monitored pretraining
 
 ```bash
 bash scripts/run_logged_job.sh runs/masking_study/PROFILE/cnn_p2/terminal_logs/pretrain.log \
   env PYTORCH_ALLOC_CONF=expandable_segments:True "$PY" -u scripts/phase5_pretrain.py \
   --method cnn_p2 --seed 0 --mask-profile PROFILE --run-root runs/masking_study/PROFILE \
   --run-name cnn_p2 --run-kind diagnostic --max-epochs 100 \
-  --resume runs/masking_study/PROFILE/cnn_p2_prefix60/seed_000/checkpoints/last.ckpt \
-  --extend-resume-schedule-horizon --early-stopping --validation-fraction 0.1 \
+  --early-stopping --validation-fraction 0.1 \
   --validation-seed 2025 --early-stopping-patience 20 --early-stopping-min-delta 1e-4 \
   --batch-size 16 --accumulate-grad-batches 4 --num-workers 3 --hdf5-worker-budget 12 \
   --prefetch-factor 4 --attention-backend fused --precision bf16-mixed \
   --performance-safe --epoch-metrics-only --progress-every-n-batches 25
 ```
 
-Each prefix has a five-epoch trainer cap while retaining the 60-epoch scheduler
-horizon. Each continuation has a 100-epoch maximum and selects its validation-best
-checkpoint. The runner rejects a continuation whose method, CNN backbone, or
-resolved mask profile differs from its prefix.
+Each direct run starts from initialization, has a 100-epoch maximum, and uses
+validation-loss early stopping with patience 20 and minimum delta `1e-4`. Use
+each run's `summary.json["checkpoint_for_downstream"]`; do not select a checkpoint
+ad hoc.
 
 Before downstream work, require every continuation `summary.json` to name a
 finite `checkpoint_for_downstream` and compare each profile's P0/P2
@@ -97,7 +73,7 @@ finite `checkpoint_for_downstream` and compare each profile's P0/P2
 
 ## Downstream and benchmark commands
 
-After all six continuations complete, process each `PROFILE` and each `METHOD`
+After all six direct pretraining runs complete, process each `PROFILE` and each `METHOD`
 (`cnn_p0`, then `cnn_p2`). Resolve only the selected continuation checkpoint:
 
 ```bash
@@ -136,7 +112,7 @@ every L2/L4/L6/L8 head, a held-out test result, and a benchmark entry.
   --output-dir reports/cnn_backbone/PROFILE/cnn_p0_vs_cnn_p2 \
   --masking-label "PROFILE_LABEL" \
   --report-title "CNN PROFILE_TITLE: CNN-P0 vs CNN-P2, single-seed packet" \
-  --provenance-note "Both methods use a matched five-epoch full-data prefix and a 100-epoch-maximum validation-monitored continuation."
+  --provenance-note "Both methods start from initialization and use a 100-epoch-maximum validation-monitored run with early stopping."
 ```
 
 | `PROFILE` | `PROFILE_LABEL` | `PROFILE_TITLE` |
