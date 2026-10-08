@@ -1,5 +1,6 @@
 import argparse
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -41,7 +42,7 @@ class CNNOnlyReportTest(unittest.TestCase):
     ) -> None:
         seed_root = root / method / "seed_000"
         checkpoint = seed_root / "checkpoints" / "best.ckpt"
-        checkpoint.parent.mkdir(parents=True)
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
         checkpoint.write_bytes(f"{method}-checkpoint".encode())
         (seed_root / "experiment.json").write_text(json.dumps({
             "metadata": {
@@ -120,13 +121,23 @@ class CNNOnlyReportTest(unittest.TestCase):
         }))
         (seed_root / "benchmarks.json").write_text(json.dumps({"entries": entries}))
 
-    def test_cnn_only_packet_ignores_stale_methods_and_omits_vit_artifacts(self):
+    def _vit_p0_root(self, root: Path, manifest: Path, profile: str = "multi_block_n6") -> Path:
+        vit_root = root / profile
+        self._packet(vit_root / "head_seed_000", "p0", manifest)
+        benchmark_source = vit_root / "head_seed_000/p0/seed_000/benchmarks.json"
+        benchmark_target = vit_root / "benchmarks/p0/seed_000/benchmarks.json"
+        benchmark_target.parent.mkdir(parents=True)
+        shutil.copyfile(benchmark_source, benchmark_target)
+        return vit_root
+
+    def test_cnn_packet_includes_per_mask_vit_p0_and_derived_b0_baselines(self):
         original_tasks, original_methods = report.TASKS, report.METHODS
         try:
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory) / "runs"
                 manifest = Path(directory) / "split.json"
                 self._split_manifest(manifest)
+                vit_root = self._vit_p0_root(Path(directory), manifest)
                 self._packet(root, "cnn_p0", manifest)
                 self._packet(root, "cnn_p2", manifest)
                 stale = root / "cnn_p1" / "seed_000" / "downstream"
@@ -136,6 +147,7 @@ class CNNOnlyReportTest(unittest.TestCase):
                 output.mkdir()
                 args = argparse.Namespace(
                     cnn_methods=["cnn_p0", "cnn_p2"],
+                    vit_p0_run_root=vit_root,
                     masking_label="M-block / span-time, N_m=6",
                     report_title="Synthetic CNN-only packet",
                     provenance_note="test fixture",
@@ -144,11 +156,18 @@ class CNNOnlyReportTest(unittest.TestCase):
                 self.assertTrue((output / "README.md").is_file())
                 self.assertTrue((output / "table_all_methods_downstream.csv").is_file())
                 self.assertTrue((output / "early_exit_performance.png").is_file())
-                self.assertFalse((output / "table_b0_context_l8_reference.md").exists())
                 readme = (output / "README.md").read_text()
-                self.assertIn("CNN-P0", readme)
-                self.assertIn("CNN-P2", readme)
-                self.assertNotIn("Original LatentWave", readme)
+                self.assertIn("P0 — LatentWave", readme)
+                self.assertIn("B0 — Original LatentWave", readme)
+                self.assertIn("C0 — CNN", readme)
+                self.assertIn("C2 — CNN", readme)
+                manifest_payload = json.loads((output / "manifest.json").read_text())
+                self.assertEqual(
+                    [entry.split(" — ")[0] for entry in manifest_payload["methods"]],
+                    ["B0", "P0", "C0", "C2"],
+                )
+                self.assertEqual(manifest_payload["comparison_mode"], "cnn_with_vit_b0_p0_baselines")
+                self.assertIn("b0_reference", manifest_payload)
         finally:
             report.TASKS, report.METHODS = original_tasks, original_methods
 
@@ -172,6 +191,7 @@ class CNNOnlyReportTest(unittest.TestCase):
                 root = Path(directory) / "runs"
                 manifest = Path(directory) / "downstream-split.json"
                 self._split_manifest(manifest)
+                vit_root = self._vit_p0_root(Path(directory), manifest, "region_n6")
                 profile = self._profile_metadata("region_n6")
                 self._packet(root, "cnn_p0", manifest, mask_profile=profile)
                 self._packet(root, "cnn_p2", manifest, mask_profile=profile)
@@ -179,6 +199,7 @@ class CNNOnlyReportTest(unittest.TestCase):
                 output.mkdir()
                 args = argparse.Namespace(
                     cnn_methods=["cnn_p0", "cnn_p2"],
+                    vit_p0_run_root=vit_root,
                     mask_profile="region_n6",
                     masking_label="Region masking / random 2D blocks, N_m=6",
                     report_title="Synthetic region CNN-only packet",
@@ -186,7 +207,7 @@ class CNNOnlyReportTest(unittest.TestCase):
                 )
                 report._run_cnn_only_report(args, root, output)
                 generated = json.loads((output / "manifest.json").read_text())
-                self.assertEqual(generated["report"], "cnn_region_n6_p0_p2_single_seed")
+                self.assertEqual(generated["report"], "vit_b0_p0_cnn_c0_c2_region_n6_single_seed")
                 self.assertEqual(generated["canonical_mask_profile"]["name"], "region_n6")
                 self.assertIn("random contiguous two-dimensional", (output / "README.md").read_text())
         finally:
@@ -212,6 +233,27 @@ class CNNOnlyReportTest(unittest.TestCase):
             packets["cnn_p2"] = report._load_exit_results(root, "cnn_p2")[0]
             with self.assertRaisesRegex(ValueError, "validation splits differ"):
                 report._validate_cnn_profile_provenance(packets, "region_n6")
+
+    def test_report_rejects_vit_baseline_with_different_downstream_split(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            root, manifest = directory / "runs", directory / "downstream-split.json"
+            self._split_manifest(manifest)
+            vit_root = self._vit_p0_root(directory, manifest)
+            other_manifest = directory / "other-split.json"
+            self._split_manifest(other_manifest, marker=1)
+            self._packet(root, "cnn_p0", other_manifest)
+            self._packet(root, "cnn_p2", other_manifest)
+            args = argparse.Namespace(
+                cnn_methods=["cnn_p0", "cnn_p2"],
+                vit_p0_run_root=vit_root,
+                mask_profile=None,
+                masking_label="frequency masking",
+                report_title="Split mismatch fixture",
+                provenance_note=None,
+            )
+            with self.assertRaisesRegex(ValueError, "different persisted split assignments"):
+                report._run_cnn_only_report(args, root, directory / "report")
 
 
 if __name__ == "__main__":

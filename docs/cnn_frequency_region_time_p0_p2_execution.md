@@ -1,10 +1,11 @@
 # CNN frequency, region, and time C0 vs C2 execution protocol
 
-This runbook produces three separate CNN-only, single-seed comparison packets.
+This runbook produces three separate single-seed comparison packets with ViT
+and CNN backbones.
 For human-facing names, **C0** is CNN method `cnn_p0` and **C2** is CNN method
-`cnn_p2`. The ViT methods retain their distinct **P0/P2** names. CLI method
+`cnn_p2`. The ViT baselines retain their distinct **B0/P0** names. CLI method
 keys, run directories, and report-directory names remain `cnn_p0`/`cnn_p2` for
-compatibility.
+compatibility. Each report compares ViT B0/P0 with CNN C0/C2.
 
 | Profile | Mask geometry | Run root | Report directory |
 | --- | --- | --- | --- |
@@ -77,6 +78,14 @@ Before each method's downstream work, require its continuation `summary.json`
 to name a valid `checkpoint_for_downstream`. Before report generation, compare
 each profile's C0/C2 `pretrain_split.json` files for equality.
 
+The corresponding ViT P0 frozen-head/test packets already exist under
+`runs/masking_head_seeds/PROFILE/head_seed_000/p0/seed_000/`, with benchmarks
+under `runs/masking_head_seeds/PROFILE/benchmarks/p0/seed_000/`. Reports use
+this per-profile seed-0/head-seed-0 packet. B0 is derived from its fixed L8
+results and is not a separate pretraining run. The report verifies that the
+ViT P0 and both CNN packets have identical persisted downstream split
+assignments before combining them.
+
 ## Downstream and benchmark commands
 
 For each completed method, process its `PROFILE` and `METHOD` (`cnn_p0` for C0,
@@ -114,10 +123,11 @@ every L2/L4/L6/L8 head, a held-out test result, and a benchmark entry.
 ```bash
 "$PY" -u scripts/phase5_primary_report.py \
   --comparison-mode cnn_only --cnn-run-root runs/masking_study/PROFILE \
+  --vit-p0-run-root runs/masking_head_seeds/PROFILE \
   --cnn-methods cnn_p0 cnn_p2 --mask-profile PROFILE \
   --output-dir reports/cnn_backbone/PROFILE/cnn_p0_vs_cnn_p2 \
   --masking-label "PROFILE_LABEL" \
-  --report-title "CNN PROFILE_TITLE: C0 vs C2, single-seed packet" \
+  --report-title "PROFILE_TITLE: ViT B0/P0 vs CNN C0/C2, single-seed packet" \
   --provenance-note "Both methods start from initialization and use a 100-epoch-maximum validation-monitored run with early stopping."
 ```
 

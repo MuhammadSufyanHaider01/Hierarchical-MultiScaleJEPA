@@ -11,11 +11,12 @@ retain `cnn_p0`/`cnn_p2` for compatibility.
 
 ## Current approved M-block packet
 
-The immediate CNN report is intentionally limited to **C0** and
-**C2**. It is CNN-only: no ViT B0/P0 rows, CNN-P1, or CNN-P2-Reverse rows
-are included. Both methods use a matched staged protocol: five full-data
-epochs using the original 60-epoch scheduler horizon, then a 100-epoch maximum
-90/10 validation-monitored continuation. The operational commands, artifact
+The immediate CNN report compares **C0** and **C2** with the matching-mask
+ViT **P0** baseline and its derived full-depth **B0** reference. B0 is the
+fixed L8 result from the same ViT P0 checkpoint, not separate pretraining.
+CNN-P1 and CNN-P2-Reverse rows are not included. Both CNN methods start from
+initialization and use a 100-epoch-maximum, 90/10 validation-monitored run with
+early stopping. The operational commands, artifact
 paths, and gates are in
 [`cnn_mblock_p0_p2_execution.md`](cnn_mblock_p0_p2_execution.md).
 
@@ -27,11 +28,12 @@ This plan covers the first formal CNN comparison only:
 - M-block / span-time masking with six prediction masks;
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
-- a 60-epoch maximum pretraining horizon;
+- a 100-epoch maximum pretraining horizon with validation early stopping;
 - C0 and C2.
 
-The existing ViT B0/P0 and P1/P2/P2-Reverse M-block packets remain comparison
-references. The executable follow-on protocol for separate C0/C2
+The existing per-mask ViT P0 packets provide the baselines for the CNN reports;
+each report derives B0 from that profile's P0 fixed-L8 result and verifies the
+shared downstream split. The executable follow-on protocol for separate C0/C2
 frequency, region, and time packets is maintained in
 [`cnn_frequency_region_time_p0_p2_execution.md`](cnn_frequency_region_time_p0_p2_execution.md).
 Random masking remains deferred.
@@ -67,7 +69,8 @@ EMA.
 
 ## Locked execution profile
 
-Every fixed-horizon formal CNN pretraining run must use the same execution profile:
+Every CNN pretraining run in these comparison packets must use the same locked
+execution profile:
 
 | Setting | Value |
 | --- | --- |
@@ -79,12 +82,15 @@ Every fixed-horizon formal CNN pretraining run must use the same execution profi
 | Activation checkpointing | enabled for CNN blocks |
 | Optimizer and schedules | AdamW, existing P1/P2 YAML schedules, EMA 0.996 to 1.0 |
 | Hierarchy | lambda_H=1.0, 12-epoch linear warm-up, no L8 coarse auxiliary loss |
-| Checkpoints | every five epochs plus `last.ckpt` |
+| Validation / stopping | deterministic 90/10 split, seed 2025; minimize `val_loss`, patience 20, minimum delta `1e-4` |
+| Maximum horizon | 100 epochs |
+| Checkpoints | best validation checkpoint plus `last.ckpt` |
 
 The pretraining process must record the resolved configuration, backbone type,
 CNN stage configuration, precision profile, mask profile, seed, and split/data
-manifest.  Formal runs use the fixed horizon; latent-loss early stopping is not
-used to select a formal checkpoint.
+manifest. C0 and C2 start directly from initialization; neither uses a staged
+prefix. The `checkpoint_for_downstream` value in each completed summary is the
+only checkpoint used for downstream work.
 
 ## Current artifact audit
 
@@ -98,7 +104,7 @@ LatentWave.
 
 | Item | Required protocol |
 | --- | --- |
-| Pretraining | new 60-epoch M-block run, seed 0, locked CNN execution profile |
+| Pretraining | direct-from-initialization, 100-epoch maximum, seed 0, validation early stopping |
 | Objective | one final predictor and L8 masked-token MSE only |
 | Downstream | frozen context-encoder exits L2/L4/L6/L8 on the six persisted-split tasks |
 | Evaluation | one held-out test pass and batch-1 FLOPs/latency benchmark |
@@ -130,7 +136,9 @@ not silently replace its reported results.
 
 ### C2 (`cnn_p2`) — mask-relative fine-to-coarse JEPA
 
-This run is incomplete and cannot be compared or reported.
+The current C2 packet uses the direct-from-initialization, validation-monitored
+protocol described above; its downstream work starts only after the run
+summary identifies the checkpoint to use.
 
 | Item | State |
 | --- | --- |
@@ -139,34 +147,17 @@ This run is incomplete and cannot be compared or reported.
 | Downstream heads, held-out test, benchmark | not run |
 | Loss behaviour through epoch 8 | finite and decreasing; not enough evidence to assess convergence |
 
-Resume from the durable epoch-4 checkpoint, preserving the original P2
-configuration and run directory.  The repeated epochs after that checkpoint
-are expected: progress through epochs 5--8 was not checkpointed.
+The P2 intermediate losses are L2/L4/L6; each is finite-checked on the first
+continuation epoch before downstream work. The report labels the approach C2
+while preserving `cnn_p2` in artifact paths and provenance.
 
-#### Approved protocol amendment: 100-epoch validation-monitored extension
+#### C2 loss and selection protocol
 
-The requested continuation is intentionally separated from the fixed 60-epoch
-formal packet. It resumes the epoch-4 checkpoint into a new run directory,
-uses a 100-epoch maximum, and selects the best checkpoint with pretraining
-validation loss.
-
-| Setting | Value |
-| --- | --- |
-| Resume source | `cnn_p2/seed_000/checkpoints/last.ckpt` at epoch 4 / step 1,130 |
-| New run name | `cnn_p2_extended100_es` |
-| Horizon | 100 epochs maximum, including the restored completed epochs |
-| Validation | deterministic 90/10 cache split, seed 2025 |
-| Stop monitor | mean pretraining `val_loss`, minimize |
-| Patience / minimum improvement | 20 epochs / `1e-4` |
-| Scheduler handling | preserve optimizer/EMA/completed step; rebase LR and weight-decay cosine horizons to the new loader's 100-epoch horizon |
-| Status | diagnostic extension, not interchangeable with the 60-epoch fixed-horizon P1 comparison |
-
-The extension retains the original C2 directory untouched. Because
-validation removes 10% of each pretraining cache from resumed training and
-changes the schedule horizon, it is useful for choosing a C2 candidate
-checkpoint but must be labelled as an extended validation-monitored protocol.
-A direct fixed-horizon comparison would require matching P1 and P2-Reverse
-extensions.
+C2 uses the direct-from-initialization 100-epoch-maximum protocol with a
+deterministic 90/10 cache split (seed 2025), minimizing mean pretraining
+`val_loss` with patience 20 and minimum improvement `1e-4`. Its L2/L4/L6
+intermediate losses must be finite on the first continuation epoch. Use only
+the `checkpoint_for_downstream` recorded in the completed run summary.
 
 ### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
@@ -232,15 +223,16 @@ protocol settings remain identical to C2.
 
 Once C0 and C2 packets are complete:
 
-1. Run the report generator with `--comparison-mode cnn_only --cnn-methods cnn_p0 cnn_p2`
-   and `--cnn-run-root` pointing at the M-block run directory.
+1. Run the report generator with `--comparison-mode cnn_only --cnn-methods cnn_p0 cnn_p2`,
+   `--cnn-run-root` pointing at the M-block run directory, and
+   `--vit-p0-run-root runs/masking_head_seeds/multi_block_n6`.
 2. Generate downstream tables for every task and L2/L4/L6/L8 exit, as well as
    validation-selected best-exit tables.
 3. Generate matching FLOP, latency, relative-compute, and relative-latency
    tables and figures.
-4. Preserve the ViT B0/P0 packet as a contextual reference, but label the
-   CNN comparison clearly: architecture, S4 upsampling caveat, fixed seed,
-   fixed horizon, and exact artifact/checkpoint provenance.
+4. Include the matching M-block ViT P0 baseline and its derived fixed-L8 B0
+   reference alongside C0/C2. Record architecture, S4 upsampling caveat, fixed
+   seed, early-stopping protocol, and exact artifact/checkpoint provenance.
 5. Do not make superiority claims from one seed.  Treat the M-block packet as
    a controlled architectural ablation and schedule additional seeds only
    after inspecting the first completed report.
@@ -249,7 +241,7 @@ Once C0 and C2 packets are complete:
 
 The M-block CNN study is complete only when:
 
-- C0 and C2 each have a matched prefix and completed validation-monitored continuation;
+- C0 and C2 each have a completed direct-from-initialization, validation-monitored pretraining run;
 - both have complete six-task frozen-head selection packets;
 - each selected head has one held-out test evaluation;
 - both methods have L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;

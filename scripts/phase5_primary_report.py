@@ -52,9 +52,9 @@ METHOD_LABELS = {
     "p2": "P2 — Proposed Hierarchical Multi-Scale JEPA",
     "p3": "P3 — Pair-local Hierarchical Multi-Scale JEPA",
     "p2_reverse": "P2-Reverse — Coarse-to-fine Hierarchical JEPA",
-    "cnn_p0": "CNN-P0 — Original L8 JEPA Objective",
+    "cnn_p0": "C0 — CNN Original L8 JEPA Objective",
     "cnn_p1": "CNN-HierJEPA P1 — Same-scale Multi-depth",
-    "cnn_p2": "CNN-HierJEPA P2 — Mask-relative Fine-to-coarse",
+    "cnn_p2": "C2 — CNN Mask-relative Fine-to-coarse JEPA",
     "cnn_p2_reverse": "CNN-HierJEPA P2-Reverse — Coarse-to-fine",
 }
 FIGURE_METHOD_LABELS = {
@@ -64,9 +64,9 @@ FIGURE_METHOD_LABELS = {
     "p2": "P2: Proposed hierarchical JEPA",
     "p3": "P3: Pair-local hierarchical JEPA",
     "p2_reverse": "P2-Reverse: Coarse-to-fine hierarchical JEPA",
-    "cnn_p0": "CNN-P0: Original L8 objective",
+    "cnn_p0": "C0: CNN original L8 objective",
     "cnn_p1": "CNN-HierJEPA P1: Same-scale",
-    "cnn_p2": "CNN-HierJEPA P2: Fine-to-coarse",
+    "cnn_p2": "C2: CNN mask-relative fine-to-coarse",
     "cnn_p2_reverse": "CNN-HierJEPA P2-Reverse: Coarse-to-fine",
 }
 FIGURE_METHOD_SHORT = {
@@ -76,9 +76,9 @@ FIGURE_METHOD_SHORT = {
     "p2": "P2\nProposed",
     "p3": "P3\nPair-local",
     "p2_reverse": "P2-Reverse\nCoarse-to-fine",
-    "cnn_p0": "CNN-P0\nOriginal L8",
+    "cnn_p0": "C0\nOriginal L8",
     "cnn_p1": "CNN-P1\nSame-scale",
-    "cnn_p2": "CNN-P2\nFine-to-coarse",
+    "cnn_p2": "C2\nFine-to-coarse",
     "cnn_p2_reverse": "CNN-P2-Reverse\nCoarse-to-fine",
 }
 TASK_LABELS = {
@@ -162,7 +162,7 @@ def _arguments() -> argparse.Namespace:
         "--comparison-mode",
         choices=("legacy", "cnn_only"),
         default="legacy",
-        help="cnn_only builds a report solely from the selected CNN method packets.",
+        help="cnn_only combines ViT B0/P0 reference packets with the selected CNN method packets.",
     )
     parser.add_argument(
         "--cnn-methods",
@@ -177,7 +177,19 @@ def _arguments() -> argparse.Namespace:
         default=None,
         help=(
             "Canonical registered profile for a CNN-only packet. When supplied, "
-            "the report verifies matching P0/P2 pretraining provenance."
+            "the report verifies matching C0/C2 pretraining provenance and uses "
+            "the per-profile ViT P0 reference."
+        ),
+    )
+    parser.add_argument(
+        "--vit-p0-run-root",
+        type=Path,
+        default=None,
+        help=(
+            "Root for the per-mask ViT P0 frozen-head packet. Expected files are "
+            "head_seed_000/p0/seed_000/downstream/exit_metrics.json and "
+            "benchmarks/p0/seed_000/benchmarks.json. Defaults to "
+            "runs/masking_head_seeds/<mask-profile> (multi_block_n6 when omitted)."
         ),
     )
     parser.add_argument(
@@ -679,20 +691,21 @@ def _plot_performance(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     paths = []
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         metric_key, metric_label, higher_is_better = TASK_METRICS[task]
-        for method in METHODS:
-            values = [
-                next(row["value"] for row in rows if row["method"] == method and row["task"] == task and row.get("exit_layer") == layer and row["evaluation"] == "fixed_exit")
-                for layer in EXIT_LAYERS
-            ]
+        available_methods = [method for method in ("b0", *METHODS) if any(row["method"] == method and row["task"] == task and row.get("evaluation") == "fixed_exit" for row in rows)]
+        for method in available_methods:
+            method_rows = sorted(
+                (row for row in rows if row["method"] == method and row["task"] == task and row.get("evaluation") == "fixed_exit"),
+                key=lambda row: row["exit_layer"],
+            )
             axis.plot(
-                EXIT_LAYERS,
-                values,
+                [row["exit_layer"] for row in method_rows],
+                [row["value"] for row in method_rows],
                 marker="o",
                 linewidth=2.2,
                 markersize=5.5,
@@ -740,17 +753,20 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import PercentFormatter
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     rows_count, columns_count = _task_grid()
     fig, axes = plt.subplots(rows_count, columns_count, figsize=(4.8 * columns_count, 3.7 * rows_count), squeeze=False)
     for axis, task in zip(axes.flat, TASKS):
         _, metric_label, higher_is_better = TASK_METRICS[task]
-        selected = [
-            next(row for row in rows if row["method"] == method and row["task"] == task and row["evaluation"] == "best_validation")
-            for method in METHODS
-        ]
-        bars = axis.bar(range(len(METHODS)), [row["value"] for row in selected], color=[colors[row["method"]] for row in selected], edgecolor="#222222", linewidth=0.7)
-        axis.set_xticks(range(len(METHODS)), [f"{FIGURE_METHOD_SHORT[row['method']]}\nL{row['exit_layer']}" for row in selected])
+        plot_methods = [method for method in ("b0", *METHODS) if any(row["method"] == method and row["task"] == task for row in rows)]
+        selected = []
+        for method in plot_methods:
+            if method == "b0":
+                selected.append(next(row for row in rows if row["method"] == method and row["task"] == task and row.get("evaluation") == "fixed_exit" and row["exit_layer"] == 8))
+            else:
+                selected.append(next(row for row in rows if row["method"] == method and row["task"] == task and row.get("evaluation") == "best_validation"))
+        bars = axis.bar(range(len(plot_methods)), [row["value"] for row in selected], color=[colors[row["method"]] for row in selected], edgecolor="#222222", linewidth=0.7)
+        axis.set_xticks(range(len(plot_methods)), [f"{FIGURE_METHOD_SHORT[row['method']]}\nL{row['exit_layer']}" for row in selected])
         axis.set_title(TASK_LABELS[task], fontsize=11, weight="bold")
         axis.set_ylabel(metric_label)
         axis.grid(axis="y", alpha=0.25, linewidth=0.8)
@@ -760,9 +776,10 @@ def _plot_selected(output_dir: Path, rows: list[dict[str, Any]]) -> list[str]:
             axis.text(0.98, 0.05, "lower is better", transform=axis.transAxes, ha="right", va="bottom", fontsize=8, color="#555555")
         for bar, row in zip(bars, selected):
             axis.annotate(f"L{row['exit_layer']}", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()), xytext=(0, 3 if higher_is_better else -12), textcoords="offset points", ha="center", va="bottom" if higher_is_better else "top", fontsize=8)
-    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in METHODS]
+    plot_methods = [method for method in ("b0", *METHODS) if any(row["method"] == method for row in rows)]
+    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[method], label=FIGURE_METHOD_LABELS[method]) for method in plot_methods]
     _hide_unused_axes(axes, len(TASKS))
-    fig.legend(handles=handles, loc="upper center", ncol=len(METHODS), frameon=False, bbox_to_anchor=(0.5, 0.995), fontsize=9)
+    fig.legend(handles=handles, loc="upper center", ncol=len(plot_methods), frameon=False, bbox_to_anchor=(0.5, 0.995), fontsize=9)
     fig.suptitle("Validation-best exits and held-out test performance", fontsize=14, weight="bold", y=1.045)
     fig.text(0.5, -0.015, "Layer labels show the validation-best encoder depth; selection never uses the test split.", ha="center", fontsize=9)
     fig.tight_layout(rect=(0, 0.02, 1, 0.94))
@@ -780,10 +797,11 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#009E73", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
+    colors = {"b0": "#009E73", "b1": "#0072B2", "p1": "#CC79A7", "p2": "#D55E00", "p3": "#000000", "p2_reverse": "#6A3D9A", "cnn_p0": "#44AA99", "cnn_p1": "#F0E442", "cnn_p2": "#E69F00", "cnn_p2_reverse": "#56B4E9"}
     fig, axes = plt.subplots(2, len(TASKS), figsize=(3.6 * len(TASKS), 6.3), squeeze=False)
     for column, task in enumerate(TASKS):
-        for method in METHODS:
+        available_methods = [method for method in ("b0", *METHODS) if any(row["method"] == method and row["task"] == task for row in benchmark_rows)]
+        for method in available_methods:
             task_rows = [row for row in benchmark_rows if row["method"] == method and row["task"] == task]
             task_rows.sort(key=lambda row: row["exit_layer"])
             if not task_rows:
@@ -794,7 +812,7 @@ def _plot_efficiency(output_dir: Path, benchmark_rows: list[dict[str, Any]]) -> 
                 marker="o",
                 linewidth=2,
                 color=colors[method],
-                linestyle={"b1": "-", "p1": ":", "p2": "--", "p3": "-", "p2_reverse": "-.", "cnn_p0": "-.", "cnn_p1": "-", "cnn_p2": ":", "cnn_p2_reverse": "--"}[method],
+                linestyle={"b0": "-", "b1": "-", "p1": ":", "p2": "--", "p3": "-", "p2_reverse": "-.", "cnn_p0": "-.", "cnn_p1": "-", "cnn_p2": ":", "cnn_p2_reverse": "--"}[method],
                 label=FIGURE_METHOD_LABELS[method],
             )
             axes[1, column].plot(
@@ -1160,7 +1178,7 @@ def _write_cnn_only_report(
     split_signature: str,
     condition: dict[str, Any] | None,
 ) -> None:
-    """Write the CNN-P0/CNN-P2 packet without injecting legacy ViT artifacts."""
+    """Write ViT B0/P0 and CNN C0/C2 results in one mask-specific packet."""
     comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
     fixed_rows = [row for row in comparable_rows if row["evaluation"] == "fixed_exit"]
     selected_rows = [row for row in comparable_rows if row["evaluation"] == "best_validation"]
@@ -1170,11 +1188,14 @@ def _write_cnn_only_report(
     headline_inference_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", f"{row['flops'] / 1e9:.3f}", f"{row['latency_mean_ms']:.4f}", f"{row['latency_p95_ms']:.4f}"] for row in headline_rows]
     inference_table = [[row["method_label"], row["task_label"], f"L{row['exit_layer']}", f"{row['flops'] / 1e9:.3f}", f"{row['latency_mean_ms']:.4f}", f"{row['latency_p95_ms']:.4f}", f"{row['flops_savings_vs_l8'] * 100:.1f}%", f"{row['latency_savings_vs_l8'] * 100:.1f}%"] for row in benchmark_rows]
     scope = [
-        ["CNN-P0 — Original L8 JEPA Objective", "ConvNeXt V2; one L8 predictor and masked-token MSE", "Frozen CNN context encoder at S1/S2/S3/S4", "single-objective CNN baseline"],
-        ["CNN-P2 — Mask-relative Fine-to-coarse", "ConvNeXt V2; L8 anchor plus L2/L4/L6 mask-relative losses", "Frozen CNN context encoder at S1/S2/S3/S4", "hierarchical CNN method"],
+        ["B0 — Original LatentWave (full-depth)", "ViT P0 checkpoint; full-input L8", "Frozen ViT context encoder at L8", "fixed-depth reference derived from P0"],
+        ["P0 — LatentWave + post-hoc frozen exits", "ViT LatentWave P0 objective", "Frozen ViT context encoder at L2/L4/L6/L8", "ViT baseline; head_seed_000"],
+        ["C0 — CNN original L8 objective", "ConvNeXt V2; one L8 predictor and masked-token MSE", "Frozen CNN context encoder at S1/S2/S3/S4", "single-objective CNN baseline"],
+        ["C2 — CNN mask-relative fine-to-coarse", "ConvNeXt V2; L8 anchor plus L2/L4/L6 mask-relative losses", "Frozen CNN context encoder at S1/S2/S3/S4", "hierarchical CNN method"],
     ]
     condition_sentence = (
-        f"This CNN-only {masking_label} packet compares CNN-P0 and CNN-P2 at seed 0."
+        f"This {masking_label} packet compares ViT B0/P0 with CNN C0/C2 at seed 0. "
+        "B0 is the fixed L8 result from the same ViT P0 checkpoint, not a separate pretraining run."
     )
     geometry_note = ""
     if condition is not None and condition.get("geometry"):
@@ -1194,12 +1215,12 @@ superiority claim.{geometry_note}
 
 {_markdown_table(['Approach', 'Pretraining', 'Downstream representation', 'Role'], scope)}
 
-CNN stages S1/S2/S3/S4 map to logical exits L2/L4/L6/L8. Every row uses
-independent frozen task heads and the same persisted 80/10/10 downstream split.
-The selected exit is the best validation-performing layer for that task; the
-held-out test split is read only after selection. CNN-P0 and CNN-P2 use a
-matched five-epoch full-data prefix followed by a 100-epoch-maximum,
-validation-monitored continuation.
+CNN stages S1/S2/S3/S4 map to logical exits L2/L4/L6/L8. All four approaches
+use the same persisted 80/10/10 downstream split and validation-only exit
+selection before the held-out test split is read. ViT P0 uses the existing
+per-profile `head_seed_000` packet; B0 reuses its fixed L8 result. CNN C0 and
+C2 each start from initialization and use a 100-epoch-maximum,
+validation-monitored pretraining run with early stopping.
 
 {provenance_section}
 
@@ -1237,8 +1258,8 @@ caches participates in pretraining.
         "table_primary_fixed_exits.md": ("# Fixed-exit downstream metrics\n\n", ['Approach', 'Task', 'Exit', 'Metric', 'Test value', 'Validation value', 'Head epoch'], fixed_table),
         "table_selected_exits.md": ("# Validation-best exits\n\n", ['Approach', 'Task', 'Exit', 'Test value'], selected_table),
         "table_inference_cost.md": ("# Batch-1 inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms', 'FLOPs saving', 'Latency saving'], inference_table),
-        "table_all_methods_downstream.md": ("# CNN-only validation-best held-out performance\n\n", ['Approach', 'Task', 'Exit', 'Test value'], headline_table),
-        "table_all_methods_inference.md": ("# CNN-only validation-best inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table),
+        "table_all_methods_downstream.md": ("# ViT baselines and CNN validation-best held-out performance\n\n", ['Approach', 'Task', 'Exit', 'Test value'], headline_table),
+        "table_all_methods_inference.md": ("# ViT baselines and CNN validation-best inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table),
     }
     for filename, (title, headers, rows) in markdown_tables.items():
         (output_dir / filename).write_text(title + _markdown_table(headers, rows) + "\n")
@@ -1263,20 +1284,35 @@ caches participates in pretraining.
         provenance[method] = {
             "checkpoint": str(checkpoint),
             "checkpoint_sha256": _sha256(checkpoint),
-            "pretraining_experiment": str(experiment),
+            "pretraining_experiment": str(experiment) if experiment_payload is not None else None,
             "pretraining_metadata": None if experiment_payload is None else experiment_payload.get("metadata"),
             "pretraining_runtime": None if experiment_payload is None else experiment_payload.get("runtime"),
             "metrics_path": packet["metrics_path"],
             "benchmark_path": packet["benchmark_path"],
+            "metrics_protocol": packet.get("metrics_protocol"),
+            "pretraining_method": packet.get("pretraining_method"),
         }
     _write_json(output_dir / "manifest.json", {
         "report": (
-            f"cnn_{condition['name']}_p0_p2_single_seed"
-            if condition is not None else "cnn_mblock_p0_p2_single_seed"
+            f"vit_b0_p0_cnn_c0_c2_{condition['name']}_single_seed"
+            if condition is not None else "vit_b0_p0_cnn_c0_c2_multi_block_n6_single_seed"
         ),
-        "comparison_mode": "cnn_only",
+        "comparison_mode": "cnn_with_vit_b0_p0_baselines",
         "git_revision": _git_revision(),
-        "methods": [METHOD_LABELS[method] for method in METHODS],
+        "methods": [METHOD_LABELS[method] for method in ("b0", *METHODS)],
+        "b0_reference": {
+            "derived_from_method": "b1",
+            "checkpoint": packets["b1"]["checkpoint"],
+            "exit_layer": 8,
+            "interpretation": "fixed full-depth reference using the same ViT P0 checkpoint and held-out head results",
+        },
+        "vit_p0_baseline": {
+            "pretrain_seed": 0,
+            "head_seed": 0,
+            "metrics_path": packets["b1"]["metrics_path"],
+            "benchmark_path": packets["b1"]["benchmark_path"],
+            "checkpoint": packets["b1"]["checkpoint"],
+        },
         "seed": 0,
         "masking": masking_label,
         "canonical_mask_profile": condition,
@@ -1293,37 +1329,92 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
     if tuple(args.cnn_methods or ()) != ("cnn_p0", "cnn_p2"):
         raise ValueError("cnn_only currently requires exactly: --cnn-methods cnn_p0 cnn_p2")
     global TASKS, METHODS
-    METHODS = tuple(args.cnn_methods)
-    raw_packets = {
+    cnn_methods = tuple(args.cnn_methods)
+    METHODS = ("b1", *cnn_methods)
+    profile_name = getattr(args, "mask_profile", None) or "multi_block_n6"
+    vit_run_root = getattr(args, "vit_p0_run_root", None)
+    vit_run_root = (
+        _repo_path(vit_run_root)
+        if vit_run_root is not None
+        else REPOSITORY_ROOT / "runs/masking_head_seeds" / profile_name
+    )
+    if vit_run_root.name != profile_name:
+        raise ValueError(
+            f"ViT P0 root {vit_run_root} does not match mask profile {profile_name!r}"
+        )
+    vit_metrics_path = vit_run_root / "head_seed_000/p0/seed_000/downstream/exit_metrics.json"
+    vit_benchmark_path = vit_run_root / "benchmarks/p0/seed_000/benchmarks.json"
+    raw_packets = {"b1": _read(vit_metrics_path)}
+    raw_packets.update({
         method: _read(cnn_run_root / method / "seed_000/downstream/exit_metrics.json")
-        for method in METHODS
-    }
+        for method in cnn_methods
+    })
     for method, packet in raw_packets.items():
-        if packet.get("method") != method:
+        expected_method = "p0" if method == "b1" else method
+        if packet.get("method") != expected_method:
             raise ValueError(f"{method} metrics packet identifies {packet.get('method')!r}")
+    vit_checkpoint = Path(raw_packets["b1"].get("checkpoint", ""))
+    if profile_name not in vit_checkpoint.parts:
+        raise ValueError(
+            f"ViT P0 checkpoint does not identify mask profile {profile_name!r}: {vit_checkpoint}"
+        )
     TASKS, split_signature = _discover_tasks_from_packets(raw_packets)
-    packets = {method: _load_exit_results(cnn_run_root, method, source_method=method)[0] for method in METHODS}
+    packets = {
+        "b1": _load_exit_results(
+            vit_run_root, "b1", source_method="p0",
+            metrics_path=vit_metrics_path, benchmark_path=vit_benchmark_path,
+        )[0],
+        **{
+            method: _load_exit_results(cnn_run_root, method, source_method=method)[0]
+            for method in cnn_methods
+        },
+    }
     profile_name = getattr(args, "mask_profile", None)
     condition = (
-        _validate_cnn_profile_provenance(packets, profile_name)
+        _validate_cnn_profile_provenance(
+            {method: packets[method] for method in cnn_methods}, profile_name
+        )
         if profile_name is not None else None
     )
-    comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
-    benchmark_rows = [row for packet in packets.values() for row in packet["benchmark_rows"]]
-    if len(benchmark_rows) != len(METHODS) * len(TASKS) * len(EXIT_LAYERS):
-        raise ValueError("cnn_only requires a complete benchmark packet for every method, task, and exit")
-    headline_rows = _build_selected_headline_rows(comparable_rows, benchmark_rows)
+    b0_reference, b0_metric_rows = _load_context_l8_reference(packets["b1"])
+    b0_benchmark_rows = []
+    for row in packets["b1"]["benchmark_rows"]:
+        if row["exit_layer"] == 8:
+            b0_row = dict(row)
+            b0_row.update({
+                "method": "b0",
+                "method_label": METHOD_LABELS["b0"],
+                "protocol": "ViT P0 checkpoint, fixed full-depth L8 benchmark",
+            })
+            b0_benchmark_rows.append(b0_row)
+    if len(b0_benchmark_rows) != len(TASKS):
+        raise ValueError("ViT P0 baseline requires a complete L8 benchmark for every task")
+    b0_packet = {
+        **b0_reference,
+        "metrics_path": packets["b1"]["metrics_path"],
+        "benchmark_path": packets["b1"]["benchmark_path"],
+        "metric_rows": b0_metric_rows,
+        "benchmark_rows": b0_benchmark_rows,
+    }
+    report_packets = {"b0": b0_packet, **packets}
+    comparable_rows = [row for packet in report_packets.values() for row in packet["metric_rows"]]
+    benchmark_rows = [row for packet in report_packets.values() for row in packet["benchmark_rows"]]
+    expected_benchmarks = len(packets) * len(TASKS) * len(EXIT_LAYERS)
+    actual_benchmarks = sum(len(packet["benchmark_rows"]) for packet in packets.values())
+    if actual_benchmarks != expected_benchmarks:
+        raise ValueError("ViT P0 and CNN C0/C2 require complete benchmarks for every task and exit")
+    headline_rows = _build_headline_rows(b0_metric_rows, comparable_rows, benchmark_rows)
     figure_paths = []
     figure_paths.extend(_plot_performance(output_dir, comparable_rows))
     figure_paths.extend(_plot_selected(output_dir, comparable_rows))
     figure_paths.extend(_plot_efficiency(output_dir, benchmark_rows))
     _write_cnn_only_report(
-        output_dir, packets, headline_rows, benchmark_rows, figure_paths,
+        output_dir, report_packets, headline_rows, benchmark_rows, figure_paths,
         masking_label=args.masking_label, report_title=args.report_title,
         provenance_note=args.provenance_note, split_signature=split_signature,
         condition=condition,
     )
-    print(json.dumps({"output_dir": str(output_dir), "figures": len(figure_paths), "methods": [METHOD_LABELS[method] for method in METHODS]}, indent=2))
+    print(json.dumps({"output_dir": str(output_dir), "figures": len(figure_paths), "methods": [METHOD_LABELS[method] for method in ("b0", *METHODS)]}, indent=2))
     return 0
 
 def _build_report(
