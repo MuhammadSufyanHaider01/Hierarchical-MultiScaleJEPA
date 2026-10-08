@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate complete EE artifacts and generate the multi-seed study report."""
+"""Validate complete EE artifacts and generate the initial single-seed report."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 METHODS = ("p0", "p2")
 ALGORITHMS = ("current", "causal_fusion", "fusion_teacher_kd")
 TASKS = ("rfs", "jamming", "human-activity", "interference", "nrpos-outdoor", "deepmimo-beam")
-SEEDS = tuple(range(7))
+SEEDS = (0,)
 EXITS = (2, 4, 6, 8)
 RUNS = ROOT / "runs/ee_optimization/multi_block_n6"
 BASELINE = ROOT / "runs/masking_head_seeds/multi_block_n6"
@@ -171,7 +171,7 @@ def main() -> int:
     for (method, algorithm, task, layer), values in sorted(groups.items()):
         summary.append({"method": method, "algorithm": algorithm, "task": task, "exit": layer,
                         "n": len(values), "mean": statistics.fmean(values),
-                        "sample_sd": statistics.stdev(values) if len(values) > 1 else 0.0,
+                        "sample_sd": statistics.stdev(values) if len(values) > 1 else None,
                         "min": min(values), "max": max(values), "per_seed": json.dumps(values)})
     exit_frequency = []
     for method in METHODS:
@@ -227,7 +227,7 @@ def main() -> int:
                 selected_summary.append({"method": method, "algorithm": algorithm, "task": task,
                     "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"],
                     "n": len(vals), "mean": statistics.fmean(vals),
-                    "sample_sd": statistics.stdev(vals) if len(vals) > 1 else 0.0,
+                    "sample_sd": statistics.stdev(vals) if len(vals) > 1 else None,
                     "min": min(vals), "max": max(vals),
                     "per_seed": json.dumps({r["head_seed"]: r["selected_test_value"] for r in rows}),
                     "selected_exit_by_seed": json.dumps({r["head_seed"]: r["selected_exit"] for r in rows})})
@@ -236,7 +236,7 @@ def main() -> int:
         weight_groups.setdefault((row["method"], row["task"], row["target_exit"], row["source_exit"]), []).append(float(row["alpha"]))
     weight_summary = [{"method": method, "task": task, "target_exit": target, "source_exit": source,
         "n": len(vals), "mean": statistics.fmean(vals),
-        "sample_sd": statistics.stdev(vals) if len(vals) > 1 else 0.0}
+        "sample_sd": statistics.stdev(vals) if len(vals) > 1 else None}
         for (method, task, target, source), vals in sorted(weight_groups.items())]
     early_groups = {}
     for row in early_depth:
@@ -287,12 +287,12 @@ def main() -> int:
                           "latency_mean_ms": current["latency"]["mean_ms"], "teacher_training_only": True})
     out = args.output
     out.mkdir(parents=True, exist_ok=True)
-    write_csv(out / "per_exit_per_seed.csv", per_exit)
-    write_csv(out / "per_exit_multiseed_summary.csv", summary)
-    write_csv(out / "selected_exit_per_seed.csv", selected)
+    write_csv(out / "per_exit_results.csv", per_exit)
+    write_csv(out / "per_exit_summary.csv", summary)
+    write_csv(out / "selected_exit_results.csv", selected)
     write_csv(out / "selected_exit_summary.csv", selected_summary)
-    write_csv(out / "selected_exit_frequency.csv", exit_frequency)
-    write_csv(out / "fusion_weights_per_seed.csv", weights)
+    write_csv(out / "selected_exit_counts.csv", exit_frequency)
+    write_csv(out / "fusion_weights.csv", weights)
     write_csv(out / "fusion_weights_summary.csv", weight_summary)
     write_csv(out / "fusion_teacher_gain.csv", teacher_gain)
     write_csv(out / "direction_aware_gains.csv", direction_gains)
@@ -321,13 +321,15 @@ def main() -> int:
     manifest = {"study": "two_stage_early_exit_optimization", "mask": "multi_block_n6",
                 "methods": METHODS, "algorithms": ALGORITHMS, "tasks": TASKS,
                 "head_seeds": SEEDS, "exit_layers": EXITS, "split_seed": 2025,
+                "replication_count": 1, "multiseed_variability_estimated": False,
                 "sources": provenance, "selection": "best_validation", "test_used_for_selection": False,
                 "fusion_benchmark": "separately measured", "fusion_kd_cost": "Current EE batch-1 cost; teacher training only"}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (out / "README.md").write_text("# Two-stage early-exit optimization\n\n"
-        "P0/P2 on `multi_block_n6`; seven head seeds; validation selects the reported exit and test evaluates it afterward. "
+        "Initial single-seed run: P0/P2 on `multi_block_n6`, head seed 0. Validation selects the reported exit and test evaluates it afterward. "
         "Classification gains are new minus current; positioning gains are current error minus new error. "
-        "Fusion-Teacher KD deploys the single-representation student; its teacher is training-only.\n")
+        "Fusion-Teacher KD deploys the single-representation student; its teacher is training-only. "
+        "One seed does not estimate seed variance or exit-selection stability; summary SD fields are blank.\n")
     print(json.dumps({"report": str(out), "seed_packets": len(provenance), "per_exit_rows": len(per_exit)}, indent=2))
     return 0
 

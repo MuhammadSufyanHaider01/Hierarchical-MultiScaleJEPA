@@ -15,7 +15,7 @@ from models import (  # noqa: E402
 )
 from phase5_fusion_distill import validate_teacher  # noqa: E402
 from phase5_fusion_distill import distillation_loss  # noqa: E402
-from ee_optimization_jobs import job_script  # noqa: E402
+from ee_optimization_jobs import SEEDS as JOB_SEEDS, job_script  # noqa: E402
 import ee_optimization_report as ee_report  # noqa: E402
 
 
@@ -95,6 +95,8 @@ def test_zero_kd_weight_is_task_loss_for_classification_and_position():
 
 
 def test_stage_job_commands_and_missing_report_input_fail_closed(tmp_path, monkeypatch):
+    assert JOB_SEEDS == (0,)
+    assert ee_report.SEEDS == (0,)
     fusion = job_script("fusion", "p2", 4, "gpu-a100")
     kd = job_script("fusion_kd", "p2", 4, "gpu-a100")
     assert "phase5_fusion_exits.py" in fusion

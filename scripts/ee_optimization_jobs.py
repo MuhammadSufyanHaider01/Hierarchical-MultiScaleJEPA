@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ROOT = ROOT / "runs/ee_optimization/multi_block_n6"
 METHODS = ("p0", "p2")
-SEEDS = tuple(range(7))
+SEEDS = (0,)
 TASKS = ("rfs", "jamming", "human-activity", "interference", "nrpos-outdoor", "deepmimo-beam")
 EXITS = (2, 4, 6, 8)
 CHECKPOINTS = {"p0": ROOT / "runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P0/last.ckpt",
@@ -84,7 +84,7 @@ def audit() -> dict:
 def job_script(stage: str, method: str, seed: int, partition: str) -> str:
     root = RUN_ROOT
     name = f"ee-{stage}-{method}-hs{seed:03d}"
-    log = root / "slurm" / f"{name}-%j"
+    log = root / "slurm_single_seed" / f"{name}-%j"
     runtime = root / "runtime" / stage / method / f"head_seed_{seed:03d}.json"
     ckpt = CHECKPOINTS[method]
     task_script = "phase5_fusion_exits.py" if stage == "fusion" else "phase5_fusion_distill.py"
@@ -115,7 +115,9 @@ def job_script(stage: str, method: str, seed: int, partition: str) -> str:
 def prepare(registry: dict, partition: str) -> dict:
     if not registry["passed"]:
         raise RuntimeError("baseline audit failed; refusing to prepare partial study")
-    slurm = RUN_ROOT / "slurm"
+    # Keep this first single-seed batch isolated from the earlier seven-seed
+    # prepared scripts, which remain available for later expansion.
+    slurm = RUN_ROOT / "slurm_single_seed"
     slurm.mkdir(parents=True, exist_ok=True)
     records = []
     for method in METHODS:
