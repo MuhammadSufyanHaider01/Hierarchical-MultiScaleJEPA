@@ -1325,6 +1325,28 @@ caches participates in pretraining.
     })
 
 
+def _resolve_vit_p0_packet_paths(vit_run_root: Path) -> tuple[Path, Path]:
+    """Resolve supported layouts for the matching-mask ViT P0 packet."""
+
+    candidates = (
+        (
+            vit_run_root / "head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+            vit_run_root / "benchmarks/p0/seed_000/benchmarks.json",
+        ),
+        (
+            vit_run_root / "p0/seed_000/downstream/exit_metrics.json",
+            vit_run_root / "p0/seed_000/benchmarks.json",
+        ),
+    )
+    for metrics_path, benchmark_path in candidates:
+        if metrics_path.is_file() and benchmark_path.is_file():
+            return metrics_path, benchmark_path
+    expected = "\n".join(f"- {metrics}\n  {benchmark}" for metrics, benchmark in candidates)
+    raise FileNotFoundError(
+        f"No complete ViT P0 metrics/benchmark packet under {vit_run_root}. Expected:\n{expected}"
+    )
+
+
 def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_dir: Path) -> int:
     if tuple(args.cnn_methods or ()) != ("cnn_p0", "cnn_p2"):
         raise ValueError("cnn_only currently requires exactly: --cnn-methods cnn_p0 cnn_p2")
@@ -1333,17 +1355,31 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
     METHODS = ("b1", *cnn_methods)
     profile_name = getattr(args, "mask_profile", None) or "multi_block_n6"
     vit_run_root = getattr(args, "vit_p0_run_root", None)
-    vit_run_root = (
-        _repo_path(vit_run_root)
-        if vit_run_root is not None
-        else REPOSITORY_ROOT / "runs/masking_head_seeds" / profile_name
-    )
+    if vit_run_root is not None:
+        vit_run_root = _repo_path(vit_run_root)
+        vit_metrics_path, vit_benchmark_path = _resolve_vit_p0_packet_paths(vit_run_root)
+    else:
+        candidates = (
+            REPOSITORY_ROOT / "runs/masking_head_seeds" / profile_name,
+            REPOSITORY_ROOT / "runs/masking_study" / profile_name,
+        )
+        resolved = None
+        for candidate in candidates:
+            try:
+                resolved = (candidate, *_resolve_vit_p0_packet_paths(candidate))
+                break
+            except FileNotFoundError:
+                continue
+        if resolved is None:
+            raise FileNotFoundError(
+                f"No ViT P0 packet found for mask profile {profile_name!r} in: "
+                + ", ".join(str(path) for path in candidates)
+            )
+        vit_run_root, vit_metrics_path, vit_benchmark_path = resolved
     if vit_run_root.name != profile_name:
         raise ValueError(
             f"ViT P0 root {vit_run_root} does not match mask profile {profile_name!r}"
         )
-    vit_metrics_path = vit_run_root / "head_seed_000/p0/seed_000/downstream/exit_metrics.json"
-    vit_benchmark_path = vit_run_root / "benchmarks/p0/seed_000/benchmarks.json"
     raw_packets = {"b1": _read(vit_metrics_path)}
     raw_packets.update({
         method: _read(cnn_run_root / method / "seed_000/downstream/exit_metrics.json")
@@ -1353,11 +1389,6 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
         expected_method = "p0" if method == "b1" else method
         if packet.get("method") != expected_method:
             raise ValueError(f"{method} metrics packet identifies {packet.get('method')!r}")
-    vit_checkpoint = Path(raw_packets["b1"].get("checkpoint", ""))
-    if profile_name not in vit_checkpoint.parts:
-        raise ValueError(
-            f"ViT P0 checkpoint does not identify mask profile {profile_name!r}: {vit_checkpoint}"
-        )
     TASKS, split_signature = _discover_tasks_from_packets(raw_packets)
     packets = {
         "b1": _load_exit_results(

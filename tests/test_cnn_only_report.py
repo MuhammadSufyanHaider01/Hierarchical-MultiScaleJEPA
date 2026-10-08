@@ -171,6 +171,37 @@ class CNNOnlyReportTest(unittest.TestCase):
         finally:
             report.TASKS, report.METHODS = original_tasks, original_methods
 
+    def test_cnn_packet_accepts_existing_masking_study_vit_p0_layout(self):
+        original_tasks, original_methods = report.TASKS, report.METHODS
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                directory = Path(directory)
+                manifest = directory / "split.json"
+                self._split_manifest(manifest)
+                vit_root = directory / "multi_block_n6"
+                self._packet(vit_root, "p0", manifest)
+                cnn_root = directory / "runs"
+                self._packet(cnn_root, "cnn_p0", manifest)
+                self._packet(cnn_root, "cnn_p2", manifest)
+                output = directory / "report"
+                output.mkdir()
+                args = argparse.Namespace(
+                    cnn_methods=["cnn_p0", "cnn_p2"],
+                    vit_p0_run_root=vit_root,
+                    masking_label="M-block / span-time, N_m=6",
+                    report_title="Existing M-block packet layout",
+                    provenance_note=None,
+                )
+                report._run_cnn_only_report(args, cnn_root, output)
+                manifest_payload = json.loads((output / "manifest.json").read_text())
+                self.assertTrue(
+                    manifest_payload["vit_p0_baseline"]["metrics_path"].endswith(
+                        "multi_block_n6/p0/seed_000/downstream/exit_metrics.json"
+                    )
+                )
+        finally:
+            report.TASKS, report.METHODS = original_tasks, original_methods
+
     def test_incompatible_split_packets_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
