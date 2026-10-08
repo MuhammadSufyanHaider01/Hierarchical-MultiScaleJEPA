@@ -2,8 +2,8 @@
 
 This document defines the first CNN M-block comparison. It includes
 **C0 (`cnn_p0`) — Original L8 JEPA Objective** and **C2 (`cnn_p2`) — Mask-relative
-Fine-to-coarse JEPA**, alongside the per-mask ViT P0 baseline and its derived
-full-depth B0 reference. The output packet is separate from the ViT report:
+Fine-to-coarse JEPA**, alongside the matching-mask ViT P0/P2 baselines and
+the derived full-depth B0 reference. The output packet is separate from the ViT report:
 `reports/cnn_backbone/multi_block_n6/cnn_p0_vs_cnn_p2/`. This is deliberately
 separate from `reports/masking_study/`, which remains reserved for the ViT
 masking-study packets.
@@ -41,11 +41,21 @@ From the `MultiScaleJEPA-main` repository root, set:
 PY=../MultiScaleJEPA/.venv/bin/python
 ```
 
-1. **Finish C2 (`cnn_p2`) continuation already in progress.** Its output is
-   `runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/`.
-   Use the `checkpoint_for_downstream` field in its completed `summary.json`.
+1. **C2 (`cnn_p2`) pretraining is paused at the user's request.** It reached
+   the end of one-based epoch 70 and was interrupted during epoch 71. The
+   newest validation-best checkpoint is
+   `runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints/best-epoch=epoch=069-val_loss=val_loss=0.466410.ckpt`
+   (zero-based checkpoint epoch 69, global step 14,390, validation loss
+   0.466410). Use this best checkpoint for the current C2 downstream heads.
+   `checkpoints/last.ckpt` is retained at the same epoch/step for possible
+   continuation; the 260 batches from the interrupted epoch were not saved.
 
-2. **Run C0 (`cnn_p0`) five-epoch full-data prefix.** Preserve the original
+2. **C2 downstream head selection is running** from that validation-best
+   checkpoint. Its log is
+   `runs/masking_study/multi_block_n6/terminal_logs/cnn_p2_best_epoch69_heads_selection.log`.
+   After selection, run held-out evaluation once, then FLOPs/latency benchmark.
+
+3. **Run C0 (`cnn_p0`) five-epoch full-data prefix.** Preserve the original
    60-epoch scheduler horizon and do not use validation in this prefix.
 
    ```bash
@@ -59,7 +69,7 @@ PY=../MultiScaleJEPA/.venv/bin/python
        --performance-safe --epoch-metrics-only --progress-every-n-batches 25
    ```
 
-3. **Resume C0 from the prefix with validation early stopping.** Use the same
+4. **Resume C0 from the prefix with validation early stopping.** Use the same
    90/10 split seed, patience, minimum delta, and runtime profile as the C2
    continuation.
 
@@ -78,12 +88,14 @@ PY=../MultiScaleJEPA/.venv/bin/python
        --performance-safe --epoch-metrics-only --progress-every-n-batches 25
    ```
 
-4. **For C0, then C2, run three downstream stages in order.** Resolve
-   each validation-best pretraining checkpoint after its summary exists:
+5. **Complete C0 downstream stages after its summary.** C2 head selection is
+   already using the explicit epoch-69 checkpoint above; only repeat C2
+   downstream stages if C2 is later resumed and a newer best checkpoint is
+   selected:
 
    ```bash
    CNN_P0_CKPT=$("$PY" -c 'import json; print(json.load(open("runs/masking_study/multi_block_n6/cnn_p0/seed_000/summary.json"))["checkpoint_for_downstream"])')
-   CNN_P2_CKPT=$("$PY" -c 'import json; print(json.load(open("runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/summary.json"))["checkpoint_for_downstream"])')
+   CNN_P2_CKPT=runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints/best-epoch=epoch=069-val_loss=val_loss=0.466410.ckpt
    ```
 
    Selection, held-out evaluation, and benchmarking use the same commands for
@@ -111,24 +123,27 @@ PY=../MultiScaleJEPA/.venv/bin/python
    interface, but its saved `exit_metrics.json` identifies the actual
    `cnn_p2_extended100_es` checkpoint used to create the heads.
 
-5. **Generate the combined ViT-baseline/CNN packet only after both CNN benchmark files exist.**
+6. **Generate the combined ViT/CNN packet only after all four learned-method benchmark files exist.**
 
    ```bash
    "$PY" -u scripts/phase5_primary_report.py \
      --comparison-mode cnn_only --cnn-run-root runs/masking_study/multi_block_n6 \
      --vit-p0-run-root runs/masking_head_seeds/multi_block_n6 \
+     --p2-run-root runs/masking_study/multi_block_n6 \
+     --vit-p2-run-root runs/masking_study/multi_block_n6 \
      --cnn-methods cnn_p0 cnn_p2 \
      --output-dir reports/cnn_backbone/multi_block_n6/cnn_p0_vs_cnn_p2 \
      --masking-label "M-block / span-time, N_m=6" \
-     --report-title "M-block: ViT B0/P0 vs CNN C0/C2, single-seed packet" \
+     --report-title "M-block: ViT B0/P0/P2 vs CNN C0/C2, single-seed packet" \
      --provenance-note "Both CNN methods use a matched five-epoch full-data prefix under the original 60-epoch schedule, then resume into a 100-epoch-maximum validation-monitored continuation with early stopping."
    ```
 
 ## Completion checks
 
-- C0 and C2 prefix/continuation provenance is recorded; both continuation
-  summaries identify a finite validation-best checkpoint.
+- C0 has a completed prefix/continuation with a finite validation-best
+  checkpoint; C2's report identifies the paused epoch-69 validation-best
+  checkpoint and keeps `last.ckpt` available for resumption.
 - Both six-task packets share the persisted downstream split signature.
 - Every task has L2/L4/L6/L8 head records, a validation-best exit, and one test result.
 - Every task/exit pair has FLOPs and synchronized CUDA mean/p95 latency.
-- The report includes ViT B0/P0 and CNN C0/C2, with B0 derived from the same ViT P0 checkpoint at fixed L8.
+- The report includes ViT B0/P0/P2 and CNN C0/C2, with B0 derived from the same ViT P0 checkpoint at fixed L8.

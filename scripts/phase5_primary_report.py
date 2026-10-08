@@ -162,7 +162,7 @@ def _arguments() -> argparse.Namespace:
         "--comparison-mode",
         choices=("legacy", "cnn_only"),
         default="legacy",
-        help="cnn_only combines ViT B0/P0 reference packets with the selected CNN method packets.",
+        help="cnn_only combines matching-mask ViT B0/P0/P2 and selected CNN method packets.",
     )
     parser.add_argument(
         "--cnn-methods",
@@ -190,6 +190,16 @@ def _arguments() -> argparse.Namespace:
             "head_seed_000/p0/seed_000/downstream/exit_metrics.json and "
             "benchmarks/p0/seed_000/benchmarks.json. Defaults to "
             "runs/masking_head_seeds/<mask-profile> (multi_block_n6 when omitted)."
+        ),
+    )
+    parser.add_argument(
+        "--vit-p2-run-root",
+        type=Path,
+        default=None,
+        help=(
+            "Root containing the matching-mask ViT P2 packet at "
+            "p2/seed_000/{downstream/exit_metrics.json,benchmarks.json}. "
+            "Defaults to runs/masking_study/<mask-profile>."
         ),
     )
     parser.add_argument(
@@ -1178,7 +1188,7 @@ def _write_cnn_only_report(
     split_signature: str,
     condition: dict[str, Any] | None,
 ) -> None:
-    """Write ViT B0/P0 and CNN C0/C2 results in one mask-specific packet."""
+    """Write ViT B0/P0/P2 and CNN C0/C2 results in one mask-specific packet."""
     comparable_rows = [row for packet in packets.values() for row in packet["metric_rows"]]
     fixed_rows = [row for row in comparable_rows if row["evaluation"] == "fixed_exit"]
     selected_rows = [row for row in comparable_rows if row["evaluation"] == "best_validation"]
@@ -1190,11 +1200,12 @@ def _write_cnn_only_report(
     scope = [
         ["B0 — Original LatentWave (full-depth)", "ViT P0 checkpoint; full-input L8", "Frozen ViT context encoder at L8", "fixed-depth reference derived from P0"],
         ["P0 — LatentWave + post-hoc frozen exits", "ViT LatentWave P0 objective", "Frozen ViT context encoder at L2/L4/L6/L8", "ViT baseline; head_seed_000"],
+        ["P2 — Proposed Hierarchical Multi-Scale JEPA", "ViT P2 objective with multi-scale auxiliary reconstruction", "Frozen ViT context encoder at L2/L4/L6/L8", "ViT hierarchical baseline"],
         ["C0 — CNN original L8 objective", "ConvNeXt V2; one L8 predictor and masked-token MSE", "Frozen CNN context encoder at S1/S2/S3/S4", "single-objective CNN baseline"],
         ["C2 — CNN mask-relative fine-to-coarse", "ConvNeXt V2; L8 anchor plus L2/L4/L6 mask-relative losses", "Frozen CNN context encoder at S1/S2/S3/S4", "hierarchical CNN method"],
     ]
     condition_sentence = (
-        f"This {masking_label} packet compares ViT B0/P0 with CNN C0/C2 at seed 0. "
+        f"This {masking_label} packet compares ViT B0/P0/P2 with CNN C0/C2 at seed 0. "
         "B0 is the fixed L8 result from the same ViT P0 checkpoint, not a separate pretraining run."
     )
     geometry_note = ""
@@ -1215,12 +1226,12 @@ superiority claim.{geometry_note}
 
 {_markdown_table(['Approach', 'Pretraining', 'Downstream representation', 'Role'], scope)}
 
-CNN stages S1/S2/S3/S4 map to logical exits L2/L4/L6/L8. All four approaches
+CNN stages S1/S2/S3/S4 map to logical exits L2/L4/L6/L8. All learned approaches
 use the same persisted 80/10/10 downstream split and validation-only exit
 selection before the held-out test split is read. ViT P0 uses the existing
-per-profile `head_seed_000` packet; B0 reuses its fixed L8 result. CNN C0 and
-C2 each start from initialization and use a 100-epoch-maximum,
-validation-monitored pretraining run with early stopping.
+per-profile `head_seed_000` packet; ViT P2 uses the matching-profile hierarchical
+packet; B0 reuses P0's fixed L8 result. CNN C0 and C2 use the matched staged
+pretraining protocol described in the provenance note.
 
 {provenance_section}
 
@@ -1258,8 +1269,8 @@ caches participates in pretraining.
         "table_primary_fixed_exits.md": ("# Fixed-exit downstream metrics\n\n", ['Approach', 'Task', 'Exit', 'Metric', 'Test value', 'Validation value', 'Head epoch'], fixed_table),
         "table_selected_exits.md": ("# Validation-best exits\n\n", ['Approach', 'Task', 'Exit', 'Test value'], selected_table),
         "table_inference_cost.md": ("# Batch-1 inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms', 'FLOPs saving', 'Latency saving'], inference_table),
-        "table_all_methods_downstream.md": ("# ViT baselines and CNN validation-best held-out performance\n\n", ['Approach', 'Task', 'Exit', 'Test value'], headline_table),
-        "table_all_methods_inference.md": ("# ViT baselines and CNN validation-best inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table),
+        "table_all_methods_downstream.md": ("# ViT and CNN validation-best held-out performance\n\n", ['Approach', 'Task', 'Exit', 'Test value'], headline_table),
+        "table_all_methods_inference.md": ("# ViT and CNN validation-best inference cost\n\n", ['Approach', 'Task', 'Exit', 'FLOPs (B)', 'Mean ms', 'P95 ms'], headline_inference_table),
     }
     for filename, (title, headers, rows) in markdown_tables.items():
         (output_dir / filename).write_text(title + _markdown_table(headers, rows) + "\n")
@@ -1294,10 +1305,10 @@ caches participates in pretraining.
         }
     _write_json(output_dir / "manifest.json", {
         "report": (
-            f"vit_b0_p0_cnn_c0_c2_{condition['name']}_single_seed"
-            if condition is not None else "vit_b0_p0_cnn_c0_c2_multi_block_n6_single_seed"
+            f"vit_b0_p0_p2_cnn_c0_c2_{condition['name']}_single_seed"
+            if condition is not None else "vit_b0_p0_p2_cnn_c0_c2_multi_block_n6_single_seed"
         ),
-        "comparison_mode": "cnn_with_vit_b0_p0_baselines",
+        "comparison_mode": "vit_b0_p0_p2_with_cnn_c0_c2",
         "git_revision": _git_revision(),
         "methods": [METHOD_LABELS[method] for method in ("b0", *METHODS)],
         "b0_reference": {
@@ -1312,6 +1323,13 @@ caches participates in pretraining.
             "metrics_path": packets["b1"]["metrics_path"],
             "benchmark_path": packets["b1"]["benchmark_path"],
             "checkpoint": packets["b1"]["checkpoint"],
+        },
+        "vit_p2_baseline": {
+            "pretrain_seed": 0,
+            "head_seed": 0,
+            "metrics_path": packets["p2"]["metrics_path"],
+            "benchmark_path": packets["p2"]["benchmark_path"],
+            "checkpoint": packets["p2"]["checkpoint"],
         },
         "seed": 0,
         "masking": masking_label,
@@ -1352,7 +1370,7 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
         raise ValueError("cnn_only currently requires exactly: --cnn-methods cnn_p0 cnn_p2")
     global TASKS, METHODS
     cnn_methods = tuple(args.cnn_methods)
-    METHODS = ("b1", *cnn_methods)
+    METHODS = ("b1", "p2", *cnn_methods)
     profile_name = getattr(args, "mask_profile", None) or "multi_block_n6"
     vit_run_root = getattr(args, "vit_p0_run_root", None)
     if vit_run_root is not None:
@@ -1380,7 +1398,31 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
         raise ValueError(
             f"ViT P0 root {vit_run_root} does not match mask profile {profile_name!r}"
         )
-    raw_packets = {"b1": _read(vit_metrics_path)}
+    vit_p2_run_root = getattr(args, "vit_p2_run_root", None)
+    if vit_p2_run_root is None:
+        p2_candidates = (
+            REPOSITORY_ROOT / "runs/masking_study" / profile_name,
+            REPOSITORY_ROOT / "runs/masking_head_seeds" / profile_name,
+        )
+        vit_p2_run_root = next(
+            (candidate for candidate in p2_candidates
+             if (candidate / "p2/seed_000/downstream/exit_metrics.json").is_file()
+             and (candidate / "p2/seed_000/benchmarks.json").is_file()),
+            None,
+        )
+        if vit_p2_run_root is None:
+            raise FileNotFoundError(
+                f"No matching-mask ViT P2 packet found for profile {profile_name!r}"
+            )
+    else:
+        vit_p2_run_root = _repo_path(vit_p2_run_root)
+    if vit_p2_run_root.name != profile_name:
+        raise ValueError(
+            f"ViT P2 root {vit_p2_run_root} does not match mask profile {profile_name!r}"
+        )
+    vit_p2_metrics_path = vit_p2_run_root / "p2/seed_000/downstream/exit_metrics.json"
+    vit_p2_benchmark_path = vit_p2_run_root / "p2/seed_000/benchmarks.json"
+    raw_packets = {"b1": _read(vit_metrics_path), "p2": _read(vit_p2_metrics_path)}
     raw_packets.update({
         method: _read(cnn_run_root / method / "seed_000/downstream/exit_metrics.json")
         for method in cnn_methods
@@ -1394,6 +1436,10 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
         "b1": _load_exit_results(
             vit_run_root, "b1", source_method="p0",
             metrics_path=vit_metrics_path, benchmark_path=vit_benchmark_path,
+        )[0],
+        "p2": _load_exit_results(
+            vit_p2_run_root, "p2", source_method="p2",
+            metrics_path=vit_p2_metrics_path, benchmark_path=vit_p2_benchmark_path,
         )[0],
         **{
             method: _load_exit_results(cnn_run_root, method, source_method=method)[0]
@@ -1433,7 +1479,7 @@ def _run_cnn_only_report(args: argparse.Namespace, cnn_run_root: Path, output_di
     expected_benchmarks = len(packets) * len(TASKS) * len(EXIT_LAYERS)
     actual_benchmarks = sum(len(packet["benchmark_rows"]) for packet in packets.values())
     if actual_benchmarks != expected_benchmarks:
-        raise ValueError("ViT P0 and CNN C0/C2 require complete benchmarks for every task and exit")
+        raise ValueError("ViT P0/P2 and CNN C0/C2 require complete benchmarks for every task and exit")
     headline_rows = _build_headline_rows(b0_metric_rows, comparable_rows, benchmark_rows)
     figure_paths = []
     figure_paths.extend(_plot_performance(output_dir, comparable_rows))

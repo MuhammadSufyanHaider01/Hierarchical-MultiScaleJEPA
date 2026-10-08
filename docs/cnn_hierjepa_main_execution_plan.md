@@ -12,7 +12,7 @@ retain `cnn_p0`/`cnn_p2` for compatibility.
 ## Current approved M-block packet
 
 The immediate CNN report compares **C0** and **C2** with the matching-mask
-ViT **P0** baseline and its derived full-depth **B0** reference. B0 is the
+ViT **P0** and **P2** baselines and the derived full-depth **B0** reference. B0 is the
 fixed L8 result from the same ViT P0 checkpoint, not separate pretraining.
 CNN-P1 and CNN-P2-Reverse rows are not included. Both CNN methods use a
 five-epoch full-data prefix under the original 60-epoch schedule, followed by
@@ -145,11 +145,12 @@ identifies the validation-best checkpoint.
 
 | Item | State |
 | --- | --- |
-| Observed terminal progress (2026-10-08) | epoch 71, 225/813 batches at last audit |
-| Best validation checkpoint | epoch 70, `val_loss=0.466410` |
-| Current resumable checkpoint at last audit | epoch 69 / step 14,390 in `cnn_p2_extended100_es` |
-| Downstream heads, held-out test, benchmark | not run |
-| Loss behaviour | finite; epoch 70 improved the best validation loss |
+| Pause state (2026-10-08) | interrupted during epoch 71 at 260/813 batches; partial epoch was not checkpointed |
+| Best checkpoint for downstream | epoch index 69 / step 14,390, `val_loss=0.466410` |
+| Resume checkpoint | `cnn_p2_extended100_es/seed_000/checkpoints/last.ckpt`, same epoch/step |
+| Downstream head selection | running from the best checkpoint; log `terminal_logs/cnn_p2_best_epoch69_heads_selection.log` |
+| Held-out test, benchmark | pending after head selection |
+| Loss behaviour | finite; completed epoch 70 improved the best validation loss |
 
 The P2 intermediate losses are L2/L4/L6; each is finite-checked on the first
 continuation epoch before downstream work. The report labels the approach C2
@@ -157,12 +158,14 @@ while preserving `cnn_p2` in artifact paths and provenance.
 
 #### C2 loss and selection protocol
 
-C2 resumes the matched five-epoch full-data prefix into a 100-epoch-maximum
+C2 resumed the matched five-epoch full-data prefix into a 100-epoch-maximum
 run, with a deterministic 90/10 cache split (seed 2025), rebased scheduler
 horizon, and early stopping on mean pretraining `val_loss` (patience 20,
 minimum improvement `1e-4`). Its L2/L4/L6 intermediate losses are finite in
-the logged epochs. Use only the `checkpoint_for_downstream` recorded in the
-completed run summary.
+the logged epochs. The current interrupted run has no completed summary:
+use the epoch-69 validation-best checkpoint for the current downstream packet
+and preserve `last.ckpt` for a future resume. If C2 is resumed to completion,
+retrain its heads and regenerate the report from the final best checkpoint.
 
 ### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
@@ -207,15 +210,13 @@ benchmark stage from the saved CNN-P1 checkpoint.
 
 ### Gate 2 — finish C2
 
-1. Allow the active C2 100-epoch-maximum validation-monitored continuation to
-   finish or stop by its configured early-stopping rule; retain both
-   `last.ckpt` and the validation-best checkpoint.
-2. Require a completed summary with finite best validation loss and an
-   existing `checkpoint_for_downstream` before starting downstream jobs.
-3. Train independent frozen L2/L4/L6/L8 heads on the six tasks; use only
-   validation metrics to select each task's best exit.
-4. Run the selected saved heads exactly once on the held-out test splits.
-5. Measure FLOPs and synchronized batch-1 CUDA latency for all four exits.
+1. Train independent frozen L2/L4/L6/L8 heads on the six tasks from the
+   epoch-69 validation-best C2 checkpoint; use only validation metrics to
+   select each task's best exit.
+2. Run the selected saved heads exactly once on the held-out test splits.
+3. Measure FLOPs and synchronized batch-1 CUDA latency for all four exits.
+4. Keep the same-epoch `last.ckpt` for a possible continuation; if resumed,
+   refresh downstream results from its final validation-best checkpoint.
 
 ### Gate 3 — CNN-P2-Reverse (deferred)
 
@@ -231,12 +232,13 @@ Once C0 and C2 packets are complete:
 
 1. Run the report generator with `--comparison-mode cnn_only --cnn-methods cnn_p0 cnn_p2`,
    `--cnn-run-root` pointing at the M-block run directory, and
-   `--vit-p0-run-root runs/masking_head_seeds/multi_block_n6`.
+   `--vit-p0-run-root runs/masking_head_seeds/multi_block_n6` and
+   `--p2-run-root runs/masking_study/multi_block_n6`.
 2. Generate downstream tables for every task and L2/L4/L6/L8 exit, as well as
    validation-selected best-exit tables.
 3. Generate matching FLOP, latency, relative-compute, and relative-latency
    tables and figures.
-4. Include the matching M-block ViT P0 baseline and its derived fixed-L8 B0
+4. Include matching M-block ViT P0/P2 baselines and derived fixed-L8 B0
    reference alongside C0/C2. Record architecture, S4 upsampling caveat, fixed
    seed, early-stopping protocol, and exact artifact/checkpoint provenance.
 5. Do not make superiority claims from one seed.  Treat the M-block packet as
