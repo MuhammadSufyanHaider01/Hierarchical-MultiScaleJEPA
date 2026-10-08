@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate complete EE artifacts and generate the initial single-seed report."""
+"""Validate complete EE artifacts and generate the seven-seed study report."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 METHODS = ("p0", "p2")
 ALGORITHMS = ("current", "causal_fusion", "fusion_teacher_kd")
 TASKS = ("rfs", "jamming", "human-activity", "interference", "nrpos-outdoor", "deepmimo-beam")
-SEEDS = (0,)
+SEEDS = tuple(range(7))
 EXITS = (2, 4, 6, 8)
 RUNS = ROOT / "runs/ee_optimization/multi_block_n6"
 BASELINE = ROOT / "runs/masking_head_seeds/multi_block_n6"
@@ -321,15 +321,14 @@ def main() -> int:
     manifest = {"study": "two_stage_early_exit_optimization", "mask": "multi_block_n6",
                 "methods": METHODS, "algorithms": ALGORITHMS, "tasks": TASKS,
                 "head_seeds": SEEDS, "exit_layers": EXITS, "split_seed": 2025,
-                "replication_count": 1, "multiseed_variability_estimated": False,
+                "replication_count": len(SEEDS), "multiseed_variability_estimated": len(SEEDS) > 1,
                 "sources": provenance, "selection": "best_validation", "test_used_for_selection": False,
                 "fusion_benchmark": "separately measured", "fusion_kd_cost": "Current EE batch-1 cost; teacher training only"}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (out / "README.md").write_text("# Two-stage early-exit optimization\n\n"
-        "Initial single-seed run: P0/P2 on `multi_block_n6`, head seed 0. Validation selects the reported exit and test evaluates it afterward. "
+        "P0/P2 on `multi_block_n6`, downstream head seeds 0–6. Validation selects the reported exit and test evaluates it afterward. "
         "Classification gains are new minus current; positioning gains are current error minus new error. "
-        "Fusion-Teacher KD deploys the single-representation student; its teacher is training-only. "
-        "One seed does not estimate seed variance or exit-selection stability; summary SD fields are blank.\n")
+        "Aggregates use mean and sample SD across seven seeds. Fusion-Teacher KD deploys the single-representation student; its teacher is training-only.\n")
     print(json.dumps({"report": str(out), "seed_packets": len(provenance), "per_exit_rows": len(per_exit)}, indent=2))
     return 0
 

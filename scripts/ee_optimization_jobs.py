@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import shlex
@@ -13,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ROOT = ROOT / "runs/ee_optimization/multi_block_n6"
 METHODS = ("p0", "p2")
-SEEDS = (0,)
+SEEDS = tuple(range(7))
 TASKS = ("rfs", "jamming", "human-activity", "interference", "nrpos-outdoor", "deepmimo-beam")
 EXITS = (2, 4, 6, 8)
 CHECKPOINTS = {"p0": ROOT / "runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P0/last.ckpt",
@@ -84,24 +85,29 @@ def audit() -> dict:
 def job_script(stage: str, method: str, seed: int, partition: str) -> str:
     root = RUN_ROOT
     name = f"ee-{stage}-{method}-hs{seed:03d}"
-    log = root / "slurm_single_seed" / f"{name}-%j"
+    log = root / "slurm_multi_seed" / f"{name}-%j"
     runtime = root / "runtime" / stage / method / f"head_seed_{seed:03d}.json"
     ckpt = CHECKPOINTS[method]
-    task_script = "phase5_fusion_exits.py" if stage == "fusion" else "phase5_fusion_distill.py"
-    cmd = [".venv/bin/python", f"scripts/{task_script}", "--method", method,
-           "--pretrain-seed", "0", "--head-seed", str(seed), "--split-seed", "2025",
-           "--checkpoint", str(ckpt), "--run-root", str(root), "--epochs", "200",
-           "--batch-size", "32", "--learning-rate", "0.001", "--weight-decay", "0.05",
-           "--head-early-stopping-patience", "20", "--device", "cuda"]
-    if stage == "fusion_kd":
-        cmd.extend(["--fusion-teacher-root", str(root / "fusion"), "--kd-temperature", "2.0", "--kd-weight", "0.5"])
+    if stage == "benchmark":
+        cmd = [".venv/bin/python", "scripts/phase5_fusion_benchmark.py", "--method", method,
+               "--pretrain-seed", "0", "--checkpoint", str(ckpt), "--run-root", str(root),
+               "--warmup-iterations", "50", "--measure-iterations", "200", "--device", "cuda"]
+    else:
+        task_script = "phase5_fusion_exits.py" if stage == "fusion" else "phase5_fusion_distill.py"
+        cmd = [".venv/bin/python", f"scripts/{task_script}", "--method", method,
+               "--pretrain-seed", "0", "--head-seed", str(seed), "--split-seed", "2025",
+               "--checkpoint", str(ckpt), "--run-root", str(root), "--epochs", "200",
+               "--batch-size", "32", "--learning-rate", "0.001", "--weight-decay", "0.05",
+               "--head-early-stopping-patience", "20", "--device", "cuda"]
+        if stage == "fusion_kd":
+            cmd.extend(["--fusion-teacher-root", str(root / "fusion"), "--kd-temperature", "2.0", "--kd-weight", "0.5"])
     runtime_code = ('import json,os,socket,subprocess,sys,torch;from pathlib import Path;'
         'p=Path(sys.argv[1]);p.parent.mkdir(parents=True,exist_ok=True);'
         'rev=subprocess.run(["git","rev-parse","HEAD"],capture_output=True,text=True).stdout.strip();'
         'json.dump({"job_id":os.getenv("SLURM_JOB_ID"),"partition":os.getenv("SLURM_JOB_PARTITION"),'
         '"nodes":os.getenv("SLURM_JOB_NODELIST"),"hostname":socket.gethostname(),'
         '"cpus":os.getenv("SLURM_CPUS_PER_TASK"),"gpu":torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,'
-        '"runtime_profile":"frozen_encoder_ee","git_revision":rev},p.open("w"),sort_keys=True)')
+        f'"runtime_profile":"{stage}_frozen_encoder_ee","git_revision":rev}},p.open("w"),sort_keys=True)')
     lines = ["#!/usr/bin/env bash", f"#SBATCH --job-name={name}", f"#SBATCH --partition={partition}",
              "#SBATCH --gres=gpu:1", "#SBATCH --cpus-per-task=8", "#SBATCH --mem=32G",
              "#SBATCH --time=1-00:00:00", f"#SBATCH --output={log}.out", f"#SBATCH --error={log}.err",
@@ -115,12 +121,15 @@ def job_script(stage: str, method: str, seed: int, partition: str) -> str:
 def prepare(registry: dict, partition: str) -> dict:
     if not registry["passed"]:
         raise RuntimeError("baseline audit failed; refusing to prepare partial study")
-    # Keep this first single-seed batch isolated from the earlier seven-seed
-    # prepared scripts, which remain available for later expansion.
-    slurm = RUN_ROOT / "slurm_single_seed"
+    slurm = RUN_ROOT / "slurm_multi_seed"
     slurm.mkdir(parents=True, exist_ok=True)
     records = []
     for method in METHODS:
+        path = slurm / f"benchmark_{method}_seed000.sbatch"
+        path.write_text(job_script("benchmark", method, 0, partition))
+        records.append({"stage": "benchmark", "method": method, "head_seed": 0,
+                        "script": str(path), "dependency_stage": None,
+                        "dependency_method": None, "dependency_head_seed": None})
         for seed in SEEDS:
             for stage in ("fusion", "fusion_kd"):
                 path = slurm / f"{stage}_{method}_seed{seed:03d}.sbatch"
@@ -151,6 +160,8 @@ def main() -> int:
         raise RuntimeError("baseline audit failed; refusing submission")
     prepared = prepare(result, args.partition)
     submitted = {}
+    submission_records = []
+    submission_path = RUN_ROOT / "submissions.json"
     for item in prepared["prepared_jobs"]:
         dependency = item.get("dependency_method")
         dependency_id = submitted.get(("fusion", dependency, item["dependency_head_seed"])) if dependency else None
@@ -158,7 +169,14 @@ def main() -> int:
         if dependency_id:
             command.append(f"--dependency=afterok:{dependency_id}")
         response = subprocess.run(command + [item["script"]], check=True, capture_output=True, text=True)
-        submitted[(item["stage"], item["method"], item["head_seed"])] = response.stdout.strip().split(";", 1)[0]
+        job_id = response.stdout.strip().split(";", 1)[0]
+        submitted[(item["stage"], item["method"], item["head_seed"])] = job_id
+        submission_records.append({**item, "job_id": job_id,
+            "dependency_job_id": dependency_id,
+            "submitted_at_utc": datetime.now(timezone.utc).isoformat()})
+        submission_path.write_text(json.dumps({"submitted": submission_records}, indent=2, sort_keys=True) + "\n")
+        print(f"submitted {job_id}: {item['stage']} {item['method']} seed {item['head_seed']:03d}", flush=True)
+    print(json.dumps({"submissions": str(submission_path), "submitted_count": len(submission_records)}, indent=2))
     return 0
 
 

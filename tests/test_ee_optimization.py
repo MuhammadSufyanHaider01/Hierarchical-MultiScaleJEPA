@@ -95,14 +95,17 @@ def test_zero_kd_weight_is_task_loss_for_classification_and_position():
 
 
 def test_stage_job_commands_and_missing_report_input_fail_closed(tmp_path, monkeypatch):
-    assert JOB_SEEDS == (0,)
-    assert ee_report.SEEDS == (0,)
+    assert JOB_SEEDS == tuple(range(7))
+    assert ee_report.SEEDS == tuple(range(7))
     fusion = job_script("fusion", "p2", 4, "gpu-a100")
     kd = job_script("fusion_kd", "p2", 4, "gpu-a100")
+    benchmark = job_script("benchmark", "p2", 0, "gpu-a100")
     assert "phase5_fusion_exits.py" in fusion
     assert "phase5_fusion_distill.py" in kd
     assert "--fusion-teacher-root" in kd
     assert "--head-seed 4" in kd
+    assert "phase5_fusion_benchmark.py" in benchmark
+    assert "--measure-iterations 200" in benchmark
     monkeypatch.setattr(ee_report, "RUNS", tmp_path)
     with pytest.raises(FileNotFoundError, match="required causal_fusion packet missing"):
         ee_report.read_packet("p0", "causal_fusion", 0)

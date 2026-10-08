@@ -3,7 +3,7 @@ study:
   methods: [p0, p2]
   head_algorithms: [current, causal_fusion, fusion_teacher_kd]
 pretrain_seed: 0
-head_seeds: [0]
+head_seeds: [0, 1, 2, 3, 4, 5, 6]
 split_seed: 2025
 exit_layers: [2, 4, 6, 8]
 tasks: [rfs, jamming, human-activity, interference, nrpos-outdoor, deepmimo-beam]
