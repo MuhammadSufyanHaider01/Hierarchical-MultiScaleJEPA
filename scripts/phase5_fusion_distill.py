@@ -24,6 +24,7 @@ from phase5_exits import (  # noqa: E402
     EXIT_LAYERS, _arguments, _criterion, _evaluate, _loader, _new_encoder, _seed_everything,
 )
 from phase5_fusion_exits import digest  # noqa: E402
+from ee_progress import finish_epoch_progress, render_batch_progress  # noqa: E402
 
 
 def parse_args():
@@ -189,6 +190,10 @@ def main() -> int:
                 model.student.load_state_dict(student_state, strict=True)
                 validation = saved["validation"]
             else:
+                total_batches = len(train_loader)
+                if args.limit_train_batches is not None:
+                    total_batches = min(total_batches, args.limit_train_batches)
+                progress_label = f"Fusion-KD {task_name} L{layer}"
                 for epoch in range(args.epochs):
                     model.train()
                     for batch_index, batch in enumerate(train_loader):
@@ -205,12 +210,14 @@ def main() -> int:
                         if any(p.grad is not None for p in encoder.parameters()) or any(p.grad is not None for p in model.teacher.parameters()):
                             raise RuntimeError("frozen encoder or teacher received gradients")
                         optimizer.step()
+                        render_batch_progress(progress_label, epoch + 1, args.epochs, batch_index, total_batches)
                     class StudentView:
                         def eval(self): model.eval(); return self
                         def __call__(self, x): return model(x)[0]
                     validation = _evaluate(StudentView(), val_loader, spec, criterion, device,
                                            limit_batches=args.limit_validation_batches)
                     value = float(validation[spec.metric_name])
+                    finish_epoch_progress(progress_label, epoch + 1, args.epochs, spec.metric_name, value)
                     improved = value > best + args.head_early_stopping_min_delta if spec.higher_is_better else value < best - args.head_early_stopping_min_delta
                     if improved:
                         best, best_epoch, stale = value, epoch + 1, 0

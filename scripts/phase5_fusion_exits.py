@@ -24,6 +24,7 @@ from phase5_exits import (  # noqa: E402
     _new_encoder, _seed_everything,
 )
 from configs import configure_method_variant, init_jepa_config  # noqa: E402
+from ee_progress import finish_epoch_progress, render_batch_progress  # noqa: E402
 
 
 def arguments():
@@ -71,6 +72,10 @@ def train_exit(encoder, *, layer, spec, train_loader, validation_loader, args, d
     best = -math.inf if spec.higher_is_better else math.inf
     best_epoch = None
     stale = 0
+    total_batches = len(train_loader)
+    if args.limit_train_batches is not None:
+        total_batches = min(total_batches, args.limit_train_batches)
+    progress_label = f"Fusion {spec.name} L{layer}"
     for epoch in range(args.epochs):
         model.train()
         for index, batch in enumerate(train_loader):
@@ -86,9 +91,11 @@ def train_exit(encoder, *, layer, spec, train_loader, validation_loader, args, d
             if any(p.grad is not None for p in encoder.parameters()):
                 raise RuntimeError(f"encoder received gradients at L{layer}")
             optimizer.step()
+            render_batch_progress(progress_label, epoch + 1, args.epochs, index, total_batches)
         validation = _evaluate(model, validation_loader, spec, criterion, device,
                                limit_batches=args.limit_validation_batches)
         value = float(validation[spec.metric_name])
+        finish_epoch_progress(progress_label, epoch + 1, args.epochs, spec.metric_name, value)
         improved = value > best + args.head_early_stopping_min_delta if spec.higher_is_better else value < best - args.head_early_stopping_min_delta
         if improved:
             best, best_epoch, stale = value, epoch + 1, 0
