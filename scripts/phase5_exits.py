@@ -70,6 +70,12 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument(
+        "--progress-every-n-batches",
+        type=int,
+        default=25,
+        help="Refresh the in-place batch progress bar at this interval; epoch summaries remain one line each.",
+    )
     parser.add_argument("--limit-train-batches", type=int, default=None, help="Smoke-test limit only; omitted uses all batches.")
     parser.add_argument("--limit-validation-batches", type=int, default=None, help="Smoke-test limit only; omitted uses all batches.")
     parser.add_argument("--limit-test-batches", type=int, default=None, help="Smoke-test limit only; omitted uses all batches.")
@@ -278,14 +284,17 @@ def _train_exit(
             if any(parameter.grad is not None for parameter in encoder.parameters()):
                 raise RuntimeError(f"context backbone received gradients at L{exit_layer}")
             optimizer.step()
-            print(
-                _batch_progress(
-                    f"{spec.name} L{exit_layer} epoch {epoch + 1:03d}",
-                    batch_index + 1,
-                    total_batches,
-                ),
-                flush=True,
-            )
+            progress_interval = max(1, int(getattr(args, "progress_every_n_batches", 25)))
+            if (batch_index + 1) % progress_interval == 0 or batch_index + 1 == total_batches:
+                print(
+                    _batch_progress(
+                        f"{spec.name} L{exit_layer} epoch {epoch + 1:03d}",
+                        batch_index + 1,
+                        total_batches,
+                    ),
+                    end="\r",
+                    flush=True,
+                )
 
         if train_examples:
             print(flush=True)
@@ -368,8 +377,8 @@ def _evaluate_saved_head(
 
 def main() -> int:
     args = _arguments()
-    if min(args.epochs, args.batch_size, args.num_workers + 1) < 1:
-        raise ValueError("epochs, batch size, and workers must be positive")
+    if min(args.epochs, args.batch_size, args.num_workers + 1, args.progress_every_n_batches) < 1:
+        raise ValueError("epochs, batch size, workers, and progress interval must be positive")
     if any(limit is not None and limit < 1 for limit in (args.limit_train_batches, args.limit_validation_batches, args.limit_test_batches)):
         raise ValueError("batch limits must be positive when set")
     if args.tolerance < 0:

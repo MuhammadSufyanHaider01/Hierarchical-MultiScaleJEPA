@@ -908,6 +908,18 @@ def main() -> int:
             if batch_idx:
                 self._record_last_batch(trainer, pl_module)
 
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            # In epoch-only logging mode Lightning may not expose the reduced
+            # training metric to callbacks before validation starts. The
+            # training_step output is the actual batch loss, so aggregate it
+            # directly for a reliable terminal epoch summary.
+            if not pl_module.epoch_metrics_only or outputs is None:
+                return
+            if isinstance(outputs, dict):
+                outputs = outputs.get("loss")
+            if torch.is_tensor(outputs):
+                self._add("train_loss", float(outputs.detach().float().mean().cpu()))
+
         def _training_fields(self, trainer, pl_module) -> list[str]:
             train_loss = self._mean("train_loss")
             if train_loss is None:
@@ -968,6 +980,14 @@ def main() -> int:
                 return
             fields = self._training_fields(trainer, pl_module)
             validation_loss = self._value(trainer, "val_loss")
+            if validation_loss is None and pl_module.pretrain_validation_names:
+                dataset_losses = []
+                for name in pl_module.pretrain_validation_names:
+                    count = pl_module._validation_loss_counts.get(name, 0)
+                    if count:
+                        dataset_losses.append(pl_module._validation_loss_sums[name] / count)
+                if dataset_losses:
+                    validation_loss = sum(dataset_losses) / len(dataset_losses)
             if not fields or validation_loss is None:
                 return
             fields.append(f"val_loss={validation_loss:.6f}")
@@ -1033,7 +1053,9 @@ def main() -> int:
         deterministic=True,
         precision=args.precision,
         gradient_clip_val=config.optimization.grad_clip,
-        enable_progress_bar=True,
+        # BatchProgressPrinter owns the single in-place batch bar; Lightning's
+        # tqdm bar would add duplicate progress output to terminal logs.
+        enable_progress_bar=False,
     )
     if args.device == "cuda":
         torch.cuda.reset_peak_memory_stats()

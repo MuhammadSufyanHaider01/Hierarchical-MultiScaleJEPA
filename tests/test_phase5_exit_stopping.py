@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import sys
+import io
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -49,24 +51,29 @@ class Phase5ExitStoppingTest(unittest.TestCase):
             head_early_stopping_min_delta=0.0,
             head_early_stopping_patience=1,
             disable_head_early_stopping=False,
+            progress_every_n_batches=2,
         )
 
         with tempfile.TemporaryDirectory() as directory:
-            result = _train_exit(
-                encoder,
-                exit_layer=2,
-                spec=spec,
-                train_loader=loader,
-                validation_loader=loader,
-                args=args,
-                device=torch.device("cpu"),
-                head_seed=7,
-                head_path=Path(directory) / "head.pt",
-            )
+            log = io.StringIO()
+            with redirect_stdout(log):
+                result = _train_exit(
+                    encoder,
+                    exit_layer=2,
+                    spec=spec,
+                    train_loader=loader,
+                    validation_loader=loader,
+                    args=args,
+                    device=torch.device("cpu"),
+                    head_seed=7,
+                    head_path=Path(directory) / "head.pt",
+                )
 
         self.assertEqual(result["best_epoch"], 1)
         self.assertEqual(result["epochs_completed"], 2)
         self.assertTrue(result["stopped_early"])
+        self.assertEqual(log.getvalue().count("train_loss="), result["epochs_completed"])
+        self.assertEqual(log.getvalue().count("\r"), result["epochs_completed"])
 
 
 if __name__ == "__main__":

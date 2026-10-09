@@ -14,10 +14,15 @@ retain `cnn_p0`/`cnn_p2` for compatibility.
 The immediate CNN report compares **C0** and **C2** with the matching-mask
 ViT **P0** and **P2** baselines and the derived full-depth **B0** reference. B0 is the
 fixed L8 result from the same ViT P0 checkpoint, not separate pretraining.
-CNN-P1 and CNN-P2-Reverse rows are not included. Both CNN methods use a
-five-epoch full-data prefix under the original 60-epoch schedule, followed by
-a resumed deterministic 90/10 validation-monitored continuation with a
-100-epoch maximum and early stopping. The operational commands, artifact
+CNN-P1 and CNN-P2-Reverse rows are not included. The original plan used a
+five-epoch full-data prefix for both methods, followed by a deterministic
+90/10 validation-monitored continuation. Per the latest instruction, C0's
+prefix was skipped and its run starts directly from scratch with a 100-epoch
+maximum and early stopping. C2 was stopped after epoch 94; its latest
+validation-best checkpoint is epoch 93, while the existing downstream heads
+remain paired with the older epoch-69 checkpoint. The final packet reuses those
+heads and adds only C2 held-out testing and benchmarking. These schedule and
+checkpoint differences must be disclosed. The operational commands, artifact
 paths, and gates are in
 [`cnn_mblock_p0_p2_execution.md`](cnn_mblock_p0_p2_execution.md).
 
@@ -29,8 +34,9 @@ This plan covers the first formal CNN comparison only:
 - M-block / span-time masking with six prediction masks;
 - seed 0;
 - the finalized six downstream tasks and their persisted shared split;
-- a five-epoch full-data prefix under a 60-epoch schedule, then a 100-epoch
-  maximum resumed validation-monitored continuation with early stopping;
+- C0: direct deterministic 90/10 validation-monitored training, 100-epoch
+  maximum with early stopping; C2: existing staged run, stopped after epoch
+  94, using the existing epoch-69 downstream heads for the report;
 - C0 and C2.
 
 The existing per-mask ViT P0 packets provide the baselines for the CNN reports;
@@ -139,18 +145,19 @@ not silently replace its reported results.
 ### C2 (`cnn_p2`) — mask-relative fine-to-coarse JEPA
 
 The C2 prefix was completed as five full-data epochs under the 60-epoch
-schedule. Its validation-monitored continuation is active in
-`cnn_p2_extended100_es`; downstream work starts only after that run's summary
-identifies the validation-best checkpoint.
+schedule. Its validation-monitored continuation was stopped after epoch 94;
+the later best checkpoint is retained, but the existing downstream heads are
+paired with the earlier epoch-69 checkpoint. The current report will reuse
+those heads and fill only their missing test and inference artifacts.
 
 | Item | State |
 | --- | --- |
-| Pause state (2026-10-08) | interrupted during epoch 71 at 260/813 batches; partial epoch was not checkpointed |
-| Best checkpoint for downstream | epoch index 69 / step 14,390, `val_loss=0.466410` |
-| Resume checkpoint | `cnn_p2_extended100_es/seed_000/checkpoints/last.ckpt`, same epoch/step |
-| Downstream head selection | running from the best checkpoint; log `terminal_logs/cnn_p2_best_epoch69_heads_selection.log` |
-| Held-out test, benchmark | pending after head selection |
-| Loss behaviour | finite; completed epoch 70 improved the best validation loss |
+| Stopped state | continuation stopped after epoch 94; no C2 restart is planned for this report |
+| Later validation-best checkpoint | epoch index 93, `val_loss=0.431457`; retained but not used by the existing heads |
+| Checkpoint paired with existing heads | epoch index 69 / step 14,390, `val_loss=0.466410` |
+| Frozen-head selection | completed for six tasks × L2/L4/L6/L8 from the epoch-69 checkpoint; reuse without retraining |
+| Held-out test, benchmark | pending; add using the saved epoch-69 heads/checkpoint |
+| Loss behaviour | logged losses were finite through the stopped continuation |
 
 The P2 intermediate losses are L2/L4/L6; each is finite-checked on the first
 continuation epoch before downstream work. The report labels the approach C2
@@ -161,11 +168,11 @@ while preserving `cnn_p2` in artifact paths and provenance.
 C2 resumed the matched five-epoch full-data prefix into a 100-epoch-maximum
 run, with a deterministic 90/10 cache split (seed 2025), rebased scheduler
 horizon, and early stopping on mean pretraining `val_loss` (patience 20,
-minimum improvement `1e-4`). Its L2/L4/L6 intermediate losses are finite in
-the logged epochs. The current interrupted run has no completed summary:
-use the epoch-69 validation-best checkpoint for the current downstream packet
-and preserve `last.ckpt` for a future resume. If C2 is resumed to completion,
-retrain its heads and regenerate the report from the final best checkpoint.
+minimum improvement `1e-4`). Its L2/L4/L6 intermediate losses were finite in
+the logged epochs. The continuation was stopped after epoch 94. The later
+epoch-93 validation-best checkpoint is retained, while existing heads remain
+paired with epoch 69; the current report adds test evaluation and benchmarking
+for that existing head/checkpoint pair without retraining C2.
 
 ### CNN-P2-Reverse — coarse-to-fine JEPA (deferred)
 
@@ -208,15 +215,15 @@ Verify that `benchmarks.json` has batch-1 FLOPs and synchronized CUDA latency
 for every exit.  If this audit fails, refresh only the missing downstream or
 benchmark stage from the saved CNN-P1 checkpoint.
 
-### Gate 2 — finish C2
+### Gate 2 — complete C0 and finish the existing C2 packet
 
-1. Train independent frozen L2/L4/L6/L8 heads on the six tasks from the
-   epoch-69 validation-best C2 checkpoint; use only validation metrics to
-   select each task's best exit.
-2. Run the selected saved heads exactly once on the held-out test splits.
-3. Measure FLOPs and synchronized batch-1 CUDA latency for all four exits.
-4. Keep the same-epoch `last.ckpt` for a possible continuation; if resumed,
-   refresh downstream results from its final validation-best checkpoint.
+1. Finish the active C0 validation-monitored training and retain its
+   validation-best checkpoint.
+2. Train C0 frozen heads, run held-out evaluation once, and benchmark all four
+   exits.
+3. Reuse the existing C2 frozen heads and matching epoch-69 checkpoint. Add
+   its missing held-out test evaluation and benchmark all four exits; do not
+   restart C2 pretraining or retrain its heads on epoch 93 for this packet.
 
 ### Gate 3 — CNN-P2-Reverse (deferred)
 
@@ -249,8 +256,9 @@ Once C0 and C2 packets are complete:
 
 The M-block CNN study is complete only when:
 
-- C0 and C2 each have the matched five-epoch full-data prefix and a completed
-  validation-monitored continuation;
+- C0 has a completed validation-monitored run and C2's packet records its
+  existing epoch-69 head/checkpoint provenance plus the later epoch-93
+  validation-best pretraining checkpoint that was not evaluated downstream;
 - both have complete six-task frozen-head selection packets;
 - each selected head has one held-out test evaluation;
 - both methods have L2/L4/L6/L8 FLOPs and synchronized batch-1 latency;
