@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import shutil
 import sys
@@ -162,6 +163,18 @@ class CNNOnlyReportTest(unittest.TestCase):
                 report._run_cnn_only_report(args, root, output)
                 self.assertTrue((output / "README.md").is_file())
                 self.assertTrue((output / "table_all_methods_downstream.csv").is_file())
+                with (output / "table_all_methods_downstream.csv").open(newline="") as handle:
+                    downstream_rows = list(csv.DictReader(handle))
+                with (output / "table_all_methods_inference.csv").open(newline="") as handle:
+                    inference_rows = list(csv.DictReader(handle))
+                self.assertEqual(len(inference_rows), len(downstream_rows))
+                self.assertIn("flops", inference_rows[0])
+                self.assertIn("latency_mean_ms", inference_rows[0])
+                self.assertNotIn("metric", inference_rows[0])
+                self.assertNotIn("display_value", inference_rows[0])
+                self.assertNotEqual(
+                    list(inference_rows[0]), list(downstream_rows[0])
+                )
                 self.assertTrue((output / "early_exit_performance.png").is_file())
                 readme = (output / "README.md").read_text()
                 self.assertIn("P0 — LatentWave", readme)

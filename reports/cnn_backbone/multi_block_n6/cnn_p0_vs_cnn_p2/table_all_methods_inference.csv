@@ -1,0 +1,31 @@
+exit_layer,flops,latency_mean_ms,latency_p95_ms,method,method_label,protocol,selection,task,task_label
+8,2806654976,1.117464165,1.220381,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,rfs,RF sensing
+4,1416177664,0.67894248,0.789256,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,rfs,RF sensing
+8,2806654976,1.107963145,1.187404,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,rfs,RF sensing
+6,1741543936,1.635764265,1.740237,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,rfs,RF sensing
+4,1731910144,1.705611565,1.855331,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,rfs,RF sensing
+8,2806647808,1.126721295,1.245571,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,jamming,Jamming classification
+8,2806647808,1.126721295,1.245571,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,jamming,Jamming classification
+8,2806647808,1.1244261899999999,1.209123,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,jamming,Jamming classification
+6,1741536768,1.627893895,1.75656,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,jamming,Jamming classification
+4,1731902976,1.70750459,1.876871,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,jamming,Jamming classification
+8,10308160512,1.18695484,1.354099,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,human-activity,Human activity sensing
+4,5192616960,0.7011569849999999,0.860009,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,human-activity,Human activity sensing
+4,5192616960,0.69983039,0.842414,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,human-activity,Human activity sensing
+6,5224604160,1.602718405,1.770574,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,human-activity,Human activity sensing
+2,5181252096,1.6712247550000001,1.822234,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,human-activity,Human activity sensing
+8,2806645760,1.11862933,1.22727,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,interference,Interference classification
+6,2111407104,0.8998108899999999,1.025102,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,interference,Interference classification
+8,2806645760,1.11909285,1.201637,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,interference,Interference classification
+4,1731900928,1.8302740549999998,1.904113,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,interference,Interference classification
+4,1731900928,1.7161137199999998,1.883922,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,interference,Interference classification
+8,15003026944,1.5272433899999998,1.6933,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,nrpos-outdoor,NR positioning
+8,15003026944,1.5272433899999998,1.6933,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,nrpos-outdoor,NR positioning
+6,11277960704,1.2052059800000001,1.366337,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,nrpos-outdoor,NR positioning
+6,6966136320,1.643254265,1.79649,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,nrpos-outdoor,NR positioning
+4,6927601152,1.7400253900000002,1.929644,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,nrpos-outdoor,NR positioning
+8,102243840,1.2205476450000001,1.352432,b0,B0 — Original LatentWave,"frozen context encoder, shared 80/10/10 split",full-depth L8,deepmimo-beam,DeepMIMO beam
+8,102243840,1.2205476450000001,1.352432,b1,P0 — LatentWave with Post-hoc Frozen Early Exits,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,deepmimo-beam,DeepMIMO beam
+4,51650048,0.8035211200000001,0.912085,p2,P2 — Proposed Hierarchical Multi-Scale JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,deepmimo-beam,DeepMIMO beam
+6,108839424,1.6550537499999998,1.824448,cnn_p0,C0 — CNN Original L8 JEPA Objective,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,deepmimo-beam,DeepMIMO beam
+4,89571840,1.7112187,1.879507,cnn_p2,C2 — CNN Mask-relative Fine-to-coarse JEPA,"frozen context encoder, shared 80/10/10 split",best validation-performing exit,deepmimo-beam,DeepMIMO beam

@@ -1,0 +1,2146 @@
+{
+  "b0_reference": {
+    "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/checkpoints/last.ckpt",
+    "derived_from_method": "b1",
+    "exit_layer": 8,
+    "interpretation": "fixed full-depth reference using the same ViT P0 checkpoint and held-out head results"
+  },
+  "canonical_mask_profile": null,
+  "comparison_mode": "vit_b0_p0_p2_with_cnn_c0_c2",
+  "downstream_split_signature": "a31c3299a2e8f4ae710ff03b8495ab8309d06cd43d94fbce744e6ed6bcadeb3d",
+  "figures": [
+    "early_exit_performance.png",
+    "early_exit_performance.pdf",
+    "selected_exit_performance.png",
+    "selected_exit_performance.pdf",
+    "inference_efficiency.png",
+    "inference_efficiency.pdf"
+  ],
+  "git_revision": "fe25e54b1c176b1de975835ed925fccaf7989412",
+  "headline_exit_policy": "best_validation",
+  "masking": "M-block / span-time, N_m=6",
+  "method_provenance": {
+    "b0": {
+      "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/benchmarks.json",
+      "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_protocol": null,
+      "pretraining_experiment": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/experiment.json",
+      "pretraining_metadata": {
+        "config": {
+          "checkpoint": {
+            "dir": "runs/phase5_formal/p0/seed_000/checkpoints",
+            "every_n_epochs": 5
+          },
+          "data": {
+            "batch_size": 16,
+            "beam_path": "data/downstream/deepmimo.h5",
+            "num_workers": 4,
+            "pin_mem": true,
+            "pos_path": "data/downstream/nrpos-outdoor.h5",
+            "pretrain_datasets": [
+              {
+                "key": "spectrogram",
+                "name": "spectrogram",
+                "path": "data/pretraining/spectrogram-pretrain.h5"
+              },
+              {
+                "key": "normalized_spectrograms",
+                "name": "rfp",
+                "path": "data/pretraining/rfp.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "wifi-csi",
+                "path": "data/pretraining/wifi-csi.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "nrpos-indoor",
+                "path": "data/pretraining/nrpos-indoor.h5"
+              }
+            ],
+            "rfs_path": "data/downstream/rfs.h5"
+          },
+          "encoder": {
+            "depth": 8,
+            "embed_dim": 256,
+            "img_size": [
+              224,
+              224
+            ],
+            "num_heads": 8,
+            "patch_size": 16
+          },
+          "hierarchy": {
+            "enabled": false,
+            "include_l8_coarse": false,
+            "lambda_h": 1.0,
+            "layers": [
+              2,
+              4,
+              6
+            ],
+            "mode": "same_scale",
+            "warmup_epochs": 12
+          },
+          "masks": {
+            "multi_block": {
+              "allow_overlap": false,
+              "aspect_ratio": [
+                0.75,
+                1.5
+              ],
+              "aspect_ratio_type": "span_time",
+              "enc_mask_scale": [
+                1.0,
+                1.0
+              ],
+              "min_keep": 10,
+              "num_enc_masks": 1,
+              "num_pred_masks": 6,
+              "pred_mask_scale": [
+                0.15,
+                0.2
+              ]
+            },
+            "random": {
+              "ratios": [
+                0.7,
+                0.8
+              ]
+            },
+            "type": "multi_block"
+          },
+          "optimization": {
+            "ema": [
+              0.996,
+              1.0
+            ],
+            "epochs": 240,
+            "final_lr": 1e-06,
+            "final_weight_decay": 0.04,
+            "grad_clip": null,
+            "ref_lr": 0.001,
+            "ref_weight_decay": 0.04,
+            "start_lr": 1e-06,
+            "warmup": 12
+          },
+          "predictor": {
+            "depth": 4,
+            "embed_dim": 128,
+            "num_heads": 4
+          },
+          "seed": 0,
+          "wandb": {
+            "key": "offline",
+            "project_name": "latent-wfm"
+          }
+        },
+        "config_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/configs/p0.yml",
+        "dataset_manifest": [
+          {
+            "count": 3332,
+            "dtype": "float32",
+            "exists": true,
+            "key": "spectrogram",
+            "keys": [
+              "source_file",
+              "spectrogram"
+            ],
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "role": "pretraining",
+            "shape": [
+              3332,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 719779464
+          },
+          {
+            "count": 5932,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_spectrograms",
+            "keys": [
+              "center_freq",
+              "day",
+              "frequencies",
+              "iq_samples",
+              "labels",
+              "location",
+              "normalized_spectrograms",
+              "original_sample_rate",
+              "protocol",
+              "set",
+              "spectrograms",
+              "times"
+            ],
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "role": "pretraining",
+            "shape": [
+              5932,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 8716134794
+          },
+          {
+            "count": 840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "role": "pretraining",
+            "shape": [
+              840,
+              3,
+              224,
+              224
+            ],
+            "size_bytes": 2019529306
+          },
+          {
+            "count": 14448,
+            "dtype": "float64",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "role": "pretraining",
+            "shape": [
+              14448,
+              5,
+              224,
+              224
+            ],
+            "size_bytes": 30678353236
+          },
+          {
+            "count": 3624,
+            "dtype": "float32",
+            "exists": true,
+            "key": "image",
+            "keys": [
+              "image",
+              "label",
+              "source_file"
+            ],
+            "name": "rfs",
+            "path": "data/downstream/rfs.h5",
+            "role": "downstream",
+            "shape": [
+              3624,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 822309480
+          },
+          {
+            "count": 11628,
+            "dtype": "float32",
+            "exists": true,
+            "key": "features",
+            "keys": [
+              "features",
+              "label",
+              "source_file"
+            ],
+            "name": "position",
+            "path": "data/downstream/nrpos-outdoor.h5",
+            "role": "downstream",
+            "shape": [
+              11628,
+              4,
+              224,
+              224
+            ],
+            "size_bytes": 9454674408
+          },
+          {
+            "count": 14840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "sample",
+            "keys": [
+              "label_beam_16",
+              "label_los",
+              "sample",
+              "scenario"
+            ],
+            "name": "deepmimo",
+            "path": "data/downstream/deepmimo.h5",
+            "role": "downstream",
+            "shape": [
+              14840,
+              2,
+              32,
+              32
+            ],
+            "size_bytes": 126874880
+          }
+        ],
+        "environment": {
+          "cuda_available": true,
+          "cuda_device_count": 1,
+          "cuda_devices": [
+            {
+              "capability": [
+                12,
+                0
+              ],
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5070 Ti"
+            }
+          ],
+          "machine": "x86_64",
+          "nvidia_smi": {
+            "available": true,
+            "gpus": [
+              {
+                "driver_version": "595.91.07",
+                "memory_total_mib": "16303",
+                "name": "NVIDIA GeForce RTX 5070 Ti"
+              }
+            ]
+          },
+          "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+          "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:28:09) [GCC 14.3.0]",
+          "torch": "2.10.0+cu128",
+          "torch_cuda_runtime": "12.8"
+        },
+        "git_revision": "a4d4a70671d441bd62decf67f831aa64affb6ace",
+        "phase5": {
+          "accumulate_grad_batches": 4,
+          "config_path": "configs/p0.yml",
+          "cuda_allocator_conf": null,
+          "early_stopping": false,
+          "early_stopping_min_delta": null,
+          "early_stopping_patience": null,
+          "effective_batch_size": 64,
+          "hierarchy_lambda_override": null,
+          "include_l8_coarse": false,
+          "limit_train_batches": 1.0,
+          "limit_val_batches": 1.0,
+          "max_epochs": 240,
+          "memory_safe": false,
+          "method": "p0",
+          "microbatch_size": 16,
+          "microbatches_per_epoch": 903,
+          "optimizer_steps_per_epoch": 226,
+          "phase": 5,
+          "precision": "32-true",
+          "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+          "run_kind": "formal",
+          "run_name": "p0",
+          "seed": 0,
+          "validate_every": 0,
+          "validation_fraction": null,
+          "validation_seed": null
+        },
+        "schema_version": 1,
+        "seed": 0,
+        "source": {
+          "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd",
+          "name": "latent-wave",
+          "repository": "https://github.com/AhmedEssam19/latent-wave"
+        },
+        "source_tree": {
+          "available": true,
+          "file_count": 89,
+          "sha256": "3ce7405d7a2be593ce12d29cda04cb2cfb109d0254bc8d54124e157cb11faf55"
+        }
+      },
+      "pretraining_method": null,
+      "pretraining_runtime": {
+        "accumulate_grad_batches": 4,
+        "config_path": "configs/p0.yml",
+        "cuda_allocator_conf": null,
+        "early_stopping": false,
+        "early_stopping_min_delta": null,
+        "early_stopping_patience": null,
+        "effective_batch_size": 64,
+        "hierarchy_lambda_override": null,
+        "include_l8_coarse": false,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "max_epochs": 240,
+        "memory_safe": false,
+        "method": "p0",
+        "microbatch_size": 16,
+        "microbatches_per_epoch": 903,
+        "optimizer_steps_per_epoch": 226,
+        "phase": 5,
+        "precision": "32-true",
+        "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+        "run_kind": "formal",
+        "run_name": "p0",
+        "seed": 0,
+        "validate_every": 0,
+        "validation_fraction": null,
+        "validation_seed": null
+      }
+    },
+    "b1": {
+      "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/benchmarks.json",
+      "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_protocol": {
+        "batch_limits": {
+          "test": null,
+          "train": null,
+          "validation": null
+        },
+        "head_early_stopping": {
+          "enabled": true,
+          "min_delta": 0.0,
+          "monitor": "task-specific validation metric",
+          "patience": 20
+        },
+        "head_max_epochs": 200,
+        "selection_uses": "validation_only",
+        "test_evaluation": true,
+        "test_evaluation_mode": "post_selection_saved_heads",
+        "tolerance": 0.05
+      },
+      "pretraining_experiment": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/experiment.json",
+      "pretraining_metadata": {
+        "config": {
+          "checkpoint": {
+            "dir": "runs/phase5_formal/p0/seed_000/checkpoints",
+            "every_n_epochs": 5
+          },
+          "data": {
+            "batch_size": 16,
+            "beam_path": "data/downstream/deepmimo.h5",
+            "num_workers": 4,
+            "pin_mem": true,
+            "pos_path": "data/downstream/nrpos-outdoor.h5",
+            "pretrain_datasets": [
+              {
+                "key": "spectrogram",
+                "name": "spectrogram",
+                "path": "data/pretraining/spectrogram-pretrain.h5"
+              },
+              {
+                "key": "normalized_spectrograms",
+                "name": "rfp",
+                "path": "data/pretraining/rfp.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "wifi-csi",
+                "path": "data/pretraining/wifi-csi.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "nrpos-indoor",
+                "path": "data/pretraining/nrpos-indoor.h5"
+              }
+            ],
+            "rfs_path": "data/downstream/rfs.h5"
+          },
+          "encoder": {
+            "depth": 8,
+            "embed_dim": 256,
+            "img_size": [
+              224,
+              224
+            ],
+            "num_heads": 8,
+            "patch_size": 16
+          },
+          "hierarchy": {
+            "enabled": false,
+            "include_l8_coarse": false,
+            "lambda_h": 1.0,
+            "layers": [
+              2,
+              4,
+              6
+            ],
+            "mode": "same_scale",
+            "warmup_epochs": 12
+          },
+          "masks": {
+            "multi_block": {
+              "allow_overlap": false,
+              "aspect_ratio": [
+                0.75,
+                1.5
+              ],
+              "aspect_ratio_type": "span_time",
+              "enc_mask_scale": [
+                1.0,
+                1.0
+              ],
+              "min_keep": 10,
+              "num_enc_masks": 1,
+              "num_pred_masks": 6,
+              "pred_mask_scale": [
+                0.15,
+                0.2
+              ]
+            },
+            "random": {
+              "ratios": [
+                0.7,
+                0.8
+              ]
+            },
+            "type": "multi_block"
+          },
+          "optimization": {
+            "ema": [
+              0.996,
+              1.0
+            ],
+            "epochs": 240,
+            "final_lr": 1e-06,
+            "final_weight_decay": 0.04,
+            "grad_clip": null,
+            "ref_lr": 0.001,
+            "ref_weight_decay": 0.04,
+            "start_lr": 1e-06,
+            "warmup": 12
+          },
+          "predictor": {
+            "depth": 4,
+            "embed_dim": 128,
+            "num_heads": 4
+          },
+          "seed": 0,
+          "wandb": {
+            "key": "offline",
+            "project_name": "latent-wfm"
+          }
+        },
+        "config_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/configs/p0.yml",
+        "dataset_manifest": [
+          {
+            "count": 3332,
+            "dtype": "float32",
+            "exists": true,
+            "key": "spectrogram",
+            "keys": [
+              "source_file",
+              "spectrogram"
+            ],
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "role": "pretraining",
+            "shape": [
+              3332,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 719779464
+          },
+          {
+            "count": 5932,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_spectrograms",
+            "keys": [
+              "center_freq",
+              "day",
+              "frequencies",
+              "iq_samples",
+              "labels",
+              "location",
+              "normalized_spectrograms",
+              "original_sample_rate",
+              "protocol",
+              "set",
+              "spectrograms",
+              "times"
+            ],
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "role": "pretraining",
+            "shape": [
+              5932,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 8716134794
+          },
+          {
+            "count": 840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "role": "pretraining",
+            "shape": [
+              840,
+              3,
+              224,
+              224
+            ],
+            "size_bytes": 2019529306
+          },
+          {
+            "count": 14448,
+            "dtype": "float64",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "role": "pretraining",
+            "shape": [
+              14448,
+              5,
+              224,
+              224
+            ],
+            "size_bytes": 30678353236
+          },
+          {
+            "count": 3624,
+            "dtype": "float32",
+            "exists": true,
+            "key": "image",
+            "keys": [
+              "image",
+              "label",
+              "source_file"
+            ],
+            "name": "rfs",
+            "path": "data/downstream/rfs.h5",
+            "role": "downstream",
+            "shape": [
+              3624,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 822309480
+          },
+          {
+            "count": 11628,
+            "dtype": "float32",
+            "exists": true,
+            "key": "features",
+            "keys": [
+              "features",
+              "label",
+              "source_file"
+            ],
+            "name": "position",
+            "path": "data/downstream/nrpos-outdoor.h5",
+            "role": "downstream",
+            "shape": [
+              11628,
+              4,
+              224,
+              224
+            ],
+            "size_bytes": 9454674408
+          },
+          {
+            "count": 14840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "sample",
+            "keys": [
+              "label_beam_16",
+              "label_los",
+              "sample",
+              "scenario"
+            ],
+            "name": "deepmimo",
+            "path": "data/downstream/deepmimo.h5",
+            "role": "downstream",
+            "shape": [
+              14840,
+              2,
+              32,
+              32
+            ],
+            "size_bytes": 126874880
+          }
+        ],
+        "environment": {
+          "cuda_available": true,
+          "cuda_device_count": 1,
+          "cuda_devices": [
+            {
+              "capability": [
+                12,
+                0
+              ],
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5070 Ti"
+            }
+          ],
+          "machine": "x86_64",
+          "nvidia_smi": {
+            "available": true,
+            "gpus": [
+              {
+                "driver_version": "595.91.07",
+                "memory_total_mib": "16303",
+                "name": "NVIDIA GeForce RTX 5070 Ti"
+              }
+            ]
+          },
+          "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+          "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:28:09) [GCC 14.3.0]",
+          "torch": "2.10.0+cu128",
+          "torch_cuda_runtime": "12.8"
+        },
+        "git_revision": "a4d4a70671d441bd62decf67f831aa64affb6ace",
+        "phase5": {
+          "accumulate_grad_batches": 4,
+          "config_path": "configs/p0.yml",
+          "cuda_allocator_conf": null,
+          "early_stopping": false,
+          "early_stopping_min_delta": null,
+          "early_stopping_patience": null,
+          "effective_batch_size": 64,
+          "hierarchy_lambda_override": null,
+          "include_l8_coarse": false,
+          "limit_train_batches": 1.0,
+          "limit_val_batches": 1.0,
+          "max_epochs": 240,
+          "memory_safe": false,
+          "method": "p0",
+          "microbatch_size": 16,
+          "microbatches_per_epoch": 903,
+          "optimizer_steps_per_epoch": 226,
+          "phase": 5,
+          "precision": "32-true",
+          "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+          "run_kind": "formal",
+          "run_name": "p0",
+          "seed": 0,
+          "validate_every": 0,
+          "validation_fraction": null,
+          "validation_seed": null
+        },
+        "schema_version": 1,
+        "seed": 0,
+        "source": {
+          "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd",
+          "name": "latent-wave",
+          "repository": "https://github.com/AhmedEssam19/latent-wave"
+        },
+        "source_tree": {
+          "available": true,
+          "file_count": 89,
+          "sha256": "3ce7405d7a2be593ce12d29cda04cb2cfb109d0254bc8d54124e157cb11faf55"
+        }
+      },
+      "pretraining_method": "p0",
+      "pretraining_runtime": {
+        "accumulate_grad_batches": 4,
+        "config_path": "configs/p0.yml",
+        "cuda_allocator_conf": null,
+        "early_stopping": false,
+        "early_stopping_min_delta": null,
+        "early_stopping_patience": null,
+        "effective_batch_size": 64,
+        "hierarchy_lambda_override": null,
+        "include_l8_coarse": false,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "max_epochs": 240,
+        "memory_safe": false,
+        "method": "p0",
+        "microbatch_size": 16,
+        "microbatches_per_epoch": 903,
+        "optimizer_steps_per_epoch": 226,
+        "phase": 5,
+        "precision": "32-true",
+        "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+        "run_kind": "formal",
+        "run_name": "p0",
+        "seed": 0,
+        "validate_every": 0,
+        "validation_fraction": null,
+        "validation_seed": null
+      }
+    },
+    "cnn_p0": {
+      "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p0/seed_000/benchmarks.json",
+      "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p0/seed_000/checkpoints/best-epoch=epoch=019-val_loss=val_loss=0.246513.ckpt",
+      "checkpoint_sha256": "fc3283577bf2ef1d53b551d77ca3f0df357b52de45675abe6a8c36647746047c",
+      "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p0/seed_000/downstream/exit_metrics.json",
+      "metrics_protocol": {
+        "batch_limits": {
+          "test": null,
+          "train": null,
+          "validation": null
+        },
+        "head_early_stopping": {
+          "enabled": true,
+          "min_delta": 0.0,
+          "monitor": "task-specific validation metric",
+          "patience": 20
+        },
+        "head_max_epochs": 200,
+        "selection_uses": "validation_only",
+        "test_evaluation": true,
+        "test_evaluation_mode": "post_selection_saved_heads",
+        "tolerance": 0.05
+      },
+      "pretraining_experiment": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p0/seed_000/experiment.json",
+      "pretraining_metadata": {
+        "config": {
+          "checkpoint": {
+            "dir": "runs/masking_study/multi_block_n6/cnn_p0/seed_000/checkpoints",
+            "every_n_epochs": 5
+          },
+          "data": {
+            "batch_size": 16,
+            "beam_path": "data/downstream/deepmimo.h5",
+            "num_workers": 3,
+            "pin_mem": true,
+            "pos_path": "data/downstream/nrpos-outdoor.h5",
+            "pretrain_datasets": [
+              {
+                "key": "spectrogram",
+                "name": "spectrogram",
+                "path": "data/pretraining/spectrogram-pretrain.h5"
+              },
+              {
+                "key": "normalized_spectrograms",
+                "name": "rfp",
+                "path": "data/pretraining/rfp.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "wifi-csi",
+                "path": "data/pretraining/wifi-csi.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "nrpos-indoor",
+                "path": "data/pretraining/nrpos-indoor.h5"
+              }
+            ],
+            "rfs_path": "data/downstream/rfs.h5"
+          },
+          "encoder": {
+            "backbone": "convnext_v2_hier",
+            "depth": 8,
+            "embed_dim": 256,
+            "gradient_checkpointing": true,
+            "img_size": [
+              224,
+              224
+            ],
+            "mask_value": 0.0,
+            "num_heads": 8,
+            "patch_size": 16,
+            "stage_channels": [
+              48,
+              96,
+              192,
+              384
+            ],
+            "stage_depths": [
+              2,
+              2,
+              6,
+              2
+            ]
+          },
+          "hierarchy": {
+            "enabled": false,
+            "gradient_routing": "global",
+            "include_l8_coarse": false,
+            "lambda_h": 1.0,
+            "layers": [
+              2,
+              4,
+              6
+            ],
+            "mode": "same_scale",
+            "warmup_epochs": 12
+          },
+          "masks": {
+            "multi_block": {
+              "allow_overlap": false,
+              "aspect_ratio": [
+                0.75,
+                1.5
+              ],
+              "aspect_ratio_type": "span_time",
+              "enc_mask_scale": [
+                1.0,
+                1.0
+              ],
+              "min_keep": 10,
+              "num_enc_masks": 1,
+              "num_pred_masks": 6,
+              "pred_mask_scale": [
+                0.15,
+                0.2
+              ]
+            },
+            "random": {
+              "ratios": [
+                0.7,
+                0.8
+              ]
+            },
+            "type": "multi_block"
+          },
+          "optimization": {
+            "ema": [
+              0.996,
+              1.0
+            ],
+            "epochs": 100,
+            "final_lr": 1e-06,
+            "final_weight_decay": 0.04,
+            "grad_clip": null,
+            "ref_lr": 0.001,
+            "ref_weight_decay": 0.04,
+            "start_lr": 1e-06,
+            "warmup": 12
+          },
+          "predictor": {
+            "depth": 4,
+            "embed_dim": 128,
+            "num_heads": 4
+          },
+          "seed": 0,
+          "wandb": {
+            "key": "offline",
+            "project_name": "latent-wfm"
+          }
+        },
+        "config_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/configs/p0.yml",
+        "dataset_manifest": [
+          {
+            "count": 3332,
+            "dtype": "float32",
+            "exists": true,
+            "key": "spectrogram",
+            "keys": [
+              "source_file",
+              "spectrogram"
+            ],
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "role": "pretraining",
+            "shape": [
+              3332,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 719779464
+          },
+          {
+            "count": 5932,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_spectrograms",
+            "keys": [
+              "center_freq",
+              "day",
+              "frequencies",
+              "iq_samples",
+              "labels",
+              "location",
+              "normalized_spectrograms",
+              "original_sample_rate",
+              "protocol",
+              "set",
+              "spectrograms",
+              "times"
+            ],
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "role": "pretraining",
+            "shape": [
+              5932,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 8716134794
+          },
+          {
+            "count": 840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "role": "pretraining",
+            "shape": [
+              840,
+              3,
+              224,
+              224
+            ],
+            "size_bytes": 2019529306
+          },
+          {
+            "count": 14448,
+            "dtype": "float64",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "role": "pretraining",
+            "shape": [
+              14448,
+              5,
+              224,
+              224
+            ],
+            "size_bytes": 30678353236
+          },
+          {
+            "count": 3624,
+            "dtype": "float32",
+            "exists": true,
+            "key": "image",
+            "keys": [
+              "image",
+              "label",
+              "source_file"
+            ],
+            "name": "rfs",
+            "path": "data/downstream/rfs.h5",
+            "role": "downstream",
+            "shape": [
+              3624,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 822309480
+          },
+          {
+            "count": 11628,
+            "dtype": "float32",
+            "exists": true,
+            "key": "features",
+            "keys": [
+              "features",
+              "label",
+              "source_file"
+            ],
+            "name": "position",
+            "path": "data/downstream/nrpos-outdoor.h5",
+            "role": "downstream",
+            "shape": [
+              11628,
+              4,
+              224,
+              224
+            ],
+            "size_bytes": 9454674408
+          },
+          {
+            "count": 14840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "sample",
+            "keys": [
+              "label_beam_16",
+              "label_los",
+              "sample",
+              "scenario"
+            ],
+            "name": "deepmimo",
+            "path": "data/downstream/deepmimo.h5",
+            "role": "downstream",
+            "shape": [
+              14840,
+              2,
+              32,
+              32
+            ],
+            "size_bytes": 126874880
+          }
+        ],
+        "environment": {
+          "cuda_available": true,
+          "cuda_device_count": 1,
+          "cuda_devices": [
+            {
+              "capability": [
+                12,
+                0
+              ],
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5070 Ti"
+            }
+          ],
+          "machine": "x86_64",
+          "nvidia_smi": {
+            "available": true,
+            "gpus": [
+              {
+                "driver_version": "595.91.07",
+                "memory_total_mib": "16303",
+                "name": "NVIDIA GeForce RTX 5070 Ti"
+              }
+            ]
+          },
+          "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.43",
+          "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:28:09) [GCC 14.3.0]",
+          "torch": "2.10.0+cu128",
+          "torch_cuda_runtime": "12.8"
+        },
+        "git_revision": "946d6c8cb3864bd8199f4d7d6aec8661bc84bda3",
+        "mask_profile": null,
+        "phase5": {
+          "accumulate_grad_batches": 4,
+          "attention_backend": "fused",
+          "config_path": "configs/p0.yml",
+          "cuda_allocator_conf": "expandable_segments:True",
+          "data_loader_prefetch_factor": 4,
+          "data_loader_workers": 3,
+          "data_loader_workers_per_cache": [
+            3,
+            3,
+            3,
+            3
+          ],
+          "early_stopping": true,
+          "early_stopping_min_delta": 0.0001,
+          "early_stopping_patience": 20,
+          "effective_batch_size": 64,
+          "epoch_metrics_only": true,
+          "hdf5_worker_budget": 12,
+          "hierarchy_gradient_routing": "global",
+          "hierarchy_lambda_override": null,
+          "include_l8_coarse": false,
+          "limit_train_batches": 1.0,
+          "limit_val_batches": 1.0,
+          "log_every_n_steps": 1,
+          "mask_profile": null,
+          "matched_reference_checkpoint": null,
+          "max_epochs": 100,
+          "memory_safe": false,
+          "method": "cnn_p0",
+          "microbatch_size": 16,
+          "microbatches_per_epoch": 813,
+          "optimizer_steps_per_epoch": 204,
+          "pair_local_block_pairs": null,
+          "performance_safe": true,
+          "phase": 5,
+          "precision": "bf16-mixed",
+          "pretraining_selection": "diagnostic_latent_validation_early_stopping",
+          "progress_every_n_batches": 25,
+          "resume_checkpoint": null,
+          "resume_schedule_horizon_extended": false,
+          "resume_scheduler_total_steps": null,
+          "run_kind": "diagnostic",
+          "run_name": "cnn_p0",
+          "schedule_horizon_epochs": 100,
+          "seed": 0,
+          "staged_prefix_epochs": null,
+          "staged_prefix_uses_full_data": false,
+          "throughput_safe": false,
+          "total_data_loader_workers": 12,
+          "trainer_max_epochs": 100,
+          "validate_every": 0,
+          "validation_fraction": 0.1,
+          "validation_seed": 2025
+        },
+        "schema_version": 1,
+        "seed": 0,
+        "source": {
+          "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd",
+          "name": "latent-wave",
+          "repository": "https://github.com/AhmedEssam19/latent-wave"
+        },
+        "source_tree": {
+          "available": true,
+          "file_count": 815,
+          "sha256": "024a8797409f9b62ac82ffb9d8570572bec62c76a698c376a314624f9a3c9caa"
+        }
+      },
+      "pretraining_method": "cnn_p0",
+      "pretraining_runtime": {
+        "accumulate_grad_batches": 4,
+        "attention_backend": "fused",
+        "config_path": "configs/p0.yml",
+        "cuda_allocator_conf": "expandable_segments:True",
+        "data_loader_prefetch_factor": 4,
+        "data_loader_workers": 3,
+        "data_loader_workers_per_cache": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "early_stopping": true,
+        "early_stopping_min_delta": 0.0001,
+        "early_stopping_patience": 20,
+        "effective_batch_size": 64,
+        "epoch_metrics_only": true,
+        "hdf5_worker_budget": 12,
+        "hierarchy_gradient_routing": "global",
+        "hierarchy_lambda_override": null,
+        "include_l8_coarse": false,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "log_every_n_steps": 1,
+        "mask_profile": null,
+        "matched_reference_checkpoint": null,
+        "max_epochs": 100,
+        "memory_safe": false,
+        "method": "cnn_p0",
+        "microbatch_size": 16,
+        "microbatches_per_epoch": 813,
+        "optimizer_steps_per_epoch": 204,
+        "pair_local_block_pairs": null,
+        "performance_safe": true,
+        "phase": 5,
+        "precision": "bf16-mixed",
+        "pretraining_selection": "diagnostic_latent_validation_early_stopping",
+        "progress_every_n_batches": 25,
+        "resume_checkpoint": null,
+        "resume_schedule_horizon_extended": false,
+        "resume_scheduler_total_steps": null,
+        "run_kind": "diagnostic",
+        "run_name": "cnn_p0",
+        "schedule_horizon_epochs": 100,
+        "seed": 0,
+        "staged_prefix_epochs": null,
+        "staged_prefix_uses_full_data": false,
+        "throughput_safe": false,
+        "total_data_loader_workers": 12,
+        "trainer_max_epochs": 100,
+        "validate_every": 0,
+        "validation_fraction": 0.1,
+        "validation_seed": 2025
+      }
+    },
+    "cnn_p2": {
+      "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p2/seed_000/benchmarks.json",
+      "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints/best-epoch=epoch=069-val_loss=val_loss=0.466410.ckpt",
+      "checkpoint_sha256": "dfbdeb1f618bcffa4df58963a1869e87335d9bbddbd9f96ab71578c67b09225e",
+      "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p2/seed_000/downstream/exit_metrics.json",
+      "metrics_protocol": {
+        "batch_limits": {
+          "test": null,
+          "train": null,
+          "validation": null
+        },
+        "head_early_stopping": {
+          "enabled": true,
+          "min_delta": 0.0,
+          "monitor": "task-specific validation metric",
+          "patience": 20
+        },
+        "head_max_epochs": 200,
+        "selection_uses": "validation_only",
+        "test_evaluation": true,
+        "test_evaluation_mode": "post_selection_saved_heads",
+        "tolerance": 0.05
+      },
+      "pretraining_experiment": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/experiment.json",
+      "pretraining_metadata": {
+        "config": {
+          "checkpoint": {
+            "dir": "runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints",
+            "every_n_epochs": 5
+          },
+          "data": {
+            "batch_size": 16,
+            "beam_path": "data/downstream/deepmimo.h5",
+            "num_workers": 3,
+            "pin_mem": true,
+            "pos_path": "data/downstream/nrpos-outdoor.h5",
+            "pretrain_datasets": [
+              {
+                "key": "spectrogram",
+                "name": "spectrogram",
+                "path": "data/pretraining/spectrogram-pretrain.h5"
+              },
+              {
+                "key": "normalized_spectrograms",
+                "name": "rfp",
+                "path": "data/pretraining/rfp.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "wifi-csi",
+                "path": "data/pretraining/wifi-csi.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "nrpos-indoor",
+                "path": "data/pretraining/nrpos-indoor.h5"
+              }
+            ],
+            "rfs_path": "data/downstream/rfs.h5"
+          },
+          "encoder": {
+            "backbone": "convnext_v2_hier",
+            "depth": 8,
+            "embed_dim": 256,
+            "gradient_checkpointing": true,
+            "img_size": [
+              224,
+              224
+            ],
+            "mask_value": 0.0,
+            "num_heads": 8,
+            "patch_size": 16,
+            "stage_channels": [
+              48,
+              96,
+              192,
+              384
+            ],
+            "stage_depths": [
+              2,
+              2,
+              6,
+              2
+            ]
+          },
+          "hierarchy": {
+            "enabled": true,
+            "gradient_routing": "global",
+            "include_l8_coarse": false,
+            "lambda_h": 1.0,
+            "layers": [
+              2,
+              4,
+              6
+            ],
+            "mode": "mask_relative_fine_to_coarse",
+            "warmup_epochs": 12
+          },
+          "masks": {
+            "multi_block": {
+              "allow_overlap": false,
+              "aspect_ratio": [
+                0.75,
+                1.5
+              ],
+              "aspect_ratio_type": "span_time",
+              "enc_mask_scale": [
+                1.0,
+                1.0
+              ],
+              "min_keep": 10,
+              "num_enc_masks": 1,
+              "num_pred_masks": 6,
+              "pred_mask_scale": [
+                0.15,
+                0.2
+              ]
+            },
+            "random": {
+              "ratios": [
+                0.7,
+                0.8
+              ]
+            },
+            "type": "multi_block"
+          },
+          "optimization": {
+            "ema": [
+              0.996,
+              1.0
+            ],
+            "epochs": 100,
+            "final_lr": 1e-06,
+            "final_weight_decay": 0.04,
+            "grad_clip": null,
+            "ref_lr": 0.001,
+            "ref_weight_decay": 0.04,
+            "start_lr": 1e-06,
+            "warmup": 12
+          },
+          "predictor": {
+            "depth": 4,
+            "embed_dim": 128,
+            "num_heads": 4
+          },
+          "seed": 0,
+          "wandb": {
+            "key": "offline",
+            "project_name": "latent-wfm"
+          }
+        },
+        "config_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/configs/p2.yml",
+        "dataset_manifest": [
+          {
+            "count": 3332,
+            "dtype": "float32",
+            "exists": true,
+            "key": "spectrogram",
+            "keys": [
+              "source_file",
+              "spectrogram"
+            ],
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "role": "pretraining",
+            "shape": [
+              3332,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 719779464
+          },
+          {
+            "count": 5932,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_spectrograms",
+            "keys": [
+              "center_freq",
+              "day",
+              "frequencies",
+              "iq_samples",
+              "labels",
+              "location",
+              "normalized_spectrograms",
+              "original_sample_rate",
+              "protocol",
+              "set",
+              "spectrograms",
+              "times"
+            ],
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "role": "pretraining",
+            "shape": [
+              5932,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 8716134794
+          },
+          {
+            "count": 840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "role": "pretraining",
+            "shape": [
+              840,
+              3,
+              224,
+              224
+            ],
+            "size_bytes": 2019529306
+          },
+          {
+            "count": 14448,
+            "dtype": "float64",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "role": "pretraining",
+            "shape": [
+              14448,
+              5,
+              224,
+              224
+            ],
+            "size_bytes": 30678353236
+          },
+          {
+            "count": 3624,
+            "dtype": "float32",
+            "exists": true,
+            "key": "image",
+            "keys": [
+              "image",
+              "label",
+              "source_file"
+            ],
+            "name": "rfs",
+            "path": "data/downstream/rfs.h5",
+            "role": "downstream",
+            "shape": [
+              3624,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 822309480
+          },
+          {
+            "count": 11628,
+            "dtype": "float32",
+            "exists": true,
+            "key": "features",
+            "keys": [
+              "features",
+              "label",
+              "source_file"
+            ],
+            "name": "position",
+            "path": "data/downstream/nrpos-outdoor.h5",
+            "role": "downstream",
+            "shape": [
+              11628,
+              4,
+              224,
+              224
+            ],
+            "size_bytes": 9454674408
+          },
+          {
+            "count": 14840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "sample",
+            "keys": [
+              "label_beam_16",
+              "label_los",
+              "sample",
+              "scenario"
+            ],
+            "name": "deepmimo",
+            "path": "data/downstream/deepmimo.h5",
+            "role": "downstream",
+            "shape": [
+              14840,
+              2,
+              32,
+              32
+            ],
+            "size_bytes": 126874880
+          }
+        ],
+        "environment": {
+          "cuda_available": true,
+          "cuda_device_count": 1,
+          "cuda_devices": [
+            {
+              "capability": [
+                12,
+                0
+              ],
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5070 Ti"
+            }
+          ],
+          "machine": "x86_64",
+          "nvidia_smi": {
+            "available": true,
+            "gpus": [
+              {
+                "driver_version": "595.91.07",
+                "memory_total_mib": "16303",
+                "name": "NVIDIA GeForce RTX 5070 Ti"
+              }
+            ]
+          },
+          "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.43",
+          "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:28:09) [GCC 14.3.0]",
+          "torch": "2.10.0+cu128",
+          "torch_cuda_runtime": "12.8"
+        },
+        "git_revision": "946d6c8cb3864bd8199f4d7d6aec8661bc84bda3",
+        "mask_profile": null,
+        "phase5": {
+          "accumulate_grad_batches": 4,
+          "attention_backend": "fused",
+          "config_path": "configs/p2.yml",
+          "cuda_allocator_conf": "expandable_segments:True",
+          "data_loader_prefetch_factor": 4,
+          "data_loader_workers": 3,
+          "data_loader_workers_per_cache": [
+            3,
+            3,
+            3,
+            3
+          ],
+          "early_stopping": true,
+          "early_stopping_min_delta": 0.0001,
+          "early_stopping_patience": 20,
+          "effective_batch_size": 64,
+          "epoch_metrics_only": true,
+          "hdf5_worker_budget": 12,
+          "hierarchy_gradient_routing": "global",
+          "hierarchy_lambda_override": null,
+          "include_l8_coarse": false,
+          "limit_train_batches": 1.0,
+          "limit_val_batches": 1.0,
+          "log_every_n_steps": 1,
+          "mask_profile": null,
+          "matched_reference_checkpoint": null,
+          "max_epochs": 100,
+          "memory_safe": false,
+          "method": "cnn_p2",
+          "microbatch_size": 16,
+          "microbatches_per_epoch": 813,
+          "optimizer_steps_per_epoch": 204,
+          "pair_local_block_pairs": null,
+          "performance_safe": true,
+          "phase": 5,
+          "precision": "bf16-mixed",
+          "pretraining_selection": "diagnostic_latent_validation_early_stopping",
+          "progress_every_n_batches": 25,
+          "resume_checkpoint": "runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints/last.ckpt",
+          "resume_schedule_horizon_extended": false,
+          "resume_scheduler_total_steps": null,
+          "run_kind": "diagnostic",
+          "run_name": "cnn_p2_extended100_es",
+          "schedule_horizon_epochs": 100,
+          "seed": 0,
+          "staged_prefix_epochs": null,
+          "staged_prefix_uses_full_data": false,
+          "throughput_safe": false,
+          "total_data_loader_workers": 12,
+          "trainer_max_epochs": 100,
+          "validate_every": 0,
+          "validation_fraction": 0.1,
+          "validation_seed": 2025
+        },
+        "schema_version": 1,
+        "seed": 0,
+        "source": {
+          "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd",
+          "name": "latent-wave",
+          "repository": "https://github.com/AhmedEssam19/latent-wave"
+        },
+        "source_tree": {
+          "available": true,
+          "file_count": 815,
+          "sha256": "ddbef47e511025bd9e319fc26e398d66d897437765ecb6739b0798dc01bdf303"
+        }
+      },
+      "pretraining_method": "cnn_p2",
+      "pretraining_runtime": {
+        "accumulate_grad_batches": 4,
+        "attention_backend": "fused",
+        "config_path": "configs/p2.yml",
+        "cuda_allocator_conf": "expandable_segments:True",
+        "data_loader_prefetch_factor": 4,
+        "data_loader_workers": 3,
+        "data_loader_workers_per_cache": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "early_stopping": true,
+        "early_stopping_min_delta": 0.0001,
+        "early_stopping_patience": 20,
+        "effective_batch_size": 64,
+        "epoch_metrics_only": true,
+        "hdf5_worker_budget": 12,
+        "hierarchy_gradient_routing": "global",
+        "hierarchy_lambda_override": null,
+        "include_l8_coarse": false,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "log_every_n_steps": 1,
+        "mask_profile": null,
+        "matched_reference_checkpoint": null,
+        "max_epochs": 100,
+        "memory_safe": false,
+        "method": "cnn_p2",
+        "microbatch_size": 16,
+        "microbatches_per_epoch": 813,
+        "optimizer_steps_per_epoch": 204,
+        "pair_local_block_pairs": null,
+        "performance_safe": true,
+        "phase": 5,
+        "precision": "bf16-mixed",
+        "pretraining_selection": "diagnostic_latent_validation_early_stopping",
+        "progress_every_n_batches": 25,
+        "resume_checkpoint": "runs/masking_study/multi_block_n6/cnn_p2_extended100_es/seed_000/checkpoints/last.ckpt",
+        "resume_schedule_horizon_extended": false,
+        "resume_scheduler_total_steps": null,
+        "run_kind": "diagnostic",
+        "run_name": "cnn_p2_extended100_es",
+        "schedule_horizon_epochs": 100,
+        "seed": 0,
+        "staged_prefix_epochs": null,
+        "staged_prefix_uses_full_data": false,
+        "throughput_safe": false,
+        "total_data_loader_workers": 12,
+        "trainer_max_epochs": 100,
+        "validate_every": 0,
+        "validation_fraction": 0.1,
+        "validation_seed": 2025
+      }
+    },
+    "p2": {
+      "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p2/seed_000/benchmarks.json",
+      "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_protocol": {
+        "batch_limits": {
+          "test": null,
+          "train": null,
+          "validation": null
+        },
+        "head_early_stopping": {
+          "enabled": true,
+          "min_delta": 0.0,
+          "monitor": "task-specific validation metric",
+          "patience": 20
+        },
+        "head_max_epochs": 200,
+        "selection_uses": "validation_only",
+        "test_evaluation": true,
+        "test_evaluation_mode": "post_selection_saved_heads",
+        "tolerance": 0.05
+      },
+      "pretraining_experiment": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/experiment.json",
+      "pretraining_metadata": {
+        "config": {
+          "checkpoint": {
+            "dir": "runs/phase5_formal/p2/seed_000/checkpoints",
+            "every_n_epochs": 5
+          },
+          "data": {
+            "batch_size": 4,
+            "beam_path": "data/downstream/deepmimo.h5",
+            "num_workers": 4,
+            "pin_mem": true,
+            "pos_path": "data/downstream/nrpos-outdoor.h5",
+            "pretrain_datasets": [
+              {
+                "key": "spectrogram",
+                "name": "spectrogram",
+                "path": "data/pretraining/spectrogram-pretrain.h5"
+              },
+              {
+                "key": "normalized_spectrograms",
+                "name": "rfp",
+                "path": "data/pretraining/rfp.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "wifi-csi",
+                "path": "data/pretraining/wifi-csi.h5"
+              },
+              {
+                "key": "normalized_csi",
+                "name": "nrpos-indoor",
+                "path": "data/pretraining/nrpos-indoor.h5"
+              }
+            ],
+            "rfs_path": "data/downstream/rfs.h5"
+          },
+          "encoder": {
+            "depth": 8,
+            "embed_dim": 256,
+            "img_size": [
+              224,
+              224
+            ],
+            "num_heads": 8,
+            "patch_size": 16
+          },
+          "hierarchy": {
+            "enabled": true,
+            "include_l8_coarse": false,
+            "lambda_h": 1.0,
+            "layers": [
+              2,
+              4,
+              6
+            ],
+            "mode": "mask_relative_fine_to_coarse",
+            "warmup_epochs": 12
+          },
+          "masks": {
+            "multi_block": {
+              "allow_overlap": false,
+              "aspect_ratio": [
+                0.75,
+                1.5
+              ],
+              "aspect_ratio_type": "span_time",
+              "enc_mask_scale": [
+                1.0,
+                1.0
+              ],
+              "min_keep": 10,
+              "num_enc_masks": 1,
+              "num_pred_masks": 6,
+              "pred_mask_scale": [
+                0.15,
+                0.2
+              ]
+            },
+            "random": {
+              "ratios": [
+                0.7,
+                0.8
+              ]
+            },
+            "type": "multi_block"
+          },
+          "optimization": {
+            "ema": [
+              0.996,
+              1.0
+            ],
+            "epochs": 60,
+            "final_lr": 1e-06,
+            "final_weight_decay": 0.04,
+            "grad_clip": null,
+            "ref_lr": 0.001,
+            "ref_weight_decay": 0.04,
+            "start_lr": 1e-06,
+            "warmup": 12
+          },
+          "predictor": {
+            "depth": 4,
+            "embed_dim": 128,
+            "num_heads": 4
+          },
+          "seed": 0,
+          "wandb": {
+            "key": "offline",
+            "project_name": "latent-wfm"
+          }
+        },
+        "config_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/configs/p2.yml",
+        "dataset_manifest": [
+          {
+            "count": 3332,
+            "dtype": "float32",
+            "exists": true,
+            "key": "spectrogram",
+            "keys": [
+              "source_file",
+              "spectrogram"
+            ],
+            "name": "spectrogram",
+            "path": "data/pretraining/spectrogram-pretrain.h5",
+            "role": "pretraining",
+            "shape": [
+              3332,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 719779464
+          },
+          {
+            "count": 5932,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_spectrograms",
+            "keys": [
+              "center_freq",
+              "day",
+              "frequencies",
+              "iq_samples",
+              "labels",
+              "location",
+              "normalized_spectrograms",
+              "original_sample_rate",
+              "protocol",
+              "set",
+              "spectrograms",
+              "times"
+            ],
+            "name": "rfp",
+            "path": "data/pretraining/rfp.h5",
+            "role": "pretraining",
+            "shape": [
+              5932,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 8716134794
+          },
+          {
+            "count": 840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "wifi-csi",
+            "path": "data/pretraining/wifi-csi.h5",
+            "role": "pretraining",
+            "shape": [
+              840,
+              3,
+              224,
+              224
+            ],
+            "size_bytes": 2019529306
+          },
+          {
+            "count": 14448,
+            "dtype": "float64",
+            "exists": true,
+            "key": "normalized_csi",
+            "keys": [
+              "csi",
+              "normalized_csi"
+            ],
+            "name": "nrpos-indoor",
+            "path": "data/pretraining/nrpos-indoor.h5",
+            "role": "pretraining",
+            "shape": [
+              14448,
+              5,
+              224,
+              224
+            ],
+            "size_bytes": 30678353236
+          },
+          {
+            "count": 3624,
+            "dtype": "float32",
+            "exists": true,
+            "key": "image",
+            "keys": [
+              "image",
+              "label",
+              "source_file"
+            ],
+            "name": "rfs",
+            "path": "data/downstream/rfs.h5",
+            "role": "downstream",
+            "shape": [
+              3624,
+              1,
+              224,
+              224
+            ],
+            "size_bytes": 822309480
+          },
+          {
+            "count": 11628,
+            "dtype": "float32",
+            "exists": true,
+            "key": "features",
+            "keys": [
+              "features",
+              "label",
+              "source_file"
+            ],
+            "name": "position",
+            "path": "data/downstream/nrpos-outdoor.h5",
+            "role": "downstream",
+            "shape": [
+              11628,
+              4,
+              224,
+              224
+            ],
+            "size_bytes": 9454674408
+          },
+          {
+            "count": 14840,
+            "dtype": "float32",
+            "exists": true,
+            "key": "sample",
+            "keys": [
+              "label_beam_16",
+              "label_los",
+              "sample",
+              "scenario"
+            ],
+            "name": "deepmimo",
+            "path": "data/downstream/deepmimo.h5",
+            "role": "downstream",
+            "shape": [
+              14840,
+              2,
+              32,
+              32
+            ],
+            "size_bytes": 126874880
+          }
+        ],
+        "environment": {
+          "cuda_available": true,
+          "cuda_device_count": 1,
+          "cuda_devices": [
+            {
+              "capability": [
+                12,
+                0
+              ],
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 5070 Ti"
+            }
+          ],
+          "machine": "x86_64",
+          "nvidia_smi": {
+            "available": true,
+            "gpus": [
+              {
+                "driver_version": "595.91.07",
+                "memory_total_mib": "16303",
+                "name": "NVIDIA GeForce RTX 5070 Ti"
+              }
+            ]
+          },
+          "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.43",
+          "python": "3.14.6 | packaged by Anaconda, Inc. | (main, Jun 18 2026, 21:28:09) [GCC 14.3.0]",
+          "torch": "2.10.0+cu128",
+          "torch_cuda_runtime": "12.8"
+        },
+        "git_revision": "ab9021f3394be13a1ecf330191a450e9d6b033e4",
+        "phase5": {
+          "accumulate_grad_batches": 16,
+          "config_path": "configs/p2.yml",
+          "cuda_allocator_conf": "expandable_segments:True",
+          "early_stopping": false,
+          "early_stopping_min_delta": null,
+          "early_stopping_patience": null,
+          "effective_batch_size": 64,
+          "hierarchy_lambda_override": null,
+          "include_l8_coarse": false,
+          "limit_train_batches": 1.0,
+          "limit_val_batches": 1.0,
+          "max_epochs": 60,
+          "memory_safe": true,
+          "method": "p2",
+          "microbatch_size": 4,
+          "microbatches_per_epoch": 3612,
+          "optimizer_steps_per_epoch": 226,
+          "phase": 5,
+          "precision": "32-true",
+          "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+          "run_kind": "formal",
+          "run_name": "p2",
+          "seed": 0,
+          "validate_every": 0,
+          "validation_fraction": null,
+          "validation_seed": null
+        },
+        "schema_version": 1,
+        "seed": 0,
+        "source": {
+          "commit": "330e9ef5f6eb69e728ba43b3755036cffdd086cd",
+          "name": "latent-wave",
+          "repository": "https://github.com/AhmedEssam19/latent-wave"
+        },
+        "source_tree": {
+          "available": true,
+          "file_count": 89,
+          "sha256": "5980d3a00d879fa32174c3b4189f26abaf0334d8c60651be6c8d3ef7025f9f98"
+        }
+      },
+      "pretraining_method": "p2",
+      "pretraining_runtime": {
+        "accumulate_grad_batches": 16,
+        "config_path": "configs/p2.yml",
+        "cuda_allocator_conf": "expandable_segments:True",
+        "early_stopping": false,
+        "early_stopping_min_delta": null,
+        "early_stopping_patience": null,
+        "effective_batch_size": 64,
+        "hierarchy_lambda_override": null,
+        "include_l8_coarse": false,
+        "limit_train_batches": 1.0,
+        "limit_val_batches": 1.0,
+        "max_epochs": 60,
+        "memory_safe": true,
+        "method": "p2",
+        "microbatch_size": 4,
+        "microbatches_per_epoch": 3612,
+        "optimizer_steps_per_epoch": 226,
+        "phase": 5,
+        "precision": "32-true",
+        "pretraining_selection": "fixed_source_horizon_last_checkpoint",
+        "run_kind": "formal",
+        "run_name": "p2",
+        "seed": 0,
+        "validate_every": 0,
+        "validation_fraction": null,
+        "validation_seed": null
+      }
+    }
+  },
+  "methods": [
+    "B0 \u2014 Original LatentWave",
+    "P0 \u2014 LatentWave with Post-hoc Frozen Early Exits",
+    "P2 \u2014 Proposed Hierarchical Multi-Scale JEPA",
+    "C0 \u2014 CNN Original L8 JEPA Objective",
+    "C2 \u2014 CNN Mask-relative Fine-to-coarse JEPA"
+  ],
+  "provenance_note": "C0 was trained directly with a deterministic 90/10 pretraining split and validation-loss early stopping (100-epoch maximum); its planned five-epoch full-data prefix was explicitly skipped. C2 reuses its already-trained frozen heads and matching epoch-69 checkpoint (pretraining validation loss 0.466410); only its missing held-out test evaluation and inference benchmark are added. A later C2 continuation reached a better epoch-93 pretraining checkpoint (validation loss 0.431457), but its heads were not retrained on that checkpoint and it is not the C2 representation evaluated in this report. Training histories differ; all results are seed-0 descriptive comparisons.",
+  "report": "vit_b0_p0_p2_cnn_c0_c2_multi_block_n6_single_seed",
+  "seed": 0,
+  "task_suite": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ],
+  "vit_p0_baseline": {
+    "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/benchmarks.json",
+    "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p0/seed_000/checkpoints/last.ckpt",
+    "head_seed": 0,
+    "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p0/seed_000/downstream/exit_metrics.json",
+    "pretrain_seed": 0
+  },
+  "vit_p2_baseline": {
+    "benchmark_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p2/seed_000/benchmarks.json",
+    "checkpoint": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA/runs/phase5_formal/p2/seed_000/checkpoints/last.ckpt",
+    "head_seed": 0,
+    "metrics_path": "/home/waves-lab/LatentWave_Data/preprocessed_datasets/MultiScaleJEPA-main/runs/masking_study/multi_block_n6/p2/seed_000/downstream/exit_metrics.json",
+    "pretrain_seed": 0
+  }
+}

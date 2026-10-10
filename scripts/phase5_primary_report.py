@@ -1279,7 +1279,24 @@ caches participates in pretraining.
         "table_selected_exits.csv": selected_rows,
         "table_inference_cost.csv": benchmark_rows,
         "table_all_methods_downstream.csv": headline_rows,
-        "table_all_methods_inference.csv": headline_rows,
+        "table_all_methods_inference.csv": [
+            {
+                key: row.get(key)
+                for key in (
+                    "method",
+                    "method_label",
+                    "task",
+                    "task_label",
+                    "exit_layer",
+                    "flops",
+                    "latency_mean_ms",
+                    "latency_p95_ms",
+                    "protocol",
+                    "selection",
+                )
+            }
+            for row in headline_rows
+        ],
     }
     for filename, rows in csv_rows.items():
         fields = sorted({key for row in rows for key in row})
