@@ -104,7 +104,8 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         raise ValueError(f"refusing to write empty report table: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        fieldnames = list(dict.fromkeys(key for row in rows for key in row))
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -134,8 +135,8 @@ def main() -> int:
                            "split_manifest": packet.get("split_manifest"),
                            "split_manifest_sha256": packet.get("split_manifest_sha256"),
                            "heads": [{"task": task, "exit": layer,
-                               "path": row["tasks"][task]["exits"][str(layer)]["head_path"],
-                               "sha256": sha(Path(row["tasks"][task]["exits"][str(layer)]["head_path"]))}
+                               "path": packet["tasks"][task]["exits"][str(layer)]["head_path"],
+                               "sha256": sha(Path(packet["tasks"][task]["exits"][str(layer)]["head_path"]))}
                                for task in TASKS for layer in EXITS]})
         for task in TASKS:
             row = packet["tasks"][task]
