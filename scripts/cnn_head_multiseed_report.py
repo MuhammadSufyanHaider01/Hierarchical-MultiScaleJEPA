@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import shutil
 import statistics
 import sys
 from pathlib import Path
@@ -397,6 +398,24 @@ def build(run_root: Path, report_dir: Path, output: Path) -> None:
     )
     readme = f"""# Seven-head-seed M-block comparison: CNN C0 and C2\n\nThis supplement adds seven independently initialized frozen-head runs (head seeds 0–6) for C0 and C2 to the existing M-block CNN report. The pretrained CNN checkpoint is held fixed at pretraining seed 0 for each method. All six downstream tasks use the persisted CNN split manifest (seed 2025); exits are selected by validation performance separately for each task and head seed, and each saved selection is evaluated once on the held-out test split.\n\nB0, P0, and P2 are reused from `{report_dir.relative_to(ROOT)}`; their seven-head-seed outcomes are not retrained here. **Split comparability caveat:** {split_note}\n\nThe CNN inference summary uses the already-recorded per-exit FLOPs and synchronized batch-1 latency, weighted over each head seed's validation-selected exit. Thus the selected-inference spread reflects exit choice across head seeds, not repeated timing runs.\n\n## Seven-seed validation-selected held-out results\n\nSee `multiseed_validation_selected.csv` for mean, sample standard deviation, min/max, all per-seed test results, chosen exits, and exit-selection frequency.\n\n## Fixed-exit results\n\nSee `multiseed_fixed_exits.csv` for mean ± sample standard deviation at L2/L4/L6/L8 (B0 is full-depth L8 only).\n\n## Selected-exit inference\n\nSee `multiseed_selected_inference.csv` for per-task FLOPs and latency averaged over the seven validation-selected exits. Latency timing itself is reused from the existing benchmark packets, not remeasured for each head seed.\n\n## Figures\n\n{chr(10).join('- `' + path + '`' for path in figures)}\n"""
     (output / "README_multiseed.md").write_text(readme)
+    index_readme = output / "README.md"
+    seed0_readme = output / "README_seed000.md"
+    if index_readme.is_file() and not seed0_readme.exists():
+        shutil.copy2(index_readme, seed0_readme)
+    index_readme.write_text(
+        "# M-block CNN comparison — seven-head-seed update\n\n"
+        "The authoritative multi-seed comparison for CNN C0 and C2 is now in "
+        "[README_multiseed.md](README_multiseed.md). It reports seven independently "
+        "initialized downstream-head seeds (0–6), reuses the existing seven-seed "
+        "B0/P0/P2 results, and includes validation-selected held-out performance, "
+        "fixed-exit results, inference summaries, provenance, and split-comparability caveats.\n\n"
+        "Open `multiseed_validation_selected.csv`, `multiseed_fixed_exits.csv`, and "
+        "`multiseed_selected_inference.csv` for the tables; the corresponding "
+        "`multiseed_*.png` and PDF files are the updated comparison figures.\n\n"
+        "The original single-seed packet is retained for traceability in "
+        "[README_seed000.md](README_seed000.md) and its original unprefixed files; "
+        "do not use those single-seed files as the multi-seed result.\n"
+    )
     _write_json(output / "multiseed_manifest.json", {
         "study": "CNN M-block seven-head-seed downstream comparison",
         "head_seeds": list(SEEDS), "pretrain_seed": 0, "split_seed": 2025,
