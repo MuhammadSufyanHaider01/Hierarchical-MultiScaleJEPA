@@ -367,15 +367,25 @@ def build(run_root: Path, report_dir: Path, output: Path) -> None:
                 layer = int(selected_exits[str(seed)] if str(seed) in selected_exits else selected_exits[seed])
                 if method == "b0": layer = 8
                 row = baseline_inference[(method, task, layer)]
+                # The source ViT multiseed packet records mean latency and
+                # standard deviation, but not a per-exit p95. Keep that
+                # statistic explicitly unavailable instead of synthesizing it.
                 per_seed.append({
                     "head_seed": seed, "selected_exit": layer,
                     "flops": float(row["flops"]),
                     "latency_mean_ms": float(row["latency_mean_ms"]),
-                    "latency_p95_ms": float(row["latency_p95_ms"]),
+                    "latency_p95_ms": (
+                        float(row["latency_p95_ms"])
+                        if row.get("latency_p95_ms") not in (None, "") else None
+                    ),
                 })
             fmean, fsd = _mean_sd([r["flops"] for r in per_seed])
             lmean, lsd = _mean_sd([r["latency_mean_ms"] for r in per_seed])
-            pmean, psd = _mean_sd([r["latency_p95_ms"] for r in per_seed])
+            p95_values = [r["latency_p95_ms"] for r in per_seed]
+            if all(value is not None and np.isfinite(value) for value in p95_values):
+                pmean, psd = _mean_sd(p95_values)
+            else:
+                pmean, psd = None, None
             inference_rows.append({
                 "method": method, "method_label": METHOD_LABELS[method], "task": task,
                 "task_label": TASK_LABELS[task], "selected_exit_by_seed": json.dumps({r["head_seed"]: r["selected_exit"] for r in per_seed}, sort_keys=True),
