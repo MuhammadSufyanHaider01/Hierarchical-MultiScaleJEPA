@@ -12,6 +12,7 @@ from typing import Mapping
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 class ExitHead(nn.Module):
@@ -177,6 +178,124 @@ class FrozenEncoderFusionTeacherStudent(nn.Module):
             teacher_output = self.teacher(representations)
         student_output = self.student(representations[self.exit_layer])
         return student_output, teacher_output
+
+
+class ResidualProjectedFusionExitHead(nn.Module):
+    """Anchor-preserving, sample-gated residual fusion of earlier exits."""
+
+    ALLOWED_EXITS = (2, 4, 6, 8)
+    BOTTLENECK_DIM = 64
+    GATE_DIM = 64
+
+    def __init__(self, embed_dim: int, num_outputs: int, exit_layer: int,
+                 source_layers, bottleneck_dim: int = 64, gate_dim: int = 64):
+        super().__init__()
+        self.embed_dim = int(embed_dim)
+        self.num_outputs = int(num_outputs)
+        self.exit_layer = int(exit_layer)
+        self.source_layers = tuple(int(layer) for layer in source_layers)
+        self.bottleneck_dim = int(bottleneck_dim)
+        self.gate_dim = int(gate_dim)
+        if self.exit_layer not in self.ALLOWED_EXITS:
+            raise ValueError(f"exit_layer must be one of {self.ALLOWED_EXITS}, got {self.exit_layer}")
+        expected = tuple(layer for layer in self.ALLOWED_EXITS if layer < self.exit_layer)
+        if self.source_layers != expected:
+            raise ValueError(f"L{self.exit_layer} requires source_layers={expected}, got {self.source_layers}")
+        if self.embed_dim < 1 or self.num_outputs < 1 or self.bottleneck_dim < 1 or self.gate_dim < 1:
+            raise ValueError("dimensions and num_outputs must be positive")
+
+        self.source_norms = nn.ModuleDict({str(j): nn.LayerNorm(self.embed_dim) for j in expected})
+        self.down_projections = nn.ModuleDict({str(j): nn.Linear(self.embed_dim, self.bottleneck_dim) for j in expected})
+        self.up_projections = nn.ModuleDict({str(j): nn.Linear(self.bottleneck_dim, self.embed_dim) for j in expected})
+        self.anchor_gate_norm = nn.LayerNorm(self.embed_dim) if expected else None
+        self.anchor_gate_projection = nn.Linear(self.embed_dim, self.gate_dim) if expected else None
+        self.source_gate_projections = nn.ModuleDict({str(j): nn.Linear(self.bottleneck_dim, self.gate_dim) for j in expected})
+        self.gate_scores = nn.ModuleDict({str(j): nn.Linear(self.gate_dim, 1) for j in expected})
+        for up in self.up_projections.values():
+            nn.init.zeros_(up.weight)
+            nn.init.zeros_(up.bias)
+        self.output_norm = nn.LayerNorm(self.embed_dim)
+        self.output_projection = nn.Linear(self.embed_dim, self.num_outputs)
+
+    def _fuse_features(self, representations: Mapping[int, torch.Tensor], *, return_diagnostics=False):
+        requested = set(self.source_layers) | {self.exit_layer}
+        missing = requested.difference(representations)
+        if missing:
+            raise ValueError(f"missing required representations: {sorted(missing)}")
+        pooled = {}
+        batch_dim = None
+        for layer in sorted(requested):
+            tokens = representations[layer]
+            if tokens.ndim != 3:
+                raise ValueError(f"L{layer} tokens must have shape [B,N,D], got {tuple(tokens.shape)}")
+            if tokens.shape[1] < 1 or tokens.shape[2] != self.embed_dim:
+                raise ValueError(f"L{layer} tokens must have non-empty N and D={self.embed_dim}, got {tuple(tokens.shape)}")
+            if batch_dim is None:
+                batch_dim = tokens.shape[0]
+            elif tokens.shape[0] != batch_dim:
+                raise ValueError("all exit representations must have matching batch dimensions")
+            pooled[layer] = tokens.mean(dim=1)
+        anchor = pooled[self.exit_layer]
+        diagnostics = {}
+        if self.source_layers:
+            query = self.anchor_gate_projection(self.anchor_gate_norm(anchor))
+            residual_sum = torch.zeros_like(anchor)
+            anchor_norm = torch.linalg.vector_norm(anchor, dim=-1)
+            for layer in self.source_layers:
+                key = str(layer)
+                hidden = F.gelu(self.down_projections[key](self.source_norms[key](pooled[layer])))
+                correction = self.up_projections[key](hidden)
+                gate_hidden = torch.tanh(query + self.source_gate_projections[key](hidden))
+                gate = torch.sigmoid(self.gate_scores[key](gate_hidden))
+                residual = gate * correction
+                residual_sum = residual_sum + residual
+                if return_diagnostics:
+                    residual_norm = torch.linalg.vector_norm(residual, dim=-1)
+                    diagnostics[layer] = {"gate": gate.squeeze(-1), "residual_norm": residual_norm,
+                                          "relative_residual_norm": residual_norm / (anchor_norm + 1e-8)}
+            fused = anchor + residual_sum
+        else:
+            fused = anchor
+        return (fused, diagnostics) if return_diagnostics else fused
+
+    def forward(self, representations: Mapping[int, torch.Tensor], return_diagnostics: bool = False):
+        result = self._fuse_features(representations, return_diagnostics=return_diagnostics)
+        if return_diagnostics:
+            fused, diagnostics = result
+            return self.output_projection(self.output_norm(fused)), diagnostics
+        return self.output_projection(self.output_norm(result))
+
+
+class FrozenEncoderResidualFusionExit(nn.Module):
+    """V2 residual fusion head over one frozen causal encoder prefix."""
+
+    def __init__(self, encoder: nn.Module, exit_layer: int, num_outputs: int):
+        super().__init__()
+        depth = int(getattr(encoder, "logical_depth", len(encoder.blocks)))
+        self.exit_layer = int(exit_layer)
+        if self.exit_layer not in ResidualProjectedFusionExitHead.ALLOWED_EXITS or self.exit_layer > depth:
+            raise ValueError(f"unsupported residual fusion exit L{self.exit_layer} for encoder depth {depth}")
+        self.source_layers = tuple(layer for layer in ResidualProjectedFusionExitHead.ALLOWED_EXITS if layer < self.exit_layer)
+        self.requested_layers = self.source_layers + (self.exit_layer,)
+        self.encoder = encoder
+        embed_dim = getattr(encoder, "exit_embed_dim", None) or encoder.pos_embed.shape[-1]
+        self.head = ResidualProjectedFusionExitHead(int(embed_dim), int(num_outputs), self.exit_layer, self.source_layers)
+        for parameter in self.encoder.parameters():
+            parameter.requires_grad = False
+        self.encoder.eval()
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        self.encoder.eval()
+        return self
+
+    def representations(self, x: torch.Tensor) -> dict[int, torch.Tensor]:
+        self.encoder.eval()
+        with torch.no_grad():
+            return self.encoder.forward_to_layers(x, self.requested_layers)
+
+    def forward(self, x: torch.Tensor, return_diagnostics: bool = False):
+        return self.head(self.representations(x), return_diagnostics=return_diagnostics)
 
 
 def _checkpoint_state_dict(checkpoint: object) -> Mapping[str, torch.Tensor]:

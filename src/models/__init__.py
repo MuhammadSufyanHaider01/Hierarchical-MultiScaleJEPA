@@ -14,6 +14,8 @@ from .exit_heads import (
     CausalFusionExitHead,
     FrozenEncoderFusionExit,
     FrozenEncoderFusionTeacherStudent,
+    ResidualProjectedFusionExitHead,
+    FrozenEncoderResidualFusionExit,
     ExitHead,
     FrozenEncoderExit,
     load_context_encoder_checkpoint,
@@ -35,6 +37,8 @@ __all__ = [
     "CausalFusionExitHead",
     "FrozenEncoderFusionExit",
     "FrozenEncoderFusionTeacherStudent",
+    "ResidualProjectedFusionExitHead",
+    "FrozenEncoderResidualFusionExit",
     "load_context_encoder_checkpoint",
     "load_target_encoder_checkpoint",
 ]
