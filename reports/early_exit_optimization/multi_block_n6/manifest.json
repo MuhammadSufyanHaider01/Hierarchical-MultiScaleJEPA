@@ -10,6 +10,10 @@
     6,
     8
   ],
+  "figures": [
+    "algorithm_layerwise_performance.pdf",
+    "algorithm_layerwise_performance.png"
+  ],
   "fusion_benchmark": "separately measured",
   "fusion_kd_cost": "Current EE batch-1 cost; teacher training only",
   "head_seeds": [

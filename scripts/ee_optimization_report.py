@@ -110,10 +110,101 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
+def plot_layerwise_algorithm_figure(summary_rows: list[dict], output_dir: Path) -> list[str]:
+    """Plot all task/exit curves for the three EE algorithms on P2."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    expected = {
+        (method, algorithm, task, layer)
+        for method in METHODS for algorithm in ALGORITHMS
+        for task in TASKS for layer in EXITS
+    }
+    indexed = {
+        (row["method"], row["algorithm"], row["task"], int(row["exit"])): row
+        for row in summary_rows
+    }
+    if set(indexed) != expected:
+        missing = sorted(expected - set(indexed))[:5]
+        extra = sorted(set(indexed) - expected)[:5]
+        raise ValueError(f"layerwise plot coverage mismatch; missing={missing}, extra={extra}")
+
+    colors = {"current": "#0072B2", "causal_fusion": "#D55E00", "fusion_teacher_kd": "#009E73"}
+    markers = {"current": "o", "causal_fusion": "s", "fusion_teacher_kd": "^"}
+    algorithm_labels = {
+        "current": "Current EE",
+        "causal_fusion": "Causal Fusion",
+        "fusion_teacher_kd": "Fusion-Teacher KD",
+    }
+    task_labels = {
+        "rfs": "RF sensing", "jamming": "Jamming classification",
+        "human-activity": "Human activity sensing", "interference": "Interference classification",
+        "nrpos-outdoor": "NR positioning", "deepmimo-beam": "DeepMIMO beam prediction",
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(2, 3, figsize=(16, 9), constrained_layout=False)
+    fig.suptitle("P2 — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
+    for ax, task in zip(axes.flat, TASKS):
+        method = "p2"
+        for algorithm in ALGORITHMS:
+            rows = [indexed[(method, algorithm, task, layer)] for layer in EXITS]
+            means = [float(row["mean"]) for row in rows]
+            ax.plot(
+                EXITS, means, color=colors[algorithm],
+                linestyle="-", marker=markers[algorithm],
+                linewidth=1.8, markersize=5,
+            )
+        ax.set_title(task_labels[task])
+        ax.set_xticks(EXITS, [f"L{layer}" for layer in EXITS])
+        ax.set_xlabel("Encoder exit layer")
+        ax.set_ylabel("Mean distance error (m; lower is better)" if task == "nrpos-outdoor" else "Macro accuracy")
+        ax.grid(axis="y", alpha=0.25)
+
+    handles = [
+        Line2D([0], [0], color=colors[algorithm], marker=markers[algorithm], linestyle="-",
+               linewidth=1.8, label=algorithm_labels[algorithm])
+        for algorithm in ALGORITHMS
+    ]
+    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.945), ncol=3, frameon=False)
+    fig.text(0.5, 0.015, "Points show mean test performance across seven head seeds.",
+             ha="center", fontsize=10)
+    fig.tight_layout(rect=(0.015, 0.045, 0.985, 0.86))
+    paths = ["algorithm_layerwise_performance.png", "algorithm_layerwise_performance.pdf"]
+    fig.savefig(output_dir / paths[0], dpi=300, bbox_inches="tight")
+    fig.savefig(output_dir / paths[1], bbox_inches="tight")
+    plt.close(fig)
+    return paths
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUT)
+    parser.add_argument("--plot-existing", action="store_true",
+                        help="add the aggregate layerwise figure from the existing per_exit_summary.csv")
     args = parser.parse_args()
+    if args.plot_existing:
+        out = args.output
+        with (out / "per_exit_summary.csv").open(newline="") as stream:
+            summary_rows = list(csv.DictReader(stream))
+        figures = plot_layerwise_algorithm_figure(summary_rows, out)
+        manifest_path = out / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["figures"] = sorted(set(manifest.get("figures", [])) | set(figures))
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        readme_path = out / "README.md"
+        readme = readme_path.read_text()
+        note = ("\n## Layer-wise algorithm comparison\n\n"
+                "`algorithm_layerwise_performance.png` and `.pdf` show test performance at L2/L4/L6/L8 "
+                "for the P2 method (Proposed Hierarchical Multi-Scale JEPA) across all six tasks. "
+                "Each algorithm is shown as a solid line; points show mean test performance across seven head seeds.\n")
+        heading = "## Layer-wise algorithm comparison"
+        if heading in readme:
+            readme = readme.split(heading, 1)[0].rstrip()
+        readme_path.write_text(readme.rstrip() + "\n" + note)
+        print(json.dumps({"report": str(out), "figures": figures}, indent=2))
+        return 0
     sources = {}
     split_identities = set()
     for method in METHODS:
@@ -301,6 +392,7 @@ def main() -> int:
     write_csv(out / "early_depth_comparison_summary.csv", early_summary)
     write_csv(out / "inference_cost.csv", costs)
     # Compact exported comparison plots for each method and task.
+    figure_paths = []
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -317,19 +409,23 @@ def main() -> int:
                 fig.savefig(out / f"{method}_{task}_exit_performance.png", dpi=180)
                 fig.savefig(out / f"{method}_{task}_exit_performance.pdf")
                 plt.close(fig)
+        figure_paths = plot_layerwise_algorithm_figure(summary, out)
     except ImportError:
         raise RuntimeError("matplotlib is required for the EE study report")
     manifest = {"study": "two_stage_early_exit_optimization", "mask": "multi_block_n6",
                 "methods": METHODS, "algorithms": ALGORITHMS, "tasks": TASKS,
                 "head_seeds": SEEDS, "exit_layers": EXITS, "split_seed": 2025,
                 "replication_count": len(SEEDS), "multiseed_variability_estimated": len(SEEDS) > 1,
-                "sources": provenance, "selection": "best_validation", "test_used_for_selection": False,
+                "sources": provenance, "figures": figure_paths,
+                "selection": "best_validation", "test_used_for_selection": False,
                 "fusion_benchmark": "separately measured", "fusion_kd_cost": "Current EE batch-1 cost; teacher training only"}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (out / "README.md").write_text("# Two-stage early-exit optimization\n\n"
         "P0/P2 on `multi_block_n6`, downstream head seeds 0–6. Validation selects the reported exit and test evaluates it afterward. "
         "Classification gains are new minus current; positioning gains are current error minus new error. "
-        "Aggregates use mean and sample SD across seven seeds. Fusion-Teacher KD deploys the single-representation student; its teacher is training-only.\n")
+        "Aggregates use mean and sample SD across seven seeds. Fusion-Teacher KD deploys the single-representation student; its teacher is training-only.\n\n"
+        "The aggregate layerwise figure `algorithm_layerwise_performance.png`/`.pdf` shows all six tasks "
+        "for the P2 method, comparing the three EE algorithms as solid lines of mean test performance across head seeds.\n")
     print(json.dumps({"report": str(out), "seed_packets": len(provenance), "per_exit_rows": len(per_exit)}, indent=2))
     return 0
 

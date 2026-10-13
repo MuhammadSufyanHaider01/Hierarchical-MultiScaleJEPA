@@ -109,3 +109,19 @@ def test_stage_job_commands_and_missing_report_input_fail_closed(tmp_path, monke
     monkeypatch.setattr(ee_report, "RUNS", tmp_path)
     with pytest.raises(FileNotFoundError, match="required causal_fusion packet missing"):
         ee_report.read_packet("p0", "causal_fusion", 0)
+
+
+def test_layerwise_figure_includes_all_tasks_algorithms_methods_and_exits(tmp_path):
+    rows = [
+        {"method": method, "algorithm": algorithm, "task": task, "exit": layer,
+         "mean": 0.5, "sample_sd": 0.02}
+        for method in ee_report.METHODS
+        for algorithm in ee_report.ALGORITHMS
+        for task in ee_report.TASKS
+        for layer in ee_report.EXITS
+    ]
+    paths = ee_report.plot_layerwise_algorithm_figure(rows, tmp_path)
+    assert paths == ["algorithm_layerwise_performance.png", "algorithm_layerwise_performance.pdf"]
+    assert all((tmp_path / path).is_file() and (tmp_path / path).stat().st_size > 0 for path in paths)
+    with pytest.raises(ValueError, match="coverage mismatch"):
+        ee_report.plot_layerwise_algorithm_figure(rows[:-1], tmp_path)
