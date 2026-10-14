@@ -37,7 +37,9 @@
     "p2_deepmimo-beam_exit_performance.png",
     "p2_deepmimo-beam_exit_performance.pdf",
     "algorithm_layerwise_performance.png",
-    "algorithm_layerwise_performance.pdf"
+    "algorithm_layerwise_performance.pdf",
+    "p0_p2_six_task_fusion_comparison.png",
+    "p0_p2_six_task_fusion_comparison.pdf"
   ],
   "head_seeds": [
     0,

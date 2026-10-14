@@ -67,7 +67,7 @@ def test_six_task_figures_use_solid_mean_lines_without_sd(monkeypatch, tmp_path)
 
     summary = [
         {"method": method, "algorithm": algorithm, "task": task, "exit": layer,
-         "mean": 0.5, "sample_sd": 0.1}
+         "mean": 0.5, "sample_sd": 0.1, "n": 7}
         for method in report.METHODS for algorithm in report.ALGORITHMS
         for task in report.TASKS for layer in report.EXITS
     ]
@@ -84,7 +84,47 @@ def test_six_task_figures_use_solid_mean_lines_without_sd(monkeypatch, tmp_path)
     assert {name for name in figures if name.endswith(".png")} == {
         f"{method}_{task}_exit_performance.png" for method in report.METHODS for task in report.TASKS
     } | {"algorithm_layerwise_performance.png", "p0_algorithm_layerwise_performance.png",
-         "p1_algorithm_layerwise_performance.png", "p2_reverse_algorithm_layerwise_performance.png"}
+         "p1_algorithm_layerwise_performance.png", "p2_reverse_algorithm_layerwise_performance.png",
+         "p0_p2_six_task_fusion_comparison.png"}
+
+
+def test_p0_p2_comparison_encodes_method_and_algorithm_without_sd_bars(monkeypatch, tmp_path):
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+
+    summary = [
+        {"method": method, "algorithm": algorithm, "task": task, "exit": layer,
+         "mean": 0.5, "sample_sd": 0.1, "n": 7}
+        for method in ("p0", "p2") for algorithm in report.ALGORITHMS
+        for task in report.TASKS for layer in report.EXITS
+    ]
+    saved_figures = []
+    original_savefig = Figure.savefig
+
+    def track_savefig(self, *args, **kwargs):
+        saved_figures.append(self)
+        return original_savefig(self, *args, **kwargs)
+
+    def forbid_errorbars(*_args, **_kwargs):
+        raise AssertionError("the P0/P2 aggregate figure must not show deviation bars")
+
+    monkeypatch.setattr(Figure, "savefig", track_savefig)
+    monkeypatch.setattr(Axes, "errorbar", forbid_errorbars)
+    paths = report.plot_p0_p2_comparison(summary, tmp_path)
+    assert paths == ["p0_p2_six_task_fusion_comparison.png", "p0_p2_six_task_fusion_comparison.pdf"]
+    assert len(saved_figures) == 2
+    figure = saved_figures[0]
+    assert len(figure.axes) == 6
+    assert all(len(ax.lines) == 4 for ax in figure.axes)
+    for ax in figure.axes:
+        assert [line.get_linestyle() for line in ax.lines] == [":", "-", ":", "-"]
+        assert ax.lines[0].get_color() == ax.lines[1].get_color()
+        assert ax.lines[2].get_color() == ax.lines[3].get_color()
+        assert ax.lines[0].get_color() != ax.lines[2].get_color()
+    assert [text.get_text() for text in figure.legends[0].get_texts()] == [
+        "No multiscale and no fusion", "No multiscale but fusion",
+        "Multiscale with no fusion", "Multiscale with fusion",
+    ]
 
 
 def test_report_dependency_lists_all_twelve_job_ids(monkeypatch, tmp_path):

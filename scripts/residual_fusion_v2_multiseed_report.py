@@ -183,7 +183,100 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
         for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
             name = f"{stem}.{suffix}"; fig.savefig(output / name, **kwargs); paths.append(name)
         plt.close(fig)
+    paths.extend(plot_p0_p2_comparison(summary, output))
     return paths
+
+
+def plot_p0_p2_comparison(summary: list[dict], output: Path) -> list[str]:
+    """Plot the four requested P0/P2 approaches over all six tasks, without SD bars."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    methods = ("p0", "p2")
+    approaches = (
+        ("p0", "current", "No multiscale and no fusion", "#0072B2", ":", "o"),
+        ("p0", "residual_projected_dynamic_fusion", "No multiscale but fusion", "#0072B2", "-", "o"),
+        ("p2", "current", "Multiscale with no fusion", "#D55E00", ":", "s"),
+        ("p2", "residual_projected_dynamic_fusion", "Multiscale with fusion", "#D55E00", "-", "s"),
+    )
+    indexed = {(row["method"], row["algorithm"], row["task"], int(row["exit"])): row
+               for row in summary if row["method"] in methods}
+    expected = {(method, algorithm, task, layer)
+                for method, algorithm, *_ in approaches for task in TASKS for layer in EXITS}
+    if set(indexed) != expected:
+        raise ValueError("P0/P2 comparison figure requires complete fixed-exit coverage")
+    if any(int(row.get("n", 0)) != len(SEEDS) for row in indexed.values()):
+        raise ValueError("P0/P2 comparison figure requires seven-seed aggregates")
+
+    task_labels = {
+        "rfs": "RF sensing",
+        "jamming": "Jamming classification",
+        "human-activity": "Human activity sensing",
+        "interference": "Interference classification",
+        "nrpos-outdoor": "NR positioning",
+        "deepmimo-beam": "DeepMIMO beam prediction",
+    }
+    fig, axes = plt.subplots(2, 3, figsize=(17, 9))
+    fig.suptitle("P0/P2 Fusion V2 comparison across six downstream tasks", fontsize=17, y=0.99)
+    for ax, task in zip(axes.flat, TASKS):
+        for method, algorithm, label, color, linestyle, marker in approaches:
+            rows = [indexed[method, algorithm, task, layer] for layer in EXITS]
+            ax.plot(EXITS, [float(row["mean"]) for row in rows], color=color, marker=marker,
+                    linewidth=1.9, markersize=5.5, linestyle=linestyle)
+        ax.set_title(task_labels[task])
+        ax.set_xticks(EXITS, [f"L{layer}" for layer in EXITS])
+        ax.set_xlabel("Encoder exit layer")
+        ax.set_ylabel("Mean distance error (m; lower is better)" if task == "nrpos-outdoor"
+                      else "Mean macro accuracy")
+        ax.grid(axis="y", alpha=0.25)
+
+    handles = [Line2D([0], [0], color=color, marker=marker, linewidth=1.9,
+                      linestyle=linestyle, label=label)
+               for _, _, label, color, linestyle, marker in approaches]
+    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.94),
+               ncol=2, frameon=False)
+    fig.text(0.5, 0.015,
+             "Lines show seven-seed mean test performance at each fixed exit (solid Fusion V2, "
+             "dotted Current EE); positioning is lower-is-better.", ha="center")
+    fig.tight_layout(rect=(0.015, 0.05, 0.985, 0.85))
+    output.mkdir(parents=True, exist_ok=True)
+    names = ["p0_p2_six_task_fusion_comparison.png", "p0_p2_six_task_fusion_comparison.pdf"]
+    for name, kwargs in zip(names, ({"dpi": 300, "bbox_inches": "tight"}, {"bbox_inches": "tight"})):
+        fig.savefig(output / name, **kwargs)
+    plt.close(fig)
+    return names
+
+
+def build_p0_p2_supplement(output: Path = OUT) -> dict:
+    """Add the P0/P2 four-approach figure to an already generated multiseed report."""
+    output = Path(output)
+    summary_path = output / "fixed_exit_summary.csv"
+    if not summary_path.is_file():
+        raise FileNotFoundError(f"existing fixed-exit summary missing: {summary_path}")
+    with summary_path.open(newline="") as stream:
+        summary = list(csv.DictReader(stream))
+    for row in summary:
+        row["exit"] = int(row["exit"])
+        row["n"] = int(row["n"])
+        row["mean"] = float(row["mean"])
+    names = plot_p0_p2_comparison(summary, output)
+
+    manifest_path = output / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["figures"] = list(dict.fromkeys([*manifest.get("figures", []), *names]))
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    readme_path = output / "README.md"
+    readme = readme_path.read_text() if readme_path.is_file() else ""
+    note = ("\n## P0/P2 four-approach comparison\n\n"
+            "`p0_p2_six_task_fusion_comparison.png` and `.pdf` compare Current EE and "
+            "Residual Dynamic Fusion V2 at fixed exits for P0 (no multiscale) and P2 "
+            "(multiscale). Each panel covers one downstream task; lines show the seven-seed "
+            "mean without deviation bars (Current EE dotted, Fusion V2 solid).\n")
+    if "p0_p2_six_task_fusion_comparison.png" not in readme:
+        readme_path.write_text(readme.rstrip() + "\n" + note)
+    return {"output": str(output), "figures": names}
 
 
 def _build_report(current_root, v2_root, output) -> dict:
@@ -281,7 +374,12 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUT); parser.add_argument("--current-root", type=Path, default=CURRENT_ROOT); parser.add_argument("--v2-root", type=Path, default=V2_ROOT)
+    parser.add_argument("--p0-p2-supplement", action="store_true",
+                        help="add the P0/P2 six-task figure to an existing multiseed report")
     args = parser.parse_args()
+    if args.p0_p2_supplement:
+        print(json.dumps(build_p0_p2_supplement(args.output), indent=2))
+        return 0
     print(json.dumps(build_report(args.current_root, args.v2_root, args.output), indent=2)); return 0
 
 
