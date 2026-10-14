@@ -7,21 +7,31 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import statistics
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-METHODS = ("p0", "p2")
+METHODS = ("p0", "p1", "p2", "p2_reverse")
 ALGORITHMS = ("current", "residual_projected_dynamic_fusion")
 SEEDS = tuple(range(7))
 TASKS = ("rfs", "jamming", "human-activity", "interference", "nrpos-outdoor", "deepmimo-beam")
 EXITS = (2, 4, 6, 8)
 CHECKPOINT_HASHES = {"p0": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
-                     "p2": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac"}
+                     "p1": "2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025",
+                     "p2": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+                     "p2_reverse": "a1d38e7e951e52765ec0ba5de0b6aed27de6d7b8e604569cd9df5b40eecd3973"}
 CURRENT_ROOT = ROOT / "runs/masking_head_seeds/multi_block_n6"
 V2_ROOT = ROOT / "runs/ee_optimization/multi_block_n6/residual_dynamic_fusion"
 OUT = ROOT / "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed"
+CHECKPOINT_PATHS = {
+    "p0": ROOT / "runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P0/last.ckpt",
+    "p1": ROOT / "runs/masking_head_seeds/checkpoint_bundle/checkpoints/frequency_n6/P1/last.ckpt",
+    "p2": ROOT / "runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P2/last.ckpt",
+    "p2_reverse": ROOT / "runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/checkpoints/last.ckpt",
+}
 
 
 def sha(path: Path) -> str:
@@ -53,7 +63,8 @@ def load_packet(method: str, algorithm: str, seed: int, current_root=CURRENT_ROO
     if packet.get("protocol", {}).get("test_evaluation") is not True or set(packet.get("tasks", {})) != set(TASKS):
         raise ValueError(f"test/task coverage incomplete: {path}")
     checkpoint = Path(packet.get("checkpoint", ""))
-    if not checkpoint.is_file() or sha(checkpoint) != CHECKPOINT_HASHES[method]:
+    if (not checkpoint.is_file() or checkpoint.resolve() != CHECKPOINT_PATHS[method].resolve()
+            or sha(checkpoint) != CHECKPOINT_HASHES[method]):
         raise ValueError(f"fixed checkpoint identity invalid: {path}")
     if packet.get("checkpoint_sha256") not in (None, CHECKPOINT_HASHES[method]):
         raise ValueError(f"checkpoint hash mismatch: {path}")
@@ -135,6 +146,7 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
     if set(indexed) != expected:
         raise ValueError("figure coverage mismatch")
     labels = {"current": "Current EE", "residual_projected_dynamic_fusion": "Residual Dynamic Fusion V2"}
+    method_labels = {"p0": "P0", "p1": "P1", "p2": "P2", "p2_reverse": "P2-Reverse"}
     colors = {"current": "#0072B2", "residual_projected_dynamic_fusion": "#009E73"}
     markers = {"current": "o", "residual_projected_dynamic_fusion": "^"}
     task_labels = {"rfs": "RF sensing", "jamming": "Jamming classification", "human-activity": "Human activity sensing",
@@ -156,24 +168,25 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
 
     for method in METHODS:
         for task in TASKS:
-            fig, ax = plt.subplots(figsize=(7, 4)); draw(ax, method, task); ax.set_title(f"{method.upper()} — {task_labels[task]}"); ax.legend(); fig.tight_layout()
+            fig, ax = plt.subplots(figsize=(7, 4)); draw(ax, method, task); ax.set_title(f"{method_labels[method]} — {task_labels[task]}"); ax.legend(); fig.tight_layout()
             for suffix, kwargs in (("png", {"dpi": 180}), ("pdf", {})):
                 name = f"{method}_{task}_exit_performance.{suffix}"; fig.savefig(output / name, **kwargs); paths.append(name)
             plt.close(fig)
-        fig, axes = plt.subplots(2, 3, figsize=(16, 9)); fig.suptitle(f"{method.upper()} — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
+        fig, axes = plt.subplots(2, 3, figsize=(16, 9)); fig.suptitle(f"{method_labels[method]} — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
         for ax, task in zip(axes.flat, TASKS): draw(ax, method, task, show_sd=False); ax.set_title(task_labels[task])
         handles = [Line2D([0], [0], color=colors[a], marker=markers[a], label=labels[a]) for a in ALGORITHMS]
         fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.945), ncol=2, frameon=False)
         fig.text(0.5, 0.015, "Solid lines show mean performance across seven head seeds.", ha="center")
         fig.tight_layout(rect=(0.015, 0.045, 0.985, 0.86))
-        stem = "algorithm_layerwise_performance" if method == "p2" else "p0_algorithm_layerwise_performance"
+        stem = {"p0": "p0_algorithm_layerwise_performance", "p1": "p1_algorithm_layerwise_performance",
+                "p2": "algorithm_layerwise_performance", "p2_reverse": "p2_reverse_algorithm_layerwise_performance"}[method]
         for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
             name = f"{stem}.{suffix}"; fig.savefig(output / name, **kwargs); paths.append(name)
         plt.close(fig)
     return paths
 
 
-def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict:
+def _build_report(current_root, v2_root, output) -> dict:
     sources, split_hashes = {}, set()
     for method in METHODS:
         for algorithm in ALGORITHMS:
@@ -189,6 +202,7 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
             for seed in SEEDS:
                 path, packet = sources[method, algorithm, seed]
                 source_record = {"method": method, "algorithm": algorithm, "head_seed": seed, "metrics_path": str(path), "metrics_sha256": sha(path),
+                                 "checkpoint_path": str(packet["checkpoint"]),
                                  "checkpoint_sha256": packet["_checkpoint_sha256"], "split_manifest_sha256": packet["_split_sha256"]}
                 if algorithm == "residual_projected_dynamic_fusion":
                     runtime_path = v2_root / "runtime" / method / f"head_seed_{seed:03d}.json"
@@ -246,9 +260,22 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
                 "figures": figures, "sources": provenance}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (output / "README.md").write_text("# Residual Dynamic Fusion V2 — seven-head-seed study\n\n"
-        "Current EE and Residual Dynamic Fusion V2 are compared for P0/P2 using head seeds 0–6. Validation selects each exit; test evaluates it afterward. "
+        "Current EE and Residual Dynamic Fusion V2 are compared for P0, P1, P2, and P2-Reverse using head seeds 0–6. Validation selects each exit; test evaluates it afterward. "
         "Aggregate tables report mean, sample SD, min/max, per-seed values, and selected-exit frequencies. Positive direction-aware gains favor V2; for positioning they are error reductions.\n")
     return {"output": str(output), "fixed_rows": len(fixed), "selected_rows": len(selected), "gain_rows": len(gains), "sources": len(provenance), "figures": len(figures)}
+
+
+def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict:
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".fusion-v2-multiseed-", dir=output.parent) as temporary:
+        staged = Path(temporary)
+        result = _build_report(current_root, v2_root, staged)
+        products = sorted(staged.iterdir(), key=lambda path: (path.name == "manifest.json", path.name))
+        output.mkdir(parents=True, exist_ok=True)
+        for product in products:
+            os.replace(product, output / product.name)
+    return {**result, "output": str(output)}
 
 
 def main() -> int:

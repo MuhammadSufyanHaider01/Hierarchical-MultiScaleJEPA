@@ -26,12 +26,19 @@ from ee_progress import finish_epoch_progress, render_batch_progress  # noqa: E4
 
 ALGORITHM = "residual_projected_dynamic_fusion"
 MANIFEST = ROOT / "runs/masking_head_seeds/multi_block_n6/head_seed_000/splits_seed_2025_primary_v3.json"
+CONFIG_METHOD = {"p2_reverse": "p2"}
+
+
+def config_path_for_method(method: str, config_root: Path = ROOT / "configs") -> Path:
+    if method not in ("p0", "p1", "p2", "p2_reverse"):
+        raise ValueError(f"unsupported Fusion V2 method: {method}")
+    return config_root / f"{CONFIG_METHOD.get(method, method)}.yml"
 
 
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--method", choices=("p0", "p2"), required=True)
+    parser.add_argument("--method", choices=("p0", "p1", "p2", "p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, default=0)
     parser.add_argument("--head-seed", type=int, default=0)
     parser.add_argument("--split-seed", type=int, default=2025)
@@ -183,7 +190,7 @@ def main() -> int:
     manifest = json.loads(MANIFEST.read_text())
     if int(manifest.get("seed", -1)) != 2025:
         raise ValueError("locked split manifest has incorrect seed")
-    config = init_jepa_config(str(args.config or ROOT / "configs" / f"{args.method}.yml"))
+    config = init_jepa_config(str(args.config or config_path_for_method(args.method)))
     configure_method_variant(config, args.method)
     tasks = tuple(args.task or PRIMARY_TASKS)
     layers = tuple(dict.fromkeys(args.exit_layer or EXIT_LAYERS))

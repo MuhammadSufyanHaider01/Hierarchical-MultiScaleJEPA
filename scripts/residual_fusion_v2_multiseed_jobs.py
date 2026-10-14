@@ -15,14 +15,15 @@ import residual_fusion_v2_multiseed_report as report
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ROOT = ROOT / "runs/ee_optimization/multi_block_n6/residual_dynamic_fusion"
-CHECKPOINTS = {method: ROOT / f"runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/{method.upper()}/last.ckpt" for method in report.METHODS}
 MISSING_SEEDS = tuple(seed for seed in report.SEEDS if seed != 0)
+PILOT_METHODS = ("p0", "p2")
+CHECKPOINTS = {method: report.CHECKPOINT_PATHS[method] for method in PILOT_METHODS}
 
 
 def audit(current_root=report.CURRENT_ROOT, v2_root=RUN_ROOT) -> dict:
     entries, failures = [], []
     split_hashes = set()
-    for method in report.METHODS:
+    for method in PILOT_METHODS:
         for algorithm, seeds in (("current", report.SEEDS), ("residual_projected_dynamic_fusion", (0,))):
             for seed in seeds:
                 try:
@@ -34,7 +35,7 @@ def audit(current_root=report.CURRENT_ROOT, v2_root=RUN_ROOT) -> dict:
                     failures.append(str(error))
     if len(split_hashes) > 1:
         failures.append("split manifest identity differs across reusable inputs")
-    return {"study": "residual_dynamic_fusion_multiseed", "methods": report.METHODS, "head_seeds": report.SEEDS,
+    return {"study": "residual_dynamic_fusion_multiseed", "methods": PILOT_METHODS, "head_seeds": report.SEEDS,
             "reuse_v2_seed_zero": True, "missing_v2_seeds": MISSING_SEEDS, "inputs": entries, "failures": failures, "passed": not failures}
 
 
@@ -46,7 +47,7 @@ def _runtime_code(profile: str) -> str:
 
 
 def job_script(method: str, seed: int, partition: str, run_root=RUN_ROOT) -> str:
-    if method not in report.METHODS or seed not in MISSING_SEEDS:
+    if method not in PILOT_METHODS or seed not in MISSING_SEEDS:
         raise ValueError("jobs are only prepared for P0/P2 V2 seeds 1–6")
     name = f"eev2ms-{method}-hs{seed:03d}"
     logs = run_root / "slurm_multiseed" / f"{name}-%j"
@@ -67,7 +68,7 @@ def prepare(registry: dict, gpu_partition: str, cpu_partition: str, run_root=RUN
         raise RuntimeError("input audit failed; refusing to prepare jobs")
     scripts = run_root / "slurm_multiseed"; scripts.mkdir(parents=True, exist_ok=True)
     records = []
-    for method in report.METHODS:
+    for method in PILOT_METHODS:
         for seed in MISSING_SEEDS:
             path = scripts / f"v2_{method}_seed{seed:03d}.sbatch"; path.write_text(job_script(method, seed, gpu_partition, run_root))
             records.append({"kind": "v2_train", "method": method, "head_seed": seed, "script": str(path)})
