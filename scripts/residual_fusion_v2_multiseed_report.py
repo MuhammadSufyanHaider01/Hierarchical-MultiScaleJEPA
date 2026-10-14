@@ -163,8 +163,13 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
         for algorithm in ALGORITHMS:
             for seed in SEEDS:
                 path, packet = sources[method, algorithm, seed]
-                provenance.append({"method": method, "algorithm": algorithm, "head_seed": seed, "metrics_path": str(path), "metrics_sha256": sha(path),
-                                   "checkpoint_sha256": packet["_checkpoint_sha256"], "split_manifest_sha256": packet["_split_sha256"]})
+                source_record = {"method": method, "algorithm": algorithm, "head_seed": seed, "metrics_path": str(path), "metrics_sha256": sha(path),
+                                 "checkpoint_sha256": packet["_checkpoint_sha256"], "split_manifest_sha256": packet["_split_sha256"]}
+                if algorithm == "residual_projected_dynamic_fusion":
+                    runtime_path = v2_root / "runtime" / method / f"head_seed_{seed:03d}.json"
+                    source_record["runtime_metadata_path"] = str(runtime_path) if runtime_path.is_file() else None
+                    source_record["runtime_metadata"] = json.loads(runtime_path.read_text()) if runtime_path.is_file() else None
+                provenance.append(source_record)
                 for task in TASKS:
                     row, metric, higher = packet["tasks"][task], packet["tasks"][task]["spec"]["metric_name"], bool(packet["tasks"][task]["spec"]["higher_is_better"])
                     chosen_exit = int(row["selected_exit_best_validation"]); chosen = row["exits"][str(chosen_exit)]
