@@ -34,6 +34,8 @@
     "p2_nrpos-outdoor_exit_performance.pdf",
     "p2_deepmimo-beam_exit_performance.png",
     "p2_deepmimo-beam_exit_performance.pdf",
+    "p0_algorithm_layerwise_performance.png",
+    "p0_algorithm_layerwise_performance.pdf",
     "algorithm_layerwise_performance.png",
     "algorithm_layerwise_performance.pdf"
   ],

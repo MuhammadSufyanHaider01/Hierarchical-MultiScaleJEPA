@@ -158,25 +158,27 @@ def plot_exit_performance_figures(fixed_rows: list[dict], output_dir: Path) -> l
                 paths.append(path.name)
             plt.close(fig)
 
-    # The masking report also includes a compact all-task P2 layerwise panel.
-    fig, axes = plt.subplots(2, 3, figsize=(16, 9), constrained_layout=False)
-    fig.suptitle("P2 — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
-    for ax, task in zip(axes.flat, TASKS):
-        draw_task(ax, "p2", task)
-        ax.set_title(task_labels[task])
-    handles = [
-        Line2D([0], [0], color=colors[algorithm], marker=markers[algorithm], linestyle="-",
-               linewidth=1.8, label=labels[algorithm])
-        for algorithm in algorithms
-    ]
-    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.945), ncol=3, frameon=False)
-    fig.text(0.5, 0.015, "Points show held-out test performance for head seed 0.", ha="center", fontsize=10)
-    fig.tight_layout(rect=(0.015, 0.045, 0.985, 0.86))
-    for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
-        path = output_dir / f"algorithm_layerwise_performance.{suffix}"
-        fig.savefig(path, **kwargs)
-        paths.append(path.name)
-    plt.close(fig)
+    # Compact all-task layerwise panels mirror the masking-study P2 figure for both methods.
+    for method in METHODS:
+        fig, axes = plt.subplots(2, 3, figsize=(16, 9), constrained_layout=False)
+        fig.suptitle(f"{method.upper()} — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
+        for ax, task in zip(axes.flat, TASKS):
+            draw_task(ax, method, task)
+            ax.set_title(task_labels[task])
+        handles = [
+            Line2D([0], [0], color=colors[algorithm], marker=markers[algorithm], linestyle="-",
+                   linewidth=1.8, label=labels[algorithm])
+            for algorithm in algorithms
+        ]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.945), ncol=2, frameon=False)
+        fig.text(0.5, 0.015, "Points show held-out test performance for head seed 0.", ha="center", fontsize=10)
+        fig.tight_layout(rect=(0.015, 0.045, 0.985, 0.86))
+        stem = "algorithm_layerwise_performance" if method == "p2" else f"{method}_algorithm_layerwise_performance"
+        for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
+            path = output_dir / f"{stem}.{suffix}"
+            fig.savefig(path, **kwargs)
+            paths.append(path.name)
+        plt.close(fig)
     return paths
 
 
@@ -257,7 +259,7 @@ def main():
         "Direction-aware gains are positive when V2 improves the task metric. The single seed is a pilot, not an estimate of across-seed variability.\n\n"
         "## Figures\n\n"
         "Per-method/task PNG and PDF plots (`p0_*_exit_performance.*` and `p2_*_exit_performance.*`) mirror the masking-study packet. "
-        "`algorithm_layerwise_performance.png`/`.pdf` provides the compact P2 comparison across all six tasks. "
+        "`p0_algorithm_layerwise_performance.png`/`.pdf` and `algorithm_layerwise_performance.png`/`.pdf` provide compact P0 and P2 comparisons across all six tasks. "
         "All points are held-out test results for head seed 0; they do not show across-seed error bars.\n")
     print(json.dumps({"output": str(out), "fixed_exit_rows": len(fixed), "selected_rows": len(selected), "gain_rows": len(gains)}, indent=2))
 
