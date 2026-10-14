@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import json
 from pathlib import Path
 
 import pytest
@@ -43,6 +44,44 @@ def test_report_uses_exact_seven_values_and_excludes_v1(tmp_path):
     assert report.ALGORITHMS == ("current", "residual_projected_dynamic_fusion")
     with pytest.raises(FileNotFoundError, match="required current packet missing"):
         report.load_packet("p0", "current", 0, tmp_path, tmp_path)
+
+
+def test_gain_aggregation_keeps_seven_seeds_and_is_direction_aware():
+    assert report.direction_aware_gain(1.2, 3.0, higher_is_better=False) == pytest.approx(1.8)
+    assert report.direction_aware_gain(0.8, 0.7, higher_is_better=True) == pytest.approx(0.1)
+    rows = [{"head_seed": seed, "direction_aware_gain": seed / 10, "metric": "mean_distance_error",
+             "v2_exit": 2 + 2 * (seed % 4), "reference_exit": 2 + 2 * ((seed + 1) % 4)}
+            for seed in report.SEEDS]
+    summary = report.summarize_gains({("p0", "nrpos-outdoor", "selected_vs_current"): rows})
+    assert len(summary) == 1 and summary[0]["n"] == 7
+    assert summary[0]["mean"] == pytest.approx(0.3)
+    assert len(json.loads(summary[0]["per_seed"])) == 7
+    assert len(json.loads(summary[0]["v2_exit_by_seed"])) == 7
+    assert len(json.loads(summary[0]["reference_exit_by_seed"])) == 7
+
+
+def test_six_task_figures_use_solid_mean_lines_without_sd(monkeypatch, tmp_path):
+    from matplotlib.axes import Axes
+
+    summary = [
+        {"method": method, "algorithm": algorithm, "task": task, "exit": layer,
+         "mean": 0.5, "sample_sd": 0.1}
+        for method in report.METHODS for algorithm in report.ALGORITHMS
+        for task in report.TASKS for layer in report.EXITS
+    ]
+    errorbar_calls = []
+    original_errorbar = Axes.errorbar
+
+    def track_errorbar(self, *args, **kwargs):
+        errorbar_calls.append((args, kwargs))
+        return original_errorbar(self, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "errorbar", track_errorbar)
+    figures = report.plot_figures(summary, tmp_path)
+    assert len(errorbar_calls) == 24  # Per-task plots retain SD bars; the two composites do not.
+    assert {name for name in figures if name.endswith(".png")} == {
+        f"{method}_{task}_exit_performance.png" for method in report.METHODS for task in report.TASKS
+    } | {"algorithm_layerwise_performance.png", "p0_algorithm_layerwise_performance.png"}
 
 
 def test_report_dependency_lists_all_twelve_job_ids(monkeypatch, tmp_path):

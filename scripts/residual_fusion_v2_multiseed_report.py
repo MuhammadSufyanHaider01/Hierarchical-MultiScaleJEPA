@@ -94,6 +94,27 @@ def stats(values: list[float]) -> dict:
             "min": min(values), "max": max(values)}
 
 
+def direction_aware_gain(v2_value: float, current_value: float, higher_is_better: bool) -> float:
+    return v2_value - current_value if higher_is_better else current_value - v2_value
+
+
+def summarize_gains(gain_groups: dict) -> list[dict]:
+    summaries = []
+    for key, rows in sorted(gain_groups.items()):
+        method, task, comparison = key
+        summaries.append({
+            "method": method,
+            "task": task,
+            "comparison": comparison,
+            "metric": rows[0]["metric"],
+            **stats([float(row["direction_aware_gain"]) for row in rows]),
+            "per_seed": json.dumps({row["head_seed"]: row["direction_aware_gain"] for row in rows}, sort_keys=True),
+            "v2_exit_by_seed": json.dumps({row["head_seed"]: row["v2_exit"] for row in rows}, sort_keys=True),
+            "reference_exit_by_seed": json.dumps({row["head_seed"]: row["reference_exit"] for row in rows}, sort_keys=True),
+        })
+    return summaries
+
+
 def write_csv(path: Path, rows: list[dict]) -> None:
     if not rows:
         raise ValueError(f"refusing empty output: {path}")
@@ -120,11 +141,15 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
                    "interference": "Interference classification", "nrpos-outdoor": "NR positioning", "deepmimo-beam": "DeepMIMO beam prediction"}
     paths = []
 
-    def draw(ax, method, task):
+    def draw(ax, method, task, show_sd=True):
         for algorithm in ALGORITHMS:
             rows = [indexed[method, algorithm, task, layer] for layer in EXITS]
-            ax.errorbar(EXITS, [r["mean"] for r in rows], yerr=[r["sample_sd"] for r in rows],
-                        color=colors[algorithm], marker=markers[algorithm], capsize=3, linewidth=1.8, label=labels[algorithm])
+            if show_sd:
+                ax.errorbar(EXITS, [r["mean"] for r in rows], yerr=[r["sample_sd"] for r in rows],
+                            color=colors[algorithm], marker=markers[algorithm], capsize=3, linewidth=1.8, label=labels[algorithm])
+            else:
+                ax.plot(EXITS, [r["mean"] for r in rows], color=colors[algorithm], marker=markers[algorithm],
+                        linewidth=1.8, linestyle="-", label=labels[algorithm])
         ax.set_xticks(EXITS, [f"L{x}" for x in EXITS]); ax.set_xlabel("Encoder exit layer")
         ax.set_ylabel("Mean distance error (m; lower is better)" if task == "nrpos-outdoor" else "Macro accuracy")
         ax.grid(axis="y", alpha=0.25)
@@ -136,10 +161,10 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
                 name = f"{method}_{task}_exit_performance.{suffix}"; fig.savefig(output / name, **kwargs); paths.append(name)
             plt.close(fig)
         fig, axes = plt.subplots(2, 3, figsize=(16, 9)); fig.suptitle(f"{method.upper()} — Layer-wise performance of early-exit algorithms", fontsize=17, y=0.99)
-        for ax, task in zip(axes.flat, TASKS): draw(ax, method, task); ax.set_title(task_labels[task])
+        for ax, task in zip(axes.flat, TASKS): draw(ax, method, task, show_sd=False); ax.set_title(task_labels[task])
         handles = [Line2D([0], [0], color=colors[a], marker=markers[a], label=labels[a]) for a in ALGORITHMS]
         fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.945), ncol=2, frameon=False)
-        fig.text(0.5, 0.015, "Points and bars show mean ± sample SD across seven head seeds.", ha="center")
+        fig.text(0.5, 0.015, "Solid lines show mean performance across seven head seeds.", ha="center")
         fig.tight_layout(rect=(0.015, 0.045, 0.985, 0.86))
         stem = "algorithm_layerwise_performance" if method == "p2" else "p0_algorithm_layerwise_performance"
         for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
@@ -193,8 +218,8 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
                 for label, layer, reference in [("selected_vs_current", int(v2["tasks"][task]["selected_exit_best_validation"]), int(current["tasks"][task]["selected_exit_best_validation"]))] + [(f"fixed_L{x}_vs_current", x, x) for x in EXITS]:
                     v = float(v2["tasks"][task]["exits"][str(layer)]["test"][metric]); b = float(current["tasks"][task]["exits"][str(reference)]["test"][metric])
                     item = {"method": method, "task": task, "head_seed": seed, "comparison": label, "v2_exit": layer, "reference_exit": reference,
-                            "metric": metric, "positive_is_improvement": True, "direction_aware_gain": v - b if higher else b - v}
-                    gains.append(item); gain_groups[method, task, label, layer, reference].append(item)
+                            "metric": metric, "positive_is_improvement": True, "direction_aware_gain": direction_aware_gain(v, b, higher)}
+                    gains.append(item); gain_groups[method, task, label].append(item)
     summary = []
     for key, rows in sorted(fixed_groups.items()):
         method, algorithm, task, layer = key; values = [float(r["test_value"]) for r in rows]
@@ -203,7 +228,7 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
     for key, rows in sorted(selected_groups.items()):
         method, algorithm, task = key; values = [float(r["selected_test_value"]) for r in rows]; counts = Counter(int(r["selected_exit"]) for r in rows)
         selected_summary.append({"method": method, "algorithm": algorithm, "task": task, "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"], **stats(values), "per_seed": json.dumps({r["head_seed"]: r["selected_test_value"] for r in rows}, sort_keys=True), "selected_exit_by_seed": json.dumps({r["head_seed"]: r["selected_exit"] for r in rows}, sort_keys=True), "selection_frequency": json.dumps(dict(sorted(counts.items())), sort_keys=True)})
-    gain_summary = [{"method": key[0], "task": key[1], "comparison": key[2], "v2_exit": key[3], "reference_exit": key[4], "metric": rows[0]["metric"], **stats([float(r["direction_aware_gain"]) for r in rows]), "per_seed": json.dumps({r["head_seed"]: r["direction_aware_gain"] for r in rows}, sort_keys=True)} for key, rows in sorted(gain_groups.items())]
+    gain_summary = summarize_gains(gain_groups)
     gate_summary = []
     for key, rows in sorted(gate_groups.items()):
         result = {"method": key[0], "task": key[1], "target_exit": key[2], "source_exit": key[3]}
@@ -229,6 +254,7 @@ def build_report(current_root=CURRENT_ROOT, v2_root=V2_ROOT, output=OUT) -> dict
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUT); parser.add_argument("--current-root", type=Path, default=CURRENT_ROOT); parser.add_argument("--v2-root", type=Path, default=V2_ROOT)
+    args = parser.parse_args()
     print(json.dumps(build_report(args.current_root, args.v2_root, args.output), indent=2)); return 0
 
 

@@ -1,0 +1,458 @@
+{
+  "algorithms": [
+    "current",
+    "residual_projected_dynamic_fusion"
+  ],
+  "exits": [
+    2,
+    4,
+    6,
+    8
+  ],
+  "figures": [
+    "p0_rfs_exit_performance.png",
+    "p0_rfs_exit_performance.pdf",
+    "p0_jamming_exit_performance.png",
+    "p0_jamming_exit_performance.pdf",
+    "p0_human-activity_exit_performance.png",
+    "p0_human-activity_exit_performance.pdf",
+    "p0_interference_exit_performance.png",
+    "p0_interference_exit_performance.pdf",
+    "p0_nrpos-outdoor_exit_performance.png",
+    "p0_nrpos-outdoor_exit_performance.pdf",
+    "p0_deepmimo-beam_exit_performance.png",
+    "p0_deepmimo-beam_exit_performance.pdf",
+    "p0_algorithm_layerwise_performance.png",
+    "p0_algorithm_layerwise_performance.pdf",
+    "p2_rfs_exit_performance.png",
+    "p2_rfs_exit_performance.pdf",
+    "p2_jamming_exit_performance.png",
+    "p2_jamming_exit_performance.pdf",
+    "p2_human-activity_exit_performance.png",
+    "p2_human-activity_exit_performance.pdf",
+    "p2_interference_exit_performance.png",
+    "p2_interference_exit_performance.pdf",
+    "p2_nrpos-outdoor_exit_performance.png",
+    "p2_nrpos-outdoor_exit_performance.pdf",
+    "p2_deepmimo-beam_exit_performance.png",
+    "p2_deepmimo-beam_exit_performance.pdf",
+    "algorithm_layerwise_performance.png",
+    "algorithm_layerwise_performance.pdf"
+  ],
+  "head_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "methods": [
+    "p0",
+    "p2"
+  ],
+  "pretrain_seed": 0,
+  "selection": "best_validation",
+  "sources": [
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 0,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "67607bb664623bba194be9d04331b2dd40d9ed6ed3191031402c1d7cd65dc7e4",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 1,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_001/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "9a9f557c8504e255119c553bb9da8b9b3f5c9860887b443de4d03a31c829207b",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 2,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_002/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "d87e1ee39522ed0332f801091df60f57a48c9833e834f753437844cb94a21851",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 3,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_003/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "ed7a66db40b801f44be77e040d1bd4a58e3152542c0c5b9b22541235648bc8f7",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 4,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_004/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "073aa592a5ff222f194221a5da83b042a068180e1bc50c24c962c1f00f065d76",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 5,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_005/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "155ba7b0c147944cc1753f2e7940620916fbe3bbce79b7226215ae0b77294987",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 6,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_006/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "ecb317cd95c8fce1a6f21db8ab3806d4e2fbd561a6df3f8c6901486e80ff99a4",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 0,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "265a55708823c4e3756f695331b11f49ef69dfd93450205684f533f910425fd7",
+      "runtime_metadata": null,
+      "runtime_metadata_path": null,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 1,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_001/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "3cadb13d97d7cd2fb65999fe03c3a5003f5207e8cb186507017060da2ffbb877",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "fb6fe39e31407a6b3bac7598ca11d2bbf10607fb",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg6",
+        "job_id": "49779781",
+        "nodes": "mlg6",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_001.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 2,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_002/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "37fbb899afca5d15433e11268c142891e3b324d6592040410428e8e31d429a21",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "6d2aa46d66b317b1cdd1664956e39ab714ed10ed",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779782",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_002.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 3,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_003/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "da0e24edbd77c12cc13ad1c49e74c3f5faface4343ef21703f3d279e962a81ff",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "6d2aa46d66b317b1cdd1664956e39ab714ed10ed",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg1",
+        "job_id": "49779783",
+        "nodes": "mlg1",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_003.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 4,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_004/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "b84b88bed9901fffc483492e228f1e53ccf4ea8e6c4ea31fd46a65c64356b0e4",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779784",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_004.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 5,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_005/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "370cbbcf6cc2f1ca3221c14e9b30f2808f460806aabee36df1f57dcf2b97de34",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg1",
+        "job_id": "49779785",
+        "nodes": "mlg1",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_005.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "head_seed": 6,
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_006/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "14798a22ca7ff1a6130ccd7ef7d142dc63c0066b0bb57b8294a22340e7308d66",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg6",
+        "job_id": "49779786",
+        "nodes": "mlg6",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p0/head_seed_006.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 0,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "0a1974e2db18e0c963e06c2ebe75ead67d9034b92734237044744276554bde92",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 1,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_001/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "8a2646dcea82d470cf308a1fca74debd115e940ac3d381b93635c3084d981c4f",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 2,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_002/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "ab3502d6c63c9aacf4ae0056283391c8f1061306c48b857a6a0590217dabf686",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 3,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_003/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "338b66bdae2a602f304a535cc8b9441d0e190cc3a0f2f92142ad97d383065e37",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 4,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_004/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "90fa9f5dd3232c058d058f7f7af8ca532a3c37dd9e1b8c16fb2eef30d9a36503",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 5,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_005/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "8d471414c9e80c68fccd5930d08fcf70cbf08c36aa1e349605c0b1e9dd2c8119",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 6,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_006/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "4ddb449c4a0cd47a21ba12296bf136cc60d165cf07be5c2895ef44fa5b51e237",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 0,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_000/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "4c94486dc00a94237f397d02fa9cd827a04c30d05375f9c9b81e9b0b6b1ea593",
+      "runtime_metadata": null,
+      "runtime_metadata_path": null,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 1,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_001/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "361d3a9105498fa9e7f30894d8f2378d6c2dc2c394f172c4952b5b295c257236",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779787",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_001.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 2,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_002/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "4e416e15cc01b208f07c7aaf11dad5e36036257f711b3a5c3f1ff7f640c77cbd",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779788",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_002.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 3,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_003/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "0afb2e5a0a9ea61859926cda530ba3ca7913381b0c65ee0dc94890a1fd9cb82f",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg6",
+        "job_id": "49779789",
+        "nodes": "mlg6",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_003.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 4,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_004/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "1a3cec7f48f97d2c6d2f73e26472a75aae1db4f08ec2e268314045f5f18b2199",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg1",
+        "job_id": "49779790",
+        "nodes": "mlg1",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_004.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 5,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_005/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "649edfa21b137feeae55b32248a0008e93b21f57b6a20d70cdfa837b3f974c9f",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779791",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_005.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "residual_projected_dynamic_fusion",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "head_seed": 6,
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_006/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "93165081f24942c7e520e5cc06cef877cedcdda679c99161bc3e564371f59ead",
+      "runtime_metadata": {
+        "cpus": "8",
+        "git_revision": "53fb01d3cdc9c27c0dc65f5c200e5188d1110b4b",
+        "gpu": "NVIDIA L40S",
+        "hostname": "mlg4",
+        "job_id": "49779792",
+        "nodes": "mlg4",
+        "partition": "gpu-l40",
+        "runtime_profile": "residual_dynamic_fusion_v2"
+      },
+      "runtime_metadata_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/runtime/p2/head_seed_006.json",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  ],
+  "split_seed": 2025,
+  "study": "residual_dynamic_fusion_multiseed",
+  "tasks": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ],
+  "test_used_for_selection": false
+}
