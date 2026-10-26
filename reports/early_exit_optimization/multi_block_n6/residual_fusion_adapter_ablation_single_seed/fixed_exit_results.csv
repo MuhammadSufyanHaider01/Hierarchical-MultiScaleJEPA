@@ -1,0 +1,337 @@
+method,algorithm,label,task,exit,metric,higher_is_better,validation_value,test_value,selected_by_validation
+p0,current,Current EE,rfs,2,macro_accuracy,True,0.6500607132911682,0.6086896657943726,False
+p0,current,Current EE,rfs,4,macro_accuracy,True,0.717022716999054,0.6321761608123779,True
+p0,current,Current EE,rfs,6,macro_accuracy,True,0.7049547433853149,0.6698223948478699,False
+p0,current,Current EE,rfs,8,macro_accuracy,True,0.7107575535774231,0.694596529006958,False
+p0,current,Current EE,jamming,2,macro_accuracy,True,0.7986667156219482,0.8106666803359985,False
+p0,current,Current EE,jamming,4,macro_accuracy,True,0.7879999876022339,0.8053333163261414,False
+p0,current,Current EE,jamming,6,macro_accuracy,True,0.8320000171661377,0.8186666369438171,False
+p0,current,Current EE,jamming,8,macro_accuracy,True,0.8773333430290222,0.8799999952316284,True
+p0,current,Current EE,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,current,Current EE,human-activity,4,macro_accuracy,True,1.0,0.9666666984558105,True
+p0,current,Current EE,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p0,current,Current EE,human-activity,8,macro_accuracy,True,1.0,0.9833333492279053,False
+p0,current,Current EE,interference,2,macro_accuracy,True,0.7242857217788696,0.7164285778999329,False
+p0,current,Current EE,interference,4,macro_accuracy,True,0.7350000143051147,0.7407143115997314,False
+p0,current,Current EE,interference,6,macro_accuracy,True,0.7392857074737549,0.7521428465843201,True
+p0,current,Current EE,interference,8,macro_accuracy,True,0.7378571629524231,0.7478571534156799,False
+p0,current,Current EE,nrpos-outdoor,2,mean_distance_error,False,3.6436593532562256,3.73372483253479,False
+p0,current,Current EE,nrpos-outdoor,4,mean_distance_error,False,3.334911823272705,3.3070831298828125,False
+p0,current,Current EE,nrpos-outdoor,6,mean_distance_error,False,3.1076059341430664,3.103618621826172,False
+p0,current,Current EE,nrpos-outdoor,8,mean_distance_error,False,3.038766384124756,3.024868965148926,True
+p0,current,Current EE,deepmimo-beam,2,macro_accuracy,True,0.4405341148376465,0.42720386385917664,False
+p0,current,Current EE,deepmimo-beam,4,macro_accuracy,True,0.4353559613227844,0.4209900498390198,False
+p0,current,Current EE,deepmimo-beam,6,macro_accuracy,True,0.43822842836380005,0.43013834953308105,False
+p0,current,Current EE,deepmimo-beam,8,macro_accuracy,True,0.4475688338279724,0.45694297552108765,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,4,macro_accuracy,True,0.7825348973274231,0.7065920233726501,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,6,macro_accuracy,True,0.8313623666763306,0.7128890752792358,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,8,macro_accuracy,True,0.8240799307823181,0.7396561503410339,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,4,macro_accuracy,True,0.890666663646698,0.8706666827201843,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,6,macro_accuracy,True,0.890666663646698,0.8666667342185974,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,8,macro_accuracy,True,0.9279999732971191,0.9106666445732117,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,6,macro_accuracy,True,1.0,0.9916666746139526,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,4,macro_accuracy,True,0.9878571629524231,0.985714316368103,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,6,macro_accuracy,True,0.9907143115997314,0.9914286136627197,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,8,macro_accuracy,True,0.9957143068313599,0.9871428608894348,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,4,mean_distance_error,False,1.3379085063934326,1.3295820951461792,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,6,mean_distance_error,False,1.125009298324585,1.156137466430664,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,8,mean_distance_error,False,1.0187718868255615,1.028564453125,True
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,4,macro_accuracy,True,0.5433103442192078,0.5524237155914307,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,6,macro_accuracy,True,0.5460240840911865,0.5273302793502808,False
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,8,macro_accuracy,True,0.5548956394195557,0.5570551753044128,True
+p0,bottleneck_linear,Bottleneck Linear,rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,bottleneck_linear,Bottleneck Linear,rfs,4,macro_accuracy,True,0.8069753646850586,0.7463053464889526,False
+p0,bottleneck_linear,Bottleneck Linear,rfs,6,macro_accuracy,True,0.8541465997695923,0.7479912042617798,True
+p0,bottleneck_linear,Bottleneck Linear,rfs,8,macro_accuracy,True,0.8364025354385376,0.7106027007102966,False
+p0,bottleneck_linear,Bottleneck Linear,jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,bottleneck_linear,Bottleneck Linear,jamming,4,macro_accuracy,True,0.8760000467300415,0.8546667098999023,False
+p0,bottleneck_linear,Bottleneck Linear,jamming,6,macro_accuracy,True,0.8920000791549683,0.8586667776107788,False
+p0,bottleneck_linear,Bottleneck Linear,jamming,8,macro_accuracy,True,0.940000057220459,0.9200000762939453,True
+p0,bottleneck_linear,Bottleneck Linear,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,bottleneck_linear,Bottleneck Linear,human-activity,4,macro_accuracy,True,1.0,0.9833333492279053,True
+p0,bottleneck_linear,Bottleneck Linear,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p0,bottleneck_linear,Bottleneck Linear,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p0,bottleneck_linear,Bottleneck Linear,interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,bottleneck_linear,Bottleneck Linear,interference,4,macro_accuracy,True,0.9757143259048462,0.9692857265472412,False
+p0,bottleneck_linear,Bottleneck Linear,interference,6,macro_accuracy,True,0.9871428608894348,0.9828571081161499,True
+p0,bottleneck_linear,Bottleneck Linear,interference,8,macro_accuracy,True,0.9814285635948181,0.9657143354415894,False
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,4,mean_distance_error,False,1.6836516857147217,1.7109086513519287,False
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,6,mean_distance_error,False,1.2242798805236816,1.2607508897781372,False
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,8,mean_distance_error,False,1.1236735582351685,1.1450508832931519,True
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,4,macro_accuracy,True,0.4935092031955719,0.4855269193649292,False
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,6,macro_accuracy,True,0.5081297755241394,0.50159752368927,False
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,8,macro_accuracy,True,0.5350014567375183,0.5241953730583191,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,4,macro_accuracy,True,0.8448864221572876,0.7568349242210388,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,6,macro_accuracy,True,0.8410183787345886,0.710393488407135,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,8,macro_accuracy,True,0.8506162762641907,0.7413358092308044,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,4,macro_accuracy,True,0.8880000114440918,0.8733333945274353,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,6,macro_accuracy,True,0.8893333673477173,0.8600000143051147,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,8,macro_accuracy,True,0.940000057220459,0.9120000600814819,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,8,macro_accuracy,True,1.0,0.9916666746139526,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,4,macro_accuracy,True,0.993571400642395,0.9892857074737549,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,6,macro_accuracy,True,0.9878571033477783,0.9850000143051147,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,8,macro_accuracy,True,0.979285717010498,0.9778571128845215,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,4,mean_distance_error,False,1.7101812362670898,1.7530077695846558,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,6,mean_distance_error,False,1.1819952726364136,1.2378417253494263,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,8,mean_distance_error,False,1.0964691638946533,1.0935813188552856,True
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,4,macro_accuracy,True,0.5322678685188293,0.5231326818466187,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,6,macro_accuracy,True,0.535900890827179,0.5076652765274048,False
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,8,macro_accuracy,True,0.5524663329124451,0.5445263981819153,True
+p0,single_linear,Single Linear,rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,single_linear,Single Linear,rfs,4,macro_accuracy,True,0.7964450716972351,0.7818474173545837,False
+p0,single_linear,Single Linear,rfs,6,macro_accuracy,True,0.8225831985473633,0.7433419823646545,False
+p0,single_linear,Single Linear,rfs,8,macro_accuracy,True,0.8424150347709656,0.7380372881889343,True
+p0,single_linear,Single Linear,jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,single_linear,Single Linear,jamming,4,macro_accuracy,True,0.8493332862854004,0.825333297252655,False
+p0,single_linear,Single Linear,jamming,6,macro_accuracy,True,0.8813333511352539,0.8453333377838135,False
+p0,single_linear,Single Linear,jamming,8,macro_accuracy,True,0.9306666254997253,0.8986667394638062,True
+p0,single_linear,Single Linear,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,single_linear,Single Linear,human-activity,4,macro_accuracy,True,1.0,0.9583333730697632,True
+p0,single_linear,Single Linear,human-activity,6,macro_accuracy,True,1.0,0.9916666746139526,False
+p0,single_linear,Single Linear,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p0,single_linear,Single Linear,interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,single_linear,Single Linear,interference,4,macro_accuracy,True,0.9757143259048462,0.9742857217788696,True
+p0,single_linear,Single Linear,interference,6,macro_accuracy,True,0.9721428751945496,0.9642857313156128,False
+p0,single_linear,Single Linear,interference,8,macro_accuracy,True,0.9657143354415894,0.9471428394317627,False
+p0,single_linear,Single Linear,nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,single_linear,Single Linear,nrpos-outdoor,4,mean_distance_error,False,1.9065145254135132,1.9528379440307617,False
+p0,single_linear,Single Linear,nrpos-outdoor,6,mean_distance_error,False,1.399766206741333,1.4326319694519043,False
+p0,single_linear,Single Linear,nrpos-outdoor,8,mean_distance_error,False,1.1660629510879517,1.161590814590454,True
+p0,single_linear,Single Linear,deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,single_linear,Single Linear,deepmimo-beam,4,macro_accuracy,True,0.5153337121009827,0.5074120759963989,False
+p0,single_linear,Single Linear,deepmimo-beam,6,macro_accuracy,True,0.5184411406517029,0.5035784244537354,False
+p0,single_linear,Single Linear,deepmimo-beam,8,macro_accuracy,True,0.5201717615127563,0.5350711941719055,True
+p0,single_gelu,Single GELU,rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,single_gelu,Single GELU,rfs,4,macro_accuracy,True,0.8556554913520813,0.7510725855827332,True
+p0,single_gelu,Single GELU,rfs,6,macro_accuracy,True,0.8351737856864929,0.7453572154045105,False
+p0,single_gelu,Single GELU,rfs,8,macro_accuracy,True,0.8406557440757751,0.7716248631477356,False
+p0,single_gelu,Single GELU,jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,single_gelu,Single GELU,jamming,4,macro_accuracy,True,0.8960000276565552,0.8893332481384277,False
+p0,single_gelu,Single GELU,jamming,6,macro_accuracy,True,0.893333375453949,0.8600000143051147,False
+p0,single_gelu,Single GELU,jamming,8,macro_accuracy,True,0.9413332939147949,0.9266666769981384,True
+p0,single_gelu,Single GELU,human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,single_gelu,Single GELU,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p0,single_gelu,Single GELU,human-activity,6,macro_accuracy,True,1.0,0.9916666746139526,False
+p0,single_gelu,Single GELU,human-activity,8,macro_accuracy,True,1.0,0.9916666746139526,False
+p0,single_gelu,Single GELU,interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,single_gelu,Single GELU,interference,4,macro_accuracy,True,0.9878571033477783,0.9842857122421265,False
+p0,single_gelu,Single GELU,interference,6,macro_accuracy,True,0.9942857027053833,0.9900000095367432,False
+p0,single_gelu,Single GELU,interference,8,macro_accuracy,True,0.9957143068313599,0.9842857122421265,True
+p0,single_gelu,Single GELU,nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,single_gelu,Single GELU,nrpos-outdoor,4,mean_distance_error,False,1.3005056381225586,1.298980951309204,False
+p0,single_gelu,Single GELU,nrpos-outdoor,6,mean_distance_error,False,1.0766865015029907,1.094713807106018,False
+p0,single_gelu,Single GELU,nrpos-outdoor,8,mean_distance_error,False,1.0183885097503662,1.0513484477996826,True
+p0,single_gelu,Single GELU,deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,single_gelu,Single GELU,deepmimo-beam,4,macro_accuracy,True,0.5695428252220154,0.5400021076202393,False
+p0,single_gelu,Single GELU,deepmimo-beam,6,macro_accuracy,True,0.5477746725082397,0.5270077586174011,False
+p0,single_gelu,Single GELU,deepmimo-beam,8,macro_accuracy,True,0.5716720819473267,0.5700372457504272,True
+p0,single_sigmoid,Single Sigmoid (centered),rfs,2,macro_accuracy,True,0.6604210138320923,0.6256864666938782,False
+p0,single_sigmoid,Single Sigmoid (centered),rfs,4,macro_accuracy,True,0.8205320239067078,0.7822943329811096,False
+p0,single_sigmoid,Single Sigmoid (centered),rfs,6,macro_accuracy,True,0.8241028189659119,0.7612774968147278,False
+p0,single_sigmoid,Single Sigmoid (centered),rfs,8,macro_accuracy,True,0.8660089373588562,0.7253713607788086,True
+p0,single_sigmoid,Single Sigmoid (centered),jamming,2,macro_accuracy,True,0.8000000715255737,0.8119999766349792,False
+p0,single_sigmoid,Single Sigmoid (centered),jamming,4,macro_accuracy,True,0.874666690826416,0.8666666746139526,False
+p0,single_sigmoid,Single Sigmoid (centered),jamming,6,macro_accuracy,True,0.890666663646698,0.8680000305175781,False
+p0,single_sigmoid,Single Sigmoid (centered),jamming,8,macro_accuracy,True,0.9413332939147949,0.9239999651908875,True
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,2,macro_accuracy,True,0.9916666746139526,0.9583333730697632,False
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,4,macro_accuracy,True,1.0,1.0,True
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,6,macro_accuracy,True,1.0,1.0,False
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,8,macro_accuracy,True,1.0,1.0,False
+p0,single_sigmoid,Single Sigmoid (centered),interference,2,macro_accuracy,True,0.7321428656578064,0.7200000286102295,False
+p0,single_sigmoid,Single Sigmoid (centered),interference,4,macro_accuracy,True,0.9742857217788696,0.9828571081161499,False
+p0,single_sigmoid,Single Sigmoid (centered),interference,6,macro_accuracy,True,0.9878571629524231,0.9807143211364746,True
+p0,single_sigmoid,Single Sigmoid (centered),interference,8,macro_accuracy,True,0.9864285588264465,0.985714316368103,False
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,2,mean_distance_error,False,3.4788928031921387,3.494912624359131,False
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,4,mean_distance_error,False,1.5299021005630493,1.497778058052063,False
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,6,mean_distance_error,False,1.396732211112976,1.4487332105636597,False
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,8,mean_distance_error,False,1.1906853914260864,1.2105156183242798,True
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,2,macro_accuracy,True,0.4601340889930725,0.4370298683643341,False
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,4,macro_accuracy,True,0.5442261695861816,0.5193588137626648,False
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,6,macro_accuracy,True,0.5638092160224915,0.5483703017234802,True
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,8,macro_accuracy,True,0.5287938117980957,0.5699328184127808,False
+p2,current,Current EE,rfs,2,macro_accuracy,True,0.6734368205070496,0.7042811512947083,False
+p2,current,Current EE,rfs,4,macro_accuracy,True,0.6805490255355835,0.6678102612495422,False
+p2,current,Current EE,rfs,6,macro_accuracy,True,0.7611322402954102,0.7408782839775085,False
+p2,current,Current EE,rfs,8,macro_accuracy,True,0.7649297118186951,0.7225880026817322,True
+p2,current,Current EE,jamming,2,macro_accuracy,True,0.8413333892822266,0.8226666450500488,False
+p2,current,Current EE,jamming,4,macro_accuracy,True,0.8440000414848328,0.8519999980926514,False
+p2,current,Current EE,jamming,6,macro_accuracy,True,0.8693333864212036,0.8640000224113464,False
+p2,current,Current EE,jamming,8,macro_accuracy,True,0.890666663646698,0.8760000467300415,True
+p2,current,Current EE,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,current,Current EE,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p2,current,Current EE,human-activity,6,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,current,Current EE,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p2,current,Current EE,interference,2,macro_accuracy,True,0.7457143068313599,0.7528571486473083,False
+p2,current,Current EE,interference,4,macro_accuracy,True,0.7528571486473083,0.7528571486473083,False
+p2,current,Current EE,interference,6,macro_accuracy,True,0.7528571486473083,0.75,False
+p2,current,Current EE,interference,8,macro_accuracy,True,0.7557142972946167,0.7585713863372803,True
+p2,current,Current EE,nrpos-outdoor,2,mean_distance_error,False,3.2840933799743652,3.295538902282715,False
+p2,current,Current EE,nrpos-outdoor,4,mean_distance_error,False,3.060455083847046,3.101207733154297,False
+p2,current,Current EE,nrpos-outdoor,6,mean_distance_error,False,2.7589399814605713,2.7602484226226807,True
+p2,current,Current EE,nrpos-outdoor,8,mean_distance_error,False,2.7709667682647705,2.725234270095825,False
+p2,current,Current EE,deepmimo-beam,2,macro_accuracy,True,0.44238680601119995,0.4267839789390564,False
+p2,current,Current EE,deepmimo-beam,4,macro_accuracy,True,0.4686080515384674,0.43465596437454224,True
+p2,current,Current EE,deepmimo-beam,6,macro_accuracy,True,0.44617119431495667,0.4136541187763214,False
+p2,current,Current EE,deepmimo-beam,8,macro_accuracy,True,0.45818132162094116,0.4445035755634308,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,4,macro_accuracy,True,0.8243198394775391,0.8002826571464539,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,6,macro_accuracy,True,0.8409751057624817,0.8202441334724426,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,8,macro_accuracy,True,0.8441498875617981,0.8173471689224243,True
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,4,macro_accuracy,True,0.8920000791549683,0.8960000276565552,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,6,macro_accuracy,True,0.8986667394638062,0.9213333129882812,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,8,macro_accuracy,True,0.9333333373069763,0.9360000491142273,True
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,6,macro_accuracy,True,1.0,0.9833333492279053,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,8,macro_accuracy,True,0.9916666746139526,0.9916666746139526,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,4,macro_accuracy,True,0.9878571033477783,0.98714280128479,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,6,macro_accuracy,True,0.9892857074737549,0.98714280128479,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,8,macro_accuracy,True,0.9921428561210632,0.9835714101791382,True
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,4,mean_distance_error,False,1.3980966806411743,1.4302513599395752,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,6,mean_distance_error,False,0.8940595984458923,0.9258171916007996,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,8,mean_distance_error,False,0.8640905022621155,0.8626115322113037,True
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,4,macro_accuracy,True,0.5647572875022888,0.5577690005302429,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,6,macro_accuracy,True,0.5845426917076111,0.5680533647537231,False
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,8,macro_accuracy,True,0.5928154587745667,0.5880578756332397,True
+p2,bottleneck_linear,Bottleneck Linear,rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,bottleneck_linear,Bottleneck Linear,rfs,4,macro_accuracy,True,0.8293647766113281,0.791097104549408,True
+p2,bottleneck_linear,Bottleneck Linear,rfs,6,macro_accuracy,True,0.8216211199760437,0.8273121118545532,False
+p2,bottleneck_linear,Bottleneck Linear,rfs,8,macro_accuracy,True,0.8180291056632996,0.8151811957359314,False
+p2,bottleneck_linear,Bottleneck Linear,jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,bottleneck_linear,Bottleneck Linear,jamming,4,macro_accuracy,True,0.8693334460258484,0.875999927520752,False
+p2,bottleneck_linear,Bottleneck Linear,jamming,6,macro_accuracy,True,0.9066666960716248,0.9066666960716248,False
+p2,bottleneck_linear,Bottleneck Linear,jamming,8,macro_accuracy,True,0.9333333373069763,0.9186667203903198,True
+p2,bottleneck_linear,Bottleneck Linear,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,bottleneck_linear,Bottleneck Linear,human-activity,4,macro_accuracy,True,1.0,0.9916666746139526,True
+p2,bottleneck_linear,Bottleneck Linear,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p2,bottleneck_linear,Bottleneck Linear,human-activity,8,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,bottleneck_linear,Bottleneck Linear,interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,bottleneck_linear,Bottleneck Linear,interference,4,macro_accuracy,True,0.9800000190734863,0.9721428155899048,False
+p2,bottleneck_linear,Bottleneck Linear,interference,6,macro_accuracy,True,0.9921428561210632,0.9778571128845215,False
+p2,bottleneck_linear,Bottleneck Linear,interference,8,macro_accuracy,True,0.993571400642395,0.985714316368103,True
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,4,mean_distance_error,False,1.332329273223877,1.375003695487976,False
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,6,mean_distance_error,False,1.1078563928604126,1.114311933517456,False
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,8,mean_distance_error,False,1.0306490659713745,1.0778582096099854,True
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,4,macro_accuracy,True,0.5283715724945068,0.5272480845451355,False
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,6,macro_accuracy,True,0.5291422009468079,0.5181054472923279,False
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,8,macro_accuracy,True,0.5371938347816467,0.5412285923957825,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,4,macro_accuracy,True,0.8476566672325134,0.7798737287521362,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,6,macro_accuracy,True,0.8058989644050598,0.7943472266197205,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,8,macro_accuracy,True,0.8052364587783813,0.7729008197784424,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,4,macro_accuracy,True,0.8880000114440918,0.8920000791549683,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,6,macro_accuracy,True,0.9120000600814819,0.9000000357627869,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,8,macro_accuracy,True,0.9386667013168335,0.9320000410079956,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,4,macro_accuracy,True,0.9800000190734863,0.9785714149475098,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,6,macro_accuracy,True,0.9957143068313599,0.9878571033477783,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,8,macro_accuracy,True,0.9907143115997314,0.985714316368103,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,4,mean_distance_error,False,1.286929965019226,1.3482180833816528,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,6,mean_distance_error,False,0.9646590352058411,0.958514392375946,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,8,mean_distance_error,False,0.9410435557365417,0.9544758796691895,True
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,4,macro_accuracy,True,0.545765221118927,0.5306935906410217,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,6,macro_accuracy,True,0.5526589751243591,0.567410945892334,False
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,8,macro_accuracy,True,0.5566021203994751,0.5639609098434448,True
+p2,single_linear,Single Linear,rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,single_linear,Single Linear,rfs,4,macro_accuracy,True,0.7960681319236755,0.8003990054130554,False
+p2,single_linear,Single Linear,rfs,6,macro_accuracy,True,0.8111362457275391,0.7984883189201355,True
+p2,single_linear,Single Linear,rfs,8,macro_accuracy,True,0.7887095808982849,0.8332139849662781,False
+p2,single_linear,Single Linear,jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,single_linear,Single Linear,jamming,4,macro_accuracy,True,0.8826667070388794,0.8693333864212036,False
+p2,single_linear,Single Linear,jamming,6,macro_accuracy,True,0.9066666960716248,0.9026667475700378,False
+p2,single_linear,Single Linear,jamming,8,macro_accuracy,True,0.9266666769981384,0.9306666851043701,True
+p2,single_linear,Single Linear,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,single_linear,Single Linear,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p2,single_linear,Single Linear,human-activity,6,macro_accuracy,True,1.0,1.0,False
+p2,single_linear,Single Linear,human-activity,8,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,single_linear,Single Linear,interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,single_linear,Single Linear,interference,4,macro_accuracy,True,0.9264285564422607,0.920714259147644,False
+p2,single_linear,Single Linear,interference,6,macro_accuracy,True,0.977142870426178,0.9757142663002014,True
+p2,single_linear,Single Linear,interference,8,macro_accuracy,True,0.9750000238418579,0.9678571224212646,False
+p2,single_linear,Single Linear,nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,single_linear,Single Linear,nrpos-outdoor,4,mean_distance_error,False,1.8460447788238525,1.8281611204147339,False
+p2,single_linear,Single Linear,nrpos-outdoor,6,mean_distance_error,False,1.1004440784454346,1.138323187828064,False
+p2,single_linear,Single Linear,nrpos-outdoor,8,mean_distance_error,False,0.9744254946708679,1.0356799364089966,True
+p2,single_linear,Single Linear,deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,single_linear,Single Linear,deepmimo-beam,4,macro_accuracy,True,0.5119842886924744,0.5014338493347168,False
+p2,single_linear,Single Linear,deepmimo-beam,6,macro_accuracy,True,0.5242151618003845,0.513156533241272,False
+p2,single_linear,Single Linear,deepmimo-beam,8,macro_accuracy,True,0.5567680597305298,0.5334033370018005,True
+p2,single_gelu,Single GELU,rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,single_gelu,Single GELU,rfs,4,macro_accuracy,True,0.8394030928611755,0.8402981758117676,False
+p2,single_gelu,Single GELU,rfs,6,macro_accuracy,True,0.8586966395378113,0.8181712031364441,True
+p2,single_gelu,Single GELU,rfs,8,macro_accuracy,True,0.8400594592094421,0.8319101333618164,False
+p2,single_gelu,Single GELU,jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,single_gelu,Single GELU,jamming,4,macro_accuracy,True,0.9000000357627869,0.9066666960716248,False
+p2,single_gelu,Single GELU,jamming,6,macro_accuracy,True,0.9133333563804626,0.9079999923706055,False
+p2,single_gelu,Single GELU,jamming,8,macro_accuracy,True,0.9373332858085632,0.9399999976158142,True
+p2,single_gelu,Single GELU,human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,single_gelu,Single GELU,human-activity,4,macro_accuracy,True,1.0,1.0,True
+p2,single_gelu,Single GELU,human-activity,6,macro_accuracy,True,1.0,0.9916666746139526,False
+p2,single_gelu,Single GELU,human-activity,8,macro_accuracy,True,1.0,1.0,False
+p2,single_gelu,Single GELU,interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,single_gelu,Single GELU,interference,4,macro_accuracy,True,0.9907143115997314,0.9878571033477783,False
+p2,single_gelu,Single GELU,interference,6,macro_accuracy,True,0.9950000047683716,0.9907143115997314,False
+p2,single_gelu,Single GELU,interference,8,macro_accuracy,True,0.9957143068313599,0.9885714054107666,True
+p2,single_gelu,Single GELU,nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,single_gelu,Single GELU,nrpos-outdoor,4,mean_distance_error,False,1.1074844598770142,1.1448150873184204,False
+p2,single_gelu,Single GELU,nrpos-outdoor,6,mean_distance_error,False,0.9163694977760315,0.9297111630439758,False
+p2,single_gelu,Single GELU,nrpos-outdoor,8,mean_distance_error,False,0.8531226515769958,0.8843775987625122,True
+p2,single_gelu,Single GELU,deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,single_gelu,Single GELU,deepmimo-beam,4,macro_accuracy,True,0.5714619159698486,0.5568057894706726,False
+p2,single_gelu,Single GELU,deepmimo-beam,6,macro_accuracy,True,0.5957741141319275,0.6033674478530884,False
+p2,single_gelu,Single GELU,deepmimo-beam,8,macro_accuracy,True,0.6179531216621399,0.5719603896141052,True
+p2,single_sigmoid,Single Sigmoid (centered),rfs,2,macro_accuracy,True,0.6298709511756897,0.6238574385643005,False
+p2,single_sigmoid,Single Sigmoid (centered),rfs,4,macro_accuracy,True,0.8423460125923157,0.8242336511611938,True
+p2,single_sigmoid,Single Sigmoid (centered),rfs,6,macro_accuracy,True,0.8258285522460938,0.7597464919090271,False
+p2,single_sigmoid,Single Sigmoid (centered),rfs,8,macro_accuracy,True,0.8115901350975037,0.7984048128128052,False
+p2,single_sigmoid,Single Sigmoid (centered),jamming,2,macro_accuracy,True,0.8586666584014893,0.8519999980926514,False
+p2,single_sigmoid,Single Sigmoid (centered),jamming,4,macro_accuracy,True,0.8986667394638062,0.8973333239555359,False
+p2,single_sigmoid,Single Sigmoid (centered),jamming,6,macro_accuracy,True,0.9106666445732117,0.8960000276565552,False
+p2,single_sigmoid,Single Sigmoid (centered),jamming,8,macro_accuracy,True,0.9293333888053894,0.9266667366027832,True
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,2,macro_accuracy,True,0.9916666746139526,1.0,False
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,4,macro_accuracy,True,1.0,0.9916666746139526,True
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,6,macro_accuracy,True,1.0,1.0,False
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,8,macro_accuracy,True,0.9916666746139526,0.9833333492279053,False
+p2,single_sigmoid,Single Sigmoid (centered),interference,2,macro_accuracy,True,0.743571400642395,0.7514286041259766,False
+p2,single_sigmoid,Single Sigmoid (centered),interference,4,macro_accuracy,True,0.9771428108215332,0.979285717010498,False
+p2,single_sigmoid,Single Sigmoid (centered),interference,6,macro_accuracy,True,0.9850000143051147,0.9850000143051147,False
+p2,single_sigmoid,Single Sigmoid (centered),interference,8,macro_accuracy,True,0.9928570985794067,0.9878571033477783,True
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,2,mean_distance_error,False,3.1075663566589355,3.1276803016662598,False
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,4,mean_distance_error,False,1.538428544998169,1.530483603477478,False
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,6,mean_distance_error,False,1.3305953741073608,1.3611629009246826,False
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,8,mean_distance_error,False,0.9741508364677429,0.9778693914413452,True
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,2,macro_accuracy,True,0.45379018783569336,0.42271527647972107,False
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,4,macro_accuracy,True,0.5745418667793274,0.5685708522796631,False
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,6,macro_accuracy,True,0.5954801440238953,0.5813847184181213,True
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,8,macro_accuracy,True,0.5480344295501709,0.5518035888671875,False

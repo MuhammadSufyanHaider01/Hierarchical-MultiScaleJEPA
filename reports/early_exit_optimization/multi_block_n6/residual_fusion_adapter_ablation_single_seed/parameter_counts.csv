@@ -1,0 +1,337 @@
+method,adapter_variant,label,task,exit,total,adapter,gate,output
+p0,current,Current EE,rfs,2,5652,0,0,5652
+p0,current,Current EE,rfs,4,5652,0,0,5652
+p0,current,Current EE,rfs,6,5652,0,0,5652
+p0,current,Current EE,rfs,8,5652,0,0,5652
+p0,current,Current EE,jamming,2,2054,0,0,2054
+p0,current,Current EE,jamming,4,2054,0,0,2054
+p0,current,Current EE,jamming,6,2054,0,0,2054
+p0,current,Current EE,jamming,8,2054,0,0,2054
+p0,current,Current EE,human-activity,2,2054,0,0,2054
+p0,current,Current EE,human-activity,4,2054,0,0,2054
+p0,current,Current EE,human-activity,6,2054,0,0,2054
+p0,current,Current EE,human-activity,8,2054,0,0,2054
+p0,current,Current EE,interference,2,1026,0,0,1026
+p0,current,Current EE,interference,4,1026,0,0,1026
+p0,current,Current EE,interference,6,1026,0,0,1026
+p0,current,Current EE,interference,8,1026,0,0,1026
+p0,current,Current EE,nrpos-outdoor,2,1283,0,0,1283
+p0,current,Current EE,nrpos-outdoor,4,1283,0,0,1283
+p0,current,Current EE,nrpos-outdoor,6,1283,0,0,1283
+p0,current,Current EE,nrpos-outdoor,8,1283,0,0,1283
+p0,current,Current EE,deepmimo-beam,2,4367,0,0,4367
+p0,current,Current EE,deepmimo-beam,4,4367,0,0,4367
+p0,current,Current EE,deepmimo-beam,6,4367,0,0,4367
+p0,current,Current EE,deepmimo-beam,8,4367,0,0,4367
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,2,5652,0,0,5652
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,4,60437,33600,21185,5652
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,6,98262,67200,25410,5652
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,8,136087,100800,29635,5652
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,2,2054,0,0,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,4,56839,33600,21185,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,6,94664,67200,25410,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,8,132489,100800,29635,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,2,2054,0,0,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,4,56839,33600,21185,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,6,94664,67200,25410,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,8,132489,100800,29635,2054
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,2,1026,0,0,1026
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,4,55811,33600,21185,1026
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,6,93636,67200,25410,1026
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,interference,8,131461,100800,29635,1026
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,2,1283,0,0,1283
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,4,56068,33600,21185,1283
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,6,93893,67200,25410,1283
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,8,131718,100800,29635,1283
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,2,4367,0,0,4367
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,4,59152,33600,21185,4367
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,6,96977,67200,25410,4367
+p0,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,8,134802,100800,29635,4367
+p0,bottleneck_linear,Bottleneck Linear,rfs,2,5652,0,0,5652
+p0,bottleneck_linear,Bottleneck Linear,rfs,4,60437,33600,21185,5652
+p0,bottleneck_linear,Bottleneck Linear,rfs,6,98262,67200,25410,5652
+p0,bottleneck_linear,Bottleneck Linear,rfs,8,136087,100800,29635,5652
+p0,bottleneck_linear,Bottleneck Linear,jamming,2,2054,0,0,2054
+p0,bottleneck_linear,Bottleneck Linear,jamming,4,56839,33600,21185,2054
+p0,bottleneck_linear,Bottleneck Linear,jamming,6,94664,67200,25410,2054
+p0,bottleneck_linear,Bottleneck Linear,jamming,8,132489,100800,29635,2054
+p0,bottleneck_linear,Bottleneck Linear,human-activity,2,2054,0,0,2054
+p0,bottleneck_linear,Bottleneck Linear,human-activity,4,56839,33600,21185,2054
+p0,bottleneck_linear,Bottleneck Linear,human-activity,6,94664,67200,25410,2054
+p0,bottleneck_linear,Bottleneck Linear,human-activity,8,132489,100800,29635,2054
+p0,bottleneck_linear,Bottleneck Linear,interference,2,1026,0,0,1026
+p0,bottleneck_linear,Bottleneck Linear,interference,4,55811,33600,21185,1026
+p0,bottleneck_linear,Bottleneck Linear,interference,6,93636,67200,25410,1026
+p0,bottleneck_linear,Bottleneck Linear,interference,8,131461,100800,29635,1026
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,2,1283,0,0,1283
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,4,56068,33600,21185,1283
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,6,93893,67200,25410,1283
+p0,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,8,131718,100800,29635,1283
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,2,4367,0,0,4367
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,4,59152,33600,21185,4367
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,6,96977,67200,25410,4367
+p0,bottleneck_linear,Bottleneck Linear,deepmimo-beam,8,134802,100800,29635,4367
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,2,5652,0,0,5652
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,4,60437,33600,21185,5652
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,6,98262,67200,25410,5652
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,8,136087,100800,29635,5652
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,2,2054,0,0,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,4,56839,33600,21185,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,6,94664,67200,25410,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,8,132489,100800,29635,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,2,2054,0,0,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,4,56839,33600,21185,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,6,94664,67200,25410,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,8,132489,100800,29635,2054
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,2,1026,0,0,1026
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,4,55811,33600,21185,1026
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,6,93636,67200,25410,1026
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,interference,8,131461,100800,29635,1026
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,2,1283,0,0,1283
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,4,56068,33600,21185,1283
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,6,93893,67200,25410,1283
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,8,131718,100800,29635,1283
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,2,4367,0,0,4367
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,4,59152,33600,21185,4367
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,6,96977,67200,25410,4367
+p0,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,8,134802,100800,29635,4367
+p0,single_linear,Single Linear,rfs,2,5652,0,0,5652
+p0,single_linear,Single Linear,rfs,4,105429,66304,33473,5652
+p0,single_linear,Single Linear,rfs,6,188246,132608,49986,5652
+p0,single_linear,Single Linear,rfs,8,271063,198912,66499,5652
+p0,single_linear,Single Linear,jamming,2,2054,0,0,2054
+p0,single_linear,Single Linear,jamming,4,101831,66304,33473,2054
+p0,single_linear,Single Linear,jamming,6,184648,132608,49986,2054
+p0,single_linear,Single Linear,jamming,8,267465,198912,66499,2054
+p0,single_linear,Single Linear,human-activity,2,2054,0,0,2054
+p0,single_linear,Single Linear,human-activity,4,101831,66304,33473,2054
+p0,single_linear,Single Linear,human-activity,6,184648,132608,49986,2054
+p0,single_linear,Single Linear,human-activity,8,267465,198912,66499,2054
+p0,single_linear,Single Linear,interference,2,1026,0,0,1026
+p0,single_linear,Single Linear,interference,4,100803,66304,33473,1026
+p0,single_linear,Single Linear,interference,6,183620,132608,49986,1026
+p0,single_linear,Single Linear,interference,8,266437,198912,66499,1026
+p0,single_linear,Single Linear,nrpos-outdoor,2,1283,0,0,1283
+p0,single_linear,Single Linear,nrpos-outdoor,4,101060,66304,33473,1283
+p0,single_linear,Single Linear,nrpos-outdoor,6,183877,132608,49986,1283
+p0,single_linear,Single Linear,nrpos-outdoor,8,266694,198912,66499,1283
+p0,single_linear,Single Linear,deepmimo-beam,2,4367,0,0,4367
+p0,single_linear,Single Linear,deepmimo-beam,4,104144,66304,33473,4367
+p0,single_linear,Single Linear,deepmimo-beam,6,186961,132608,49986,4367
+p0,single_linear,Single Linear,deepmimo-beam,8,269778,198912,66499,4367
+p0,single_gelu,Single GELU,rfs,2,5652,0,0,5652
+p0,single_gelu,Single GELU,rfs,4,105429,66304,33473,5652
+p0,single_gelu,Single GELU,rfs,6,188246,132608,49986,5652
+p0,single_gelu,Single GELU,rfs,8,271063,198912,66499,5652
+p0,single_gelu,Single GELU,jamming,2,2054,0,0,2054
+p0,single_gelu,Single GELU,jamming,4,101831,66304,33473,2054
+p0,single_gelu,Single GELU,jamming,6,184648,132608,49986,2054
+p0,single_gelu,Single GELU,jamming,8,267465,198912,66499,2054
+p0,single_gelu,Single GELU,human-activity,2,2054,0,0,2054
+p0,single_gelu,Single GELU,human-activity,4,101831,66304,33473,2054
+p0,single_gelu,Single GELU,human-activity,6,184648,132608,49986,2054
+p0,single_gelu,Single GELU,human-activity,8,267465,198912,66499,2054
+p0,single_gelu,Single GELU,interference,2,1026,0,0,1026
+p0,single_gelu,Single GELU,interference,4,100803,66304,33473,1026
+p0,single_gelu,Single GELU,interference,6,183620,132608,49986,1026
+p0,single_gelu,Single GELU,interference,8,266437,198912,66499,1026
+p0,single_gelu,Single GELU,nrpos-outdoor,2,1283,0,0,1283
+p0,single_gelu,Single GELU,nrpos-outdoor,4,101060,66304,33473,1283
+p0,single_gelu,Single GELU,nrpos-outdoor,6,183877,132608,49986,1283
+p0,single_gelu,Single GELU,nrpos-outdoor,8,266694,198912,66499,1283
+p0,single_gelu,Single GELU,deepmimo-beam,2,4367,0,0,4367
+p0,single_gelu,Single GELU,deepmimo-beam,4,104144,66304,33473,4367
+p0,single_gelu,Single GELU,deepmimo-beam,6,186961,132608,49986,4367
+p0,single_gelu,Single GELU,deepmimo-beam,8,269778,198912,66499,4367
+p0,single_sigmoid,Single Sigmoid (centered),rfs,2,5652,0,0,5652
+p0,single_sigmoid,Single Sigmoid (centered),rfs,4,105429,66304,33473,5652
+p0,single_sigmoid,Single Sigmoid (centered),rfs,6,188246,132608,49986,5652
+p0,single_sigmoid,Single Sigmoid (centered),rfs,8,271063,198912,66499,5652
+p0,single_sigmoid,Single Sigmoid (centered),jamming,2,2054,0,0,2054
+p0,single_sigmoid,Single Sigmoid (centered),jamming,4,101831,66304,33473,2054
+p0,single_sigmoid,Single Sigmoid (centered),jamming,6,184648,132608,49986,2054
+p0,single_sigmoid,Single Sigmoid (centered),jamming,8,267465,198912,66499,2054
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,2,2054,0,0,2054
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,4,101831,66304,33473,2054
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,6,184648,132608,49986,2054
+p0,single_sigmoid,Single Sigmoid (centered),human-activity,8,267465,198912,66499,2054
+p0,single_sigmoid,Single Sigmoid (centered),interference,2,1026,0,0,1026
+p0,single_sigmoid,Single Sigmoid (centered),interference,4,100803,66304,33473,1026
+p0,single_sigmoid,Single Sigmoid (centered),interference,6,183620,132608,49986,1026
+p0,single_sigmoid,Single Sigmoid (centered),interference,8,266437,198912,66499,1026
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,2,1283,0,0,1283
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,4,101060,66304,33473,1283
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,6,183877,132608,49986,1283
+p0,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,8,266694,198912,66499,1283
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,2,4367,0,0,4367
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,4,104144,66304,33473,4367
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,6,186961,132608,49986,4367
+p0,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,8,269778,198912,66499,4367
+p2,current,Current EE,rfs,2,5652,0,0,5652
+p2,current,Current EE,rfs,4,5652,0,0,5652
+p2,current,Current EE,rfs,6,5652,0,0,5652
+p2,current,Current EE,rfs,8,5652,0,0,5652
+p2,current,Current EE,jamming,2,2054,0,0,2054
+p2,current,Current EE,jamming,4,2054,0,0,2054
+p2,current,Current EE,jamming,6,2054,0,0,2054
+p2,current,Current EE,jamming,8,2054,0,0,2054
+p2,current,Current EE,human-activity,2,2054,0,0,2054
+p2,current,Current EE,human-activity,4,2054,0,0,2054
+p2,current,Current EE,human-activity,6,2054,0,0,2054
+p2,current,Current EE,human-activity,8,2054,0,0,2054
+p2,current,Current EE,interference,2,1026,0,0,1026
+p2,current,Current EE,interference,4,1026,0,0,1026
+p2,current,Current EE,interference,6,1026,0,0,1026
+p2,current,Current EE,interference,8,1026,0,0,1026
+p2,current,Current EE,nrpos-outdoor,2,1283,0,0,1283
+p2,current,Current EE,nrpos-outdoor,4,1283,0,0,1283
+p2,current,Current EE,nrpos-outdoor,6,1283,0,0,1283
+p2,current,Current EE,nrpos-outdoor,8,1283,0,0,1283
+p2,current,Current EE,deepmimo-beam,2,4367,0,0,4367
+p2,current,Current EE,deepmimo-beam,4,4367,0,0,4367
+p2,current,Current EE,deepmimo-beam,6,4367,0,0,4367
+p2,current,Current EE,deepmimo-beam,8,4367,0,0,4367
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,2,5652,0,0,5652
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,4,60437,33600,21185,5652
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,6,98262,67200,25410,5652
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,rfs,8,136087,100800,29635,5652
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,2,2054,0,0,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,4,56839,33600,21185,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,6,94664,67200,25410,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,jamming,8,132489,100800,29635,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,2,2054,0,0,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,4,56839,33600,21185,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,6,94664,67200,25410,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,human-activity,8,132489,100800,29635,2054
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,2,1026,0,0,1026
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,4,55811,33600,21185,1026
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,6,93636,67200,25410,1026
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,interference,8,131461,100800,29635,1026
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,2,1283,0,0,1283
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,4,56068,33600,21185,1283
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,6,93893,67200,25410,1283
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,nrpos-outdoor,8,131718,100800,29635,1283
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,2,4367,0,0,4367
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,4,59152,33600,21185,4367
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,6,96977,67200,25410,4367
+p2,bottleneck_gelu,Bottleneck GELU — existing V2,deepmimo-beam,8,134802,100800,29635,4367
+p2,bottleneck_linear,Bottleneck Linear,rfs,2,5652,0,0,5652
+p2,bottleneck_linear,Bottleneck Linear,rfs,4,60437,33600,21185,5652
+p2,bottleneck_linear,Bottleneck Linear,rfs,6,98262,67200,25410,5652
+p2,bottleneck_linear,Bottleneck Linear,rfs,8,136087,100800,29635,5652
+p2,bottleneck_linear,Bottleneck Linear,jamming,2,2054,0,0,2054
+p2,bottleneck_linear,Bottleneck Linear,jamming,4,56839,33600,21185,2054
+p2,bottleneck_linear,Bottleneck Linear,jamming,6,94664,67200,25410,2054
+p2,bottleneck_linear,Bottleneck Linear,jamming,8,132489,100800,29635,2054
+p2,bottleneck_linear,Bottleneck Linear,human-activity,2,2054,0,0,2054
+p2,bottleneck_linear,Bottleneck Linear,human-activity,4,56839,33600,21185,2054
+p2,bottleneck_linear,Bottleneck Linear,human-activity,6,94664,67200,25410,2054
+p2,bottleneck_linear,Bottleneck Linear,human-activity,8,132489,100800,29635,2054
+p2,bottleneck_linear,Bottleneck Linear,interference,2,1026,0,0,1026
+p2,bottleneck_linear,Bottleneck Linear,interference,4,55811,33600,21185,1026
+p2,bottleneck_linear,Bottleneck Linear,interference,6,93636,67200,25410,1026
+p2,bottleneck_linear,Bottleneck Linear,interference,8,131461,100800,29635,1026
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,2,1283,0,0,1283
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,4,56068,33600,21185,1283
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,6,93893,67200,25410,1283
+p2,bottleneck_linear,Bottleneck Linear,nrpos-outdoor,8,131718,100800,29635,1283
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,2,4367,0,0,4367
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,4,59152,33600,21185,4367
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,6,96977,67200,25410,4367
+p2,bottleneck_linear,Bottleneck Linear,deepmimo-beam,8,134802,100800,29635,4367
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,2,5652,0,0,5652
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,4,60437,33600,21185,5652
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,6,98262,67200,25410,5652
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,rfs,8,136087,100800,29635,5652
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,2,2054,0,0,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,4,56839,33600,21185,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,6,94664,67200,25410,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,jamming,8,132489,100800,29635,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,2,2054,0,0,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,4,56839,33600,21185,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,6,94664,67200,25410,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,human-activity,8,132489,100800,29635,2054
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,2,1026,0,0,1026
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,4,55811,33600,21185,1026
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,6,93636,67200,25410,1026
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,interference,8,131461,100800,29635,1026
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,2,1283,0,0,1283
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,4,56068,33600,21185,1283
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,6,93893,67200,25410,1283
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,nrpos-outdoor,8,131718,100800,29635,1283
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,2,4367,0,0,4367
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,4,59152,33600,21185,4367
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,6,96977,67200,25410,4367
+p2,bottleneck_sigmoid,Bottleneck Sigmoid,deepmimo-beam,8,134802,100800,29635,4367
+p2,single_linear,Single Linear,rfs,2,5652,0,0,5652
+p2,single_linear,Single Linear,rfs,4,105429,66304,33473,5652
+p2,single_linear,Single Linear,rfs,6,188246,132608,49986,5652
+p2,single_linear,Single Linear,rfs,8,271063,198912,66499,5652
+p2,single_linear,Single Linear,jamming,2,2054,0,0,2054
+p2,single_linear,Single Linear,jamming,4,101831,66304,33473,2054
+p2,single_linear,Single Linear,jamming,6,184648,132608,49986,2054
+p2,single_linear,Single Linear,jamming,8,267465,198912,66499,2054
+p2,single_linear,Single Linear,human-activity,2,2054,0,0,2054
+p2,single_linear,Single Linear,human-activity,4,101831,66304,33473,2054
+p2,single_linear,Single Linear,human-activity,6,184648,132608,49986,2054
+p2,single_linear,Single Linear,human-activity,8,267465,198912,66499,2054
+p2,single_linear,Single Linear,interference,2,1026,0,0,1026
+p2,single_linear,Single Linear,interference,4,100803,66304,33473,1026
+p2,single_linear,Single Linear,interference,6,183620,132608,49986,1026
+p2,single_linear,Single Linear,interference,8,266437,198912,66499,1026
+p2,single_linear,Single Linear,nrpos-outdoor,2,1283,0,0,1283
+p2,single_linear,Single Linear,nrpos-outdoor,4,101060,66304,33473,1283
+p2,single_linear,Single Linear,nrpos-outdoor,6,183877,132608,49986,1283
+p2,single_linear,Single Linear,nrpos-outdoor,8,266694,198912,66499,1283
+p2,single_linear,Single Linear,deepmimo-beam,2,4367,0,0,4367
+p2,single_linear,Single Linear,deepmimo-beam,4,104144,66304,33473,4367
+p2,single_linear,Single Linear,deepmimo-beam,6,186961,132608,49986,4367
+p2,single_linear,Single Linear,deepmimo-beam,8,269778,198912,66499,4367
+p2,single_gelu,Single GELU,rfs,2,5652,0,0,5652
+p2,single_gelu,Single GELU,rfs,4,105429,66304,33473,5652
+p2,single_gelu,Single GELU,rfs,6,188246,132608,49986,5652
+p2,single_gelu,Single GELU,rfs,8,271063,198912,66499,5652
+p2,single_gelu,Single GELU,jamming,2,2054,0,0,2054
+p2,single_gelu,Single GELU,jamming,4,101831,66304,33473,2054
+p2,single_gelu,Single GELU,jamming,6,184648,132608,49986,2054
+p2,single_gelu,Single GELU,jamming,8,267465,198912,66499,2054
+p2,single_gelu,Single GELU,human-activity,2,2054,0,0,2054
+p2,single_gelu,Single GELU,human-activity,4,101831,66304,33473,2054
+p2,single_gelu,Single GELU,human-activity,6,184648,132608,49986,2054
+p2,single_gelu,Single GELU,human-activity,8,267465,198912,66499,2054
+p2,single_gelu,Single GELU,interference,2,1026,0,0,1026
+p2,single_gelu,Single GELU,interference,4,100803,66304,33473,1026
+p2,single_gelu,Single GELU,interference,6,183620,132608,49986,1026
+p2,single_gelu,Single GELU,interference,8,266437,198912,66499,1026
+p2,single_gelu,Single GELU,nrpos-outdoor,2,1283,0,0,1283
+p2,single_gelu,Single GELU,nrpos-outdoor,4,101060,66304,33473,1283
+p2,single_gelu,Single GELU,nrpos-outdoor,6,183877,132608,49986,1283
+p2,single_gelu,Single GELU,nrpos-outdoor,8,266694,198912,66499,1283
+p2,single_gelu,Single GELU,deepmimo-beam,2,4367,0,0,4367
+p2,single_gelu,Single GELU,deepmimo-beam,4,104144,66304,33473,4367
+p2,single_gelu,Single GELU,deepmimo-beam,6,186961,132608,49986,4367
+p2,single_gelu,Single GELU,deepmimo-beam,8,269778,198912,66499,4367
+p2,single_sigmoid,Single Sigmoid (centered),rfs,2,5652,0,0,5652
+p2,single_sigmoid,Single Sigmoid (centered),rfs,4,105429,66304,33473,5652
+p2,single_sigmoid,Single Sigmoid (centered),rfs,6,188246,132608,49986,5652
+p2,single_sigmoid,Single Sigmoid (centered),rfs,8,271063,198912,66499,5652
+p2,single_sigmoid,Single Sigmoid (centered),jamming,2,2054,0,0,2054
+p2,single_sigmoid,Single Sigmoid (centered),jamming,4,101831,66304,33473,2054
+p2,single_sigmoid,Single Sigmoid (centered),jamming,6,184648,132608,49986,2054
+p2,single_sigmoid,Single Sigmoid (centered),jamming,8,267465,198912,66499,2054
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,2,2054,0,0,2054
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,4,101831,66304,33473,2054
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,6,184648,132608,49986,2054
+p2,single_sigmoid,Single Sigmoid (centered),human-activity,8,267465,198912,66499,2054
+p2,single_sigmoid,Single Sigmoid (centered),interference,2,1026,0,0,1026
+p2,single_sigmoid,Single Sigmoid (centered),interference,4,100803,66304,33473,1026
+p2,single_sigmoid,Single Sigmoid (centered),interference,6,183620,132608,49986,1026
+p2,single_sigmoid,Single Sigmoid (centered),interference,8,266437,198912,66499,1026
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,2,1283,0,0,1283
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,4,101060,66304,33473,1283
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,6,183877,132608,49986,1283
+p2,single_sigmoid,Single Sigmoid (centered),nrpos-outdoor,8,266694,198912,66499,1283
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,2,4367,0,0,4367
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,4,104144,66304,33473,4367
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,6,186961,132608,49986,4367
+p2,single_sigmoid,Single Sigmoid (centered),deepmimo-beam,8,269778,198912,66499,4367

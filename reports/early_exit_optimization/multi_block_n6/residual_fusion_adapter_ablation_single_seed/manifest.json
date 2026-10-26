@@ -1,0 +1,155 @@
+{
+  "algorithms": [
+    "current",
+    "bottleneck_gelu",
+    "bottleneck_linear",
+    "bottleneck_sigmoid",
+    "single_linear",
+    "single_gelu",
+    "single_sigmoid"
+  ],
+  "exits": [
+    2,
+    4,
+    6,
+    8
+  ],
+  "figures": [
+    "p0_adapter_ablation_layerwise_performance.png",
+    "p0_adapter_ablation_layerwise_performance.pdf",
+    "p2_adapter_ablation_layerwise_performance.png",
+    "p2_adapter_ablation_layerwise_performance.pdf"
+  ],
+  "head_seed": 0,
+  "methods": [
+    "p0",
+    "p2"
+  ],
+  "pretrain_seed": 0,
+  "primary_reference": "bottleneck_gelu",
+  "sources": [
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "67607bb664623bba194be9d04331b2dd40d9ed6ed3191031402c1d7cd65dc7e4",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_gelu",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "265a55708823c4e3756f695331b11f49ef69dfd93450205684f533f910425fd7",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_linear",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/bottleneck_linear/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "6ade81e46f64451e61ae963fac833d09c53fda3bf3dd4f223fb0121930dae8d4",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_sigmoid",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/bottleneck_sigmoid/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "850a2deed4e3c8ff1ab81b7395f0ba37a4a70ba493a814062587d681cf36250b",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_linear",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_linear/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "c895900e6069485c9ae2bd5eb07bf00fe10d3a2fd110a4e32ec2790bcd77da46",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_gelu",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_gelu/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "51aa9d404384799c43e2342373d8adc8a0e445c36befa8c6c79f84ec91bba9c2",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_sigmoid",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "method": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_sigmoid/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "e5c61eaee98c6789d8eb6030035dfb7fa86bee4f32d39915a3d4e1ae2b43f99d",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "0a1974e2db18e0c963e06c2ebe75ead67d9034b92734237044744276554bde92",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_gelu",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_dynamic_fusion/head_seed_000/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "4c94486dc00a94237f397d02fa9cd827a04c30d05375f9c9b81e9b0b6b1ea593",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_linear",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/bottleneck_linear/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "c6897c1d1dcca076fd365bc56f99421df2522ee20a6e2594e4573ff0d548726c",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "bottleneck_sigmoid",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/bottleneck_sigmoid/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "65b3e256e2a7bd4dda8efac84b1f6163f189e06add5ffec6d671a1b23000b915",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_linear",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_linear/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "9f7d7b9e30b48a012b15a2639aeca67a4254c9b0f92a3742ebc87df2d961d51a",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_gelu",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_gelu/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "22b1ef5730fa3e014cec774379a6250598aefe357b423bf3155f8decfab978cc",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_sigmoid",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "method": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_sigmoid/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "04151fc8c0f0e2c18725e6ccb91e404b5f2ed9a2ec919b1a8b7042cc053455de",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  ],
+  "split_seed": 2025,
+  "study": "residual_fusion_adapter_ablation_single_seed",
+  "tasks": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ],
+  "test_used_for_selection": false
+}
