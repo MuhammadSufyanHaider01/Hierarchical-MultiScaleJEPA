@@ -21,6 +21,7 @@ from evaluation import select_best_exit, select_earliest_within_tolerance  # noq
 from models import ADAPTER_ABLATION_VARIANTS, FrozenEncoderResidualFusionAblationExit  # noqa: E402
 from phase5 import PRIMARY_TASKS, build_task_dataset, task_subsets  # noqa: E402
 from phase5_exits import EXIT_LAYERS, _criterion, _evaluate, _loader, _new_encoder, _seed_everything  # noqa: E402
+from ee_progress import finish_epoch_progress, render_batch_progress  # noqa: E402
 
 ALGORITHM = "residual_fusion_adapter_ablation"
 MANIFEST = ROOT / "runs/masking_head_seeds/multi_block_n6/head_seed_000/splits_seed_2025_primary_v3.json"
@@ -129,6 +130,10 @@ def train_exit(encoder, *, layer, spec, train_loader, validation_loader, args, d
     model = FrozenEncoderResidualFusionAblationExit(encoder, layer, spec.num_outputs, args.adapter_variant).to(device)
     criterion, optimizer = _criterion(spec, device), optimizer_for(model, args)
     best, best_epoch, stale = (-math.inf if spec.higher_is_better else math.inf), None, 0
+    total_batches = len(train_loader)
+    if args.limit_train_batches is not None:
+        total_batches = min(total_batches, args.limit_train_batches)
+    progress_label = f"{args.adapter_variant} {spec.name} L{layer}"
     for epoch in range(args.epochs):
         model.train()
         for index, batch in enumerate(train_loader):
@@ -142,8 +147,10 @@ def train_exit(encoder, *, layer, spec, train_loader, validation_loader, args, d
             if any(parameter.grad is not None for parameter in encoder.parameters()):
                 raise RuntimeError(f"encoder received gradients at L{layer}")
             optimizer.step()
+            render_batch_progress(progress_label, epoch + 1, args.epochs, index, total_batches)
         validation = _evaluate(model, validation_loader, spec, criterion, device, limit_batches=args.limit_validation_batches)
         value = float(validation[spec.metric_name])
+        finish_epoch_progress(progress_label, epoch + 1, args.epochs, spec.metric_name, value)
         improved = value > best + args.head_early_stopping_min_delta if spec.higher_is_better else value < best - args.head_early_stopping_min_delta
         if improved:
             best, best_epoch, stale = value, epoch + 1, 0
