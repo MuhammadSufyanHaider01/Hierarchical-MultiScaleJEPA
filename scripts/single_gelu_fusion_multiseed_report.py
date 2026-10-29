@@ -128,6 +128,15 @@ def stats(values: list[float]) -> dict:
             "min": min(values), "max": max(values)}
 
 
+def split_stats(values: list[float]) -> tuple[dict, dict]:
+    """Keep central summaries and variability in separate report tables."""
+    aggregate = stats(values)
+    mean_summary = {key: value for key, value in aggregate.items() if key != "sample_sd"}
+    variability = {"n": aggregate["n"], "sample_variance": statistics.variance(values),
+                   "sample_sd": aggregate["sample_sd"]}
+    return mean_summary, variability
+
+
 def direction_aware_gain(fusion_value: float, current_value: float, higher_is_better: bool) -> float:
     return fusion_value - current_value if higher_is_better else current_value - fusion_value
 
@@ -166,9 +175,9 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
             fig, axis = plt.subplots(figsize=(7, 4))
             for algorithm in ALGORITHMS:
                 rows = [indexed[method, algorithm, task, layer] for layer in EXITS]
-                axis.errorbar(EXITS, [row["mean"] for row in rows], yerr=[row["sample_sd"] for row in rows],
-                              color=colors[algorithm], marker=markers[algorithm], capsize=3, linewidth=1.8,
-                              label=LABELS[algorithm])
+                axis.plot(EXITS, [row["mean"] for row in rows], color=colors[algorithm],
+                          marker=markers[algorithm], linestyle="-", linewidth=1.8,
+                          label=LABELS[algorithm])
             axis.set_title(f"{method.upper()} — {_task_label(task)}")
             axis.set_xticks(EXITS, [f"L{layer}" for layer in EXITS])
             axis.set_xlabel("Encoder exit layer")
@@ -183,10 +192,10 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
             plt.close(fig)
 
     approaches = (
-        ("p0", "current", "No multiscale and no fusion", "#0072B2", ":", "o"),
-        ("p0", "single_gelu", "No multiscale but fusion", "#0072B2", "-", "o"),
-        ("p2", "current", "Multiscale with no fusion", "#D55E00", ":", "s"),
-        ("p2", "single_gelu", "Multiscale with fusion", "#D55E00", "-", "s"),
+        ("p0", "current", "No multiscale and no fusion", "#0072B2", "-", "o"),
+        ("p0", "single_gelu", "No multiscale but fusion", "#0072B2", "-", "^"),
+        ("p2", "current", "Multiscale with no fusion", "#D55E00", "-", "s"),
+        ("p2", "single_gelu", "Multiscale with fusion", "#D55E00", "-", "D"),
     )
     fig, axes = plt.subplots(2, 3, figsize=(17, 9))
     fig.suptitle("P0/P2 Single-GELU Fusion comparison across six downstream tasks", fontsize=17, y=.99)
@@ -203,8 +212,8 @@ def plot_figures(summary: list[dict], output: Path) -> list[str]:
     handles = [Line2D([0], [0], color=color, marker=marker, linewidth=1.9, linestyle=linestyle, label=label)
                for _, _, label, color, linestyle, marker in approaches]
     fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(.5, .94), ncol=2, frameon=False)
-    fig.text(.5, .015, "Lines show seven-seed mean test performance at each fixed exit "
-             "(solid Single-GELU Fusion, dotted Current EE); positioning is lower-is-better.", ha="center")
+    fig.text(.5, .015, "Solid lines show seven-seed mean test performance at each fixed exit; "
+             "markers distinguish Current EE from Fusion; positioning is lower-is-better.", ha="center")
     fig.tight_layout(rect=(.015, .05, .985, .85))
     for suffix, kwargs in (("png", {"dpi": 300, "bbox_inches": "tight"}), ("pdf", {"bbox_inches": "tight"})):
         name = f"p0_p2_six_task_single_gelu_comparison.{suffix}"
@@ -298,37 +307,51 @@ def _build_report(current_root: Path, single_gelu_root: Path, output: Path) -> d
                     gains.append(gain)
                     gain_groups[method, task, comparison].append(gain)
 
-    fixed_summary = []
+    fixed_summary, fixed_variability = [], []
     for key, rows in sorted(fixed_groups.items()):
         method, algorithm, task, layer = key
-        fixed_summary.append({"method": method, "algorithm": algorithm, "task": task, "exit": layer,
-                              "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"],
-                              **stats([float(row["test_value"]) for row in rows]),
+        values = [float(row["test_value"]) for row in rows]
+        central, variability = split_stats(values)
+        identity = {"method": method, "algorithm": algorithm, "task": task, "exit": layer,
+                    "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"]}
+        fixed_summary.append({**identity, **central,
                               "per_seed": json.dumps({row["head_seed"]: row["test_value"] for row in rows}, sort_keys=True)})
-    selected_summary = []
+        fixed_variability.append({**identity, **variability})
+    selected_summary, selected_variability = [], []
     for key, rows in sorted(selected_groups.items()):
         method, algorithm, task = key
         counts = Counter(int(row["selected_exit"]) for row in rows)
-        selected_summary.append({"method": method, "algorithm": algorithm, "task": task,
-                                 "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"],
-                                 **stats([float(row["selected_test_value"]) for row in rows]),
+        values = [float(row["selected_test_value"]) for row in rows]
+        central, variability = split_stats(values)
+        identity = {"method": method, "algorithm": algorithm, "task": task,
+                    "metric": rows[0]["metric"], "higher_is_better": rows[0]["higher_is_better"]}
+        selected_summary.append({**identity, **central,
                                  "per_seed": json.dumps({row["head_seed"]: row["selected_test_value"] for row in rows}, sort_keys=True),
                                  "selected_exit_by_seed": json.dumps({row["head_seed"]: row["selected_exit"] for row in rows}, sort_keys=True),
                                  "selection_frequency": json.dumps(dict(sorted(counts.items())), sort_keys=True)})
-    gain_summary = []
+        selected_variability.append({**identity, **variability})
+    gain_summary, gain_variability = [], []
     for (method, task, comparison), rows in sorted(gain_groups.items()):
-        gain_summary.append({"method": method, "task": task, "comparison": comparison, "metric": rows[0]["metric"],
-                             **stats([float(row["direction_aware_gain"]) for row in rows]),
+        values = [float(row["direction_aware_gain"]) for row in rows]
+        central, variability = split_stats(values)
+        identity = {"method": method, "task": task, "comparison": comparison, "metric": rows[0]["metric"]}
+        gain_summary.append({**identity, **central,
                              "per_seed": json.dumps({row["head_seed"]: row["direction_aware_gain"] for row in rows}, sort_keys=True),
                              "fusion_exit_by_seed": json.dumps({row["head_seed"]: row["fusion_exit"] for row in rows}, sort_keys=True),
                              "reference_exit_by_seed": json.dumps({row["head_seed"]: row["reference_exit"] for row in rows}, sort_keys=True)})
-    gate_summary = []
+        gain_variability.append({**identity, **variability})
+    gate_summary, gate_variability = [], []
     for (method, task, target_exit, source_exit), rows in sorted(gate_groups.items()):
         aggregate = {"method": method, "task": task, "target_exit": target_exit, "source_exit": source_exit}
+        spread = {"method": method, "task": task, "target_exit": target_exit, "source_exit": source_exit,
+                  "n": len(rows)}
         for field in ("gate_mean", "gate_median", "gate_p10", "gate_p90", "gate_sd",
                       "relative_residual_norm_mean", "residual_norm_mean"):
-            aggregate.update({f"{field}_{key}": value for key, value in stats([float(row[field]) for row in rows]).items()})
+            central, variability = split_stats([float(row[field]) for row in rows])
+            aggregate.update({f"{field}_{key}": value for key, value in central.items()})
+            spread.update({f"{field}_{key}": value for key, value in variability.items() if key != "n"})
         gate_summary.append(aggregate)
+        gate_variability.append(spread)
 
     output.mkdir(parents=True, exist_ok=True)
     write_csv(output / "per_seed_fixed_exit_results.csv", fixed)
@@ -339,6 +362,10 @@ def _build_report(current_root: Path, single_gelu_root: Path, output: Path) -> d
     write_csv(output / "validation_selected_summary.csv", selected_summary)
     write_csv(output / "direction_aware_gain_summary.csv", gain_summary)
     write_csv(output / "single_gelu_gate_diagnostic_summary.csv", gate_summary)
+    write_csv(output / "fixed_exit_variance_sd.csv", fixed_variability)
+    write_csv(output / "validation_selected_variance_sd.csv", selected_variability)
+    write_csv(output / "direction_aware_gain_variance_sd.csv", gain_variability)
+    write_csv(output / "single_gelu_gate_variance_sd.csv", gate_variability)
     figures = plot_figures(fixed_summary, output)
     manifest = {"study": "single_gelu_fusion_multiseed", "methods": METHODS, "algorithms": ALGORITHMS,
                 "head_seeds": SEEDS, "pretrain_seed": 0, "split_seed": 2025, "tasks": TASKS, "exits": EXITS,
@@ -349,7 +376,10 @@ def _build_report(current_root: Path, single_gelu_root: Path, output: Path) -> d
         "# Single-GELU Fusion — seven-head-seed study\n\n"
         "Current EE and Single-GELU Fusion are compared for P0 and P2 using head seeds 0–6. "
         "Validation selects each exit and held-out test evaluates it afterward. Aggregate tables report "
-        "mean, sample SD, min/max, per-seed values, and selected-exit frequencies. Positive direction-aware "
+        "mean, min/max, per-seed values, and selected-exit frequencies. Figures draw mean lines without "
+        "variance/error bars; all plotted lines are solid and marker shapes distinguish methods in the combined figure. "
+        "Sample variance and sample SD are stored separately in the `*_variance_sd.csv` files. "
+        "Positive direction-aware "
         "gains favor Single-GELU Fusion; for positioning they are error reductions.\n")
     return {"output": str(output), "fixed_rows": len(fixed), "selected_rows": len(selected),
             "gain_rows": len(gains), "sources": len(provenance), "figures": len(figures)}

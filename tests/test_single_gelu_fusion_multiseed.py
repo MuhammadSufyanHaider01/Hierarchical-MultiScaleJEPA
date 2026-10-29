@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import sys
 from pathlib import Path
@@ -114,9 +115,27 @@ def test_report_aggregates_exact_sources_and_replaces_stale_output(monkeypatch, 
     assert tuple(manifest["methods"]) == report.METHODS
     assert tuple(manifest["algorithms"]) == report.ALGORITHMS
     assert len(manifest["sources"]) == 28
+    for name in ("fixed_exit_summary.csv", "validation_selected_summary.csv",
+                 "direction_aware_gain_summary.csv", "single_gelu_gate_diagnostic_summary.csv"):
+        header = (output / name).read_text().splitlines()[0]
+        assert "sample_sd" not in header and "sample_variance" not in header
+    for name in ("fixed_exit_variance_sd.csv", "validation_selected_variance_sd.csv",
+                 "direction_aware_gain_variance_sd.csv", "single_gelu_gate_variance_sd.csv"):
+        header = (output / name).read_text().splitlines()[0]
+        assert "sample_sd" in header and "sample_variance" in header
+        assert len((output / name).read_text().splitlines()) > 1
+        with (output / name).open(newline="") as stream:
+            row = next(csv.DictReader(stream))
+        variance_fields = [field for field in row if field.endswith("sample_variance")]
+        assert variance_fields
+        for variance_field in variance_fields:
+            prefix = variance_field.removesuffix("sample_variance")
+            sd_field = f"{prefix}sample_sd"
+            assert float(row[variance_field]) == pytest.approx(float(row[sd_field]) ** 2)
+        assert int(row["n"]) == 7
 
 
-def test_figure_styling_uses_sd_only_for_individual_tasks(monkeypatch, tmp_path):
+def test_figures_draw_mean_lines_without_variance(monkeypatch, tmp_path):
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
@@ -138,14 +157,18 @@ def test_figure_styling_uses_sd_only_for_individual_tasks(monkeypatch, tmp_path)
     monkeypatch.setattr(Axes, "errorbar", track_errorbar)
     monkeypatch.setattr(Figure, "savefig", track_savefig)
     names = report.plot_figures(summary, tmp_path)
-    assert len(errorbars) == 24  # P0/P2 × six tasks × Current/Fusion.
+    assert not errorbars
     assert {name for name in names if name.endswith(".png")} == {
         f"{method}_{task}_exit_performance.png" for method in report.METHODS for task in report.TASKS
     } | {"p0_p2_six_task_single_gelu_comparison.png"}
     compact = saved[-2]
     assert all(len(axis.lines) == 4 for axis in compact.axes)
     for axis in compact.axes:
-        assert [line.get_linestyle() for line in axis.lines] == [":", "-", ":", "-"]
+        assert [line.get_linestyle() for line in axis.lines] == ["-", "-", "-", "-"]
+        assert [line.get_marker() for line in axis.lines] == ["o", "^", "s", "D"]
         assert axis.lines[0].get_color() == axis.lines[1].get_color()
         assert axis.lines[2].get_color() == axis.lines[3].get_color()
         assert axis.lines[0].get_color() != axis.lines[2].get_color()
+    individual = saved[0]
+    assert all(len(axis.lines) == 2 for axis in individual.axes)
+    assert [line.get_linestyle() for line in individual.axes[0].lines] == ["-", "-"]
