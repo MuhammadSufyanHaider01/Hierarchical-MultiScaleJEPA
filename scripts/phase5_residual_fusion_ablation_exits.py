@@ -34,6 +34,10 @@ CHECKPOINT_HASHES = {
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--encoder-kind", choices=("pretrained", "random"), default="pretrained")
+    parser.add_argument("--random-encoder-metadata", type=Path)
+    parser.add_argument("--random-encoder-seed", type=int, default=None,
+                        help="random encoder initialization seed when it differs from the trained head seed")
     parser.add_argument("--method", choices=("p0", "p2"), required=True)
     parser.add_argument("--adapter-variant", choices=ADAPTER_ABLATION_VARIANTS, required=True)
     parser.add_argument("--pretrain-seed", type=int, default=0)
@@ -195,7 +199,15 @@ def main() -> int:
         raise RuntimeError("CUDA requested but unavailable")
     device = torch.device("cuda" if args.device == "auto" and torch.cuda.is_available() else ("cpu" if args.device == "auto" else args.device))
     checkpoint = args.checkpoint if args.checkpoint.is_absolute() else ROOT / args.checkpoint
-    if not checkpoint.is_file() or digest(checkpoint) != CHECKPOINT_HASHES[args.method]:
+    if args.encoder_kind == "random":
+        from random_encoder_ablation import validate
+        random_seed = args.head_seed if args.random_encoder_seed is None else args.random_encoder_seed
+        if args.method not in ("p0", "p2") or args.head_seed < 0 or random_seed < 0 or args.random_encoder_metadata is None:
+            raise ValueError("random encoder mode requires P0/P2 architecture, nonnegative seeds, and metadata")
+        random_metadata = validate(checkpoint, args.random_encoder_metadata, random_seed)
+    elif args.random_encoder_metadata is not None or args.random_encoder_seed is not None:
+        raise ValueError("random encoder metadata requires random mode")
+    elif not checkpoint.is_file() or digest(checkpoint) != CHECKPOINT_HASHES[args.method]:
         raise ValueError(f"checkpoint does not match the locked {args.method} reference hash: {checkpoint}")
     if not MANIFEST.is_file() or int(json.loads(MANIFEST.read_text()).get("seed", -1)) != 2025:
         raise ValueError(f"locked split manifest missing or incompatible: {MANIFEST}")
@@ -214,11 +226,14 @@ def main() -> int:
               "pretrain_seed": 0, "head_seed": seed, "split_seed": 2025, "checkpoint": str(checkpoint.resolve()),
               "checkpoint_sha256": digest(checkpoint), "split_manifest": str(MANIFEST.resolve()),
               "split_manifest_sha256": digest(MANIFEST), "protocol": protocol, "tasks": {}}
+    if args.encoder_kind == "random":
+        packet.update(encoder_kind="random", pretrain_seed=None, random_encoder_metadata=str(args.random_encoder_metadata.resolve()),
+                      random_encoder_seed=random_metadata["initialization_seed"])
     if args.resume or args.test_only:
         if not output.is_file():
             raise FileNotFoundError(f"saved selection packet missing: {output}")
         old = json.loads(output.read_text())
-        for field in ("head_algorithm", "adapter_variant", "method", "checkpoint_sha256", "split_manifest_sha256", "head_seed"):
+        for field in ("head_algorithm", "adapter_variant", "method", "checkpoint_sha256", "split_manifest_sha256", "head_seed", "encoder_kind"):
             if old.get(field) != packet.get(field):
                 raise ValueError("saved adapter-ablation packet is incompatible with this run")
         packet = old if args.test_only else {**packet, "tasks": old.get("tasks", {})}

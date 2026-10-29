@@ -48,6 +48,11 @@ EXIT_LAYERS = (2, 4, 6, 8)
 def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--encoder-kind", choices=("pretrained", "random"), default="pretrained")
+    parser.add_argument("--random-encoder-metadata", type=Path)
+    parser.add_argument("--random-encoder-seed", type=int, default=None,
+                        help="random encoder initialization seed when it differs from the trained head seed")
+    parser.add_argument("--split-manifest", type=Path)
     parser.add_argument("--method", choices=("p0", "p1", "p2", "p3", "p2_reverse", "cnn_p0", "cnn_p1", "cnn_p2", "cnn_p2_reverse"), required=True)
     parser.add_argument("--pretrain-seed", type=int, required=True)
     parser.add_argument("--head-seed", type=int, default=None)
@@ -398,13 +403,27 @@ def main() -> int:
     checkpoint = args.checkpoint if args.checkpoint.is_absolute() else REPOSITORY_ROOT / args.checkpoint
     if not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)
+    random_metadata = None
+    if args.encoder_kind == "random":
+        from random_encoder_ablation import validate
+        random_seed = head_seed if args.random_encoder_seed is None else args.random_encoder_seed
+        if args.method not in ("p0", "p2") or args.pretrain_seed != 0 or head_seed < 0 or random_seed < 0 or args.random_encoder_metadata is None or args.split_manifest is None:
+            raise ValueError("random encoder mode requires P0/P2 architecture, nonnegative seeds, metadata, and an explicit split")
+        random_metadata = validate(checkpoint, args.random_encoder_metadata, random_seed)
+    elif args.random_encoder_metadata is not None or args.random_encoder_seed is not None:
+        raise ValueError("random encoder metadata requires random mode")
 
     run_dir = args.run_root / args.method / f"seed_{args.pretrain_seed:03d}" / "downstream"
     run_dir.mkdir(parents=True, exist_ok=True)
     if args.dataset_suite == "primary":
         allowed_tasks = PRIMARY_TASKS
-        manifest_path = args.run_root / f"splits_seed_{args.split_seed}_primary_v3.json"
-        manifest = load_or_create_split_manifest(manifest_path, REPOSITORY_ROOT, seed=args.split_seed)
+        manifest_path = args.split_manifest or args.run_root / f"splits_seed_{args.split_seed}_primary_v3.json"
+        if args.split_manifest:
+            manifest = json.loads(manifest_path.read_text())
+            if int(manifest.get("seed", -1)) != args.split_seed:
+                raise ValueError("split manifest seed mismatch")
+        else:
+            manifest = load_or_create_split_manifest(manifest_path, REPOSITORY_ROOT, seed=args.split_seed)
         build_dataset = lambda task: build_task_dataset(task, REPOSITORY_ROOT)
         make_subsets = task_subsets
     else:
@@ -428,7 +447,7 @@ def main() -> int:
                 f"--test-only requires saved validation-selected heads and metrics: {output}"
             )
         all_results = json.loads(output.read_text())
-        if all_results.get("method") != args.method or int(all_results.get("pretrain_seed", -1)) != args.pretrain_seed:
+        if all_results.get("method") != args.method or (args.encoder_kind == "pretrained" and all_results.get("pretrain_seed") != args.pretrain_seed) or (args.encoder_kind == "random" and (all_results.get("encoder_kind") != "random" or all_results.get("checkpoint_sha256") != random_metadata["checkpoint_sha256"])):
             raise ValueError(f"cannot test incompatible metrics file: {output}")
         for task_name in tasks:
             if task_name not in all_results.get("tasks", {}):
@@ -502,9 +521,18 @@ def main() -> int:
         },
         "tasks": {},
     }
+    if random_metadata is not None:
+        from random_encoder_ablation import sha
+        all_results.update(encoder_kind="random", head_algorithm="current_ee", pretrain_seed=None, random_encoder_metadata=str(args.random_encoder_metadata.resolve()),
+                           random_encoder_seed=random_metadata["initialization_seed"],
+                           checkpoint_sha256=sha(checkpoint), split_manifest_sha256=sha(manifest_path), split_seed=args.split_seed)
+        all_results["protocol"].update(batch_size=args.batch_size, learning_rate=args.learning_rate,
+                                       weight_decay=args.weight_decay, tasks=list(tasks), exit_layers=list(EXIT_LAYERS))
     if args.resume and output.is_file():
         previous = json.loads(output.read_text())
-        if previous.get("method") != args.method or int(previous.get("pretrain_seed", -1)) != args.pretrain_seed:
+        if random_metadata is not None and (previous.get("encoder_kind") != "random" or previous.get("checkpoint_sha256") != random_metadata["checkpoint_sha256"] or previous.get("split_manifest_sha256") != all_results["split_manifest_sha256"]):
+            raise ValueError("cannot resume incompatible random encoder packet")
+        if previous.get("method") != args.method or (args.encoder_kind == "pretrained" and previous.get("pretrain_seed") != args.pretrain_seed):
             raise ValueError(f"cannot resume incompatible metrics file: {output}")
         all_results["tasks"] = previous.get("tasks", {})
 

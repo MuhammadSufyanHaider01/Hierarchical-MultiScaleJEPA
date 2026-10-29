@@ -1,0 +1,3 @@
+# Random encoder ablation — fixed-head seven-seed study
+
+Each P0/P2 Current EE or Single-GELU head set trained with head seed 0 is held fixed while its encoder is replaced with random frozen encoder seeds 0–6. The pretrained encoder result for the same seed-0 heads is the reference. No downstream head is retrained on a random encoder. Validation-selected exits are inherited from the pretrained seed-0 head packet and held constant across random encoder seeds. Mean lines are solid; variance and sample SD are in separate CSV files. Positive pretraining gains favor the pretrained encoder; positioning uses error reduction.

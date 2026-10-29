@@ -1,0 +1,107 @@
+{
+  "encoder_initialization_seed": 0,
+  "exits": [
+    2,
+    4,
+    6,
+    8
+  ],
+  "figures": [
+    "p0_random_encoder_ablation_layerwise_performance.png",
+    "p0_random_encoder_ablation_layerwise_performance.pdf",
+    "p2_random_encoder_ablation_layerwise_performance.png",
+    "p2_random_encoder_ablation_layerwise_performance.pdf"
+  ],
+  "head_seed": 0,
+  "random_encoder": {
+    "architecture_config": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/configs/p0.yml",
+    "architecture_config_sha256": "a70dc16584ecce6b6b170299641d71eb201f4322c32bc313faf8eca9e64e1963",
+    "checkpoint": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/random_encoder_ablation_single_seed/random_encoder_seed_000.pt",
+    "checkpoint_sha256": "c1f3e56535f237e07456b09d85bf4352e7d2345822063daf8fb5d28c6e280745",
+    "encoder_kind": "random",
+    "git_revision": "9a9900ce0550da060aef274dc672e3463ddb32e5",
+    "initialization_seed": 0,
+    "python_version": "3.13.15",
+    "torch_version": "2.10.0+cu126"
+  },
+  "runtime": {
+    "current": {
+      "cpus": "8",
+      "git_revision": "9a9900ce0550da060aef274dc672e3463ddb32e5",
+      "gpu": "NVIDIA L40S",
+      "hostname": "mlg3",
+      "job_id": "50619130",
+      "nodes": "mlg3",
+      "partition": "gpu-l40"
+    },
+    "single_gelu": {
+      "cpus": "8",
+      "git_revision": "9a9900ce0550da060aef274dc672e3463ddb32e5",
+      "gpu": "NVIDIA L40S",
+      "hostname": "mlg4",
+      "job_id": "50619131",
+      "nodes": "mlg4",
+      "partition": "gpu-l40"
+    }
+  },
+  "sources": [
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "encoder": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "67607bb664623bba194be9d04331b2dd40d9ed6ed3191031402c1d7cd65dc7e4",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_gelu",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "encoder": "p0",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_gelu/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "51aa9d404384799c43e2342373d8adc8a0e445c36befa8c6c79f84ec91bba9c2",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "encoder": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/multi_block_n6/head_seed_000/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "0a1974e2db18e0c963e06c2ebe75ead67d9034b92734237044744276554bde92",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_gelu",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "encoder": "p2",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/residual_fusion_adapter_ablation/head_seed_000/single_gelu/p2/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "22b1ef5730fa3e014cec774379a6250598aefe357b423bf3155f8decfab978cc",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "current",
+      "checkpoint_sha256": "c1f3e56535f237e07456b09d85bf4352e7d2345822063daf8fb5d28c6e280745",
+      "encoder": "random",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/random_encoder_ablation_single_seed/current/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "9b5b8bc42853cca6a9dd7fb760d1dad58f9b03838747c75b1d7f1459f41f8bf8",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    {
+      "algorithm": "single_gelu",
+      "checkpoint_sha256": "c1f3e56535f237e07456b09d85bf4352e7d2345822063daf8fb5d28c6e280745",
+      "encoder": "random",
+      "metrics_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/ee_optimization/multi_block_n6/random_encoder_ablation_single_seed/fusion/residual_fusion_adapter_ablation/head_seed_000/single_gelu/p0/seed_000/downstream/exit_metrics.json",
+      "metrics_sha256": "feb202ffb3ab3bd8b528fc627093577667901d2384e698ed81ce048caa47a69c",
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  ],
+  "split_seed": 2025,
+  "study": "random_encoder_ablation_single_seed",
+  "tasks": [
+    "rfs",
+    "jamming",
+    "human-activity",
+    "interference",
+    "nrpos-outdoor",
+    "deepmimo-beam"
+  ]
+}
