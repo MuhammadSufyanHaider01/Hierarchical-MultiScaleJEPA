@@ -1,0 +1,659 @@
+{
+  "artifacts": {
+    "ablation": {
+      "detail": "Single-head-seed validation-selected pilot; parameter counts joined at the selected exit.",
+      "outputs": [
+        "tables/adapter_ablation.csv",
+        "tables/adapter_ablation.tex"
+      ],
+      "status": "complete"
+    },
+    "cost": {
+      "detail": "Fusion FLOPs/latency are unavailable; original baseline benchmark artifacts are absent, so full measurement protocol/input shape cannot be audited.",
+      "outputs": [
+        "tables/ee_performance_cost.csv",
+        "tables/ee_performance_cost.tex"
+      ],
+      "status": "partial"
+    },
+    "fusion": {
+      "detail": "Means validated; uncertainty is supplementary; some checkpoint schedule metadata are unavailable.",
+      "outputs": [
+        "data/ee_pretraining_fusion_six_tasks.csv",
+        "figures/main/ee_pretraining_fusion_six_tasks.pdf",
+        "figures/main/ee_pretraining_fusion_six_tasks.png",
+        "figures/supplementary/ee_pretraining_fusion_uncertainty.pdf",
+        "figures/supplementary/ee_pretraining_fusion_uncertainty.png"
+      ],
+      "status": "partial"
+    },
+    "human_activity_representation": {
+      "detail": "Original-space class separation and paired 95% bootstrap differences at all 14 temporal columns.",
+      "outputs": [
+        "data/human_activity_paired_separation.csv",
+        "figures/main/human_activity_paired_separation.pdf",
+        "figures/main/human_activity_paired_separation.png"
+      ],
+      "status": "complete"
+    },
+    "human_activity_temporal": {
+      "detail": "Five full-input-trained head seeds; mean +/- sample SD across head seeds at each input length.",
+      "outputs": [
+        "data/human_activity_accuracy_vs_time_patches.csv",
+        "figures/main/human_activity_accuracy_vs_time_patches.pdf",
+        "figures/main/human_activity_accuracy_vs_time_patches.png"
+      ],
+      "status": "complete"
+    },
+    "jamming_accuracy": {
+      "detail": "Five full-input-trained head seeds; mean +/- sample SD across head seeds at each input length.",
+      "outputs": [
+        "data/jamming_accuracy_vs_input_patches.csv",
+        "figures/main/jamming_accuracy_vs_input_patches.pdf",
+        "figures/main/jamming_accuracy_vs_input_patches.png"
+      ],
+      "status": "complete"
+    },
+    "jamming_representation": {
+      "detail": "Original-space class separation and paired 95% bootstrap differences at all 14 input patch columns.",
+      "outputs": [
+        "data/jamming_paired_separation.csv",
+        "figures/main/jamming_paired_separation.pdf",
+        "figures/main/jamming_paired_separation.png"
+      ],
+      "status": "complete"
+    },
+    "nrpos_depth": {
+      "detail": "Held-out full-input M-block results, seven head seeds; some checkpoint schedule metadata unavailable.",
+      "outputs": [
+        "data/nrpos_full_input_error_vs_exit.csv",
+        "figures/main/nrpos_full_input_error_vs_exit.pdf",
+        "figures/main/nrpos_full_input_error_vs_exit.png"
+      ],
+      "status": "partial"
+    },
+    "nrpos_time": {
+      "detail": "Validation only; one saved head per exit and method, fine-to-coarse epoch 29, LatentWave horizon and checkpoint hashes unverified.",
+      "outputs": [
+        "data/nrpos_validation_error_vs_time_patches.csv",
+        "figures/main/nrpos_validation_error_vs_time_patches.pdf",
+        "figures/main/nrpos_validation_error_vs_time_patches.png"
+      ],
+      "status": "partial"
+    },
+    "pca": {
+      "detail": "Need test/coordinates.npz, test/provenance.json, validation/pca_metadata.json, and validation/provenance.json in runs/.",
+      "outputs": [],
+      "status": "unavailable"
+    },
+    "representations": {
+      "detail": "Quantitative test-set analysis rendered; PCA has a separate optional artifact status.",
+      "outputs": [
+        "data/layerwise_representation_analysis.csv",
+        "figures/main/layerwise_representation_analysis.pdf",
+        "figures/main/layerwise_representation_analysis.png"
+      ],
+      "status": "partial"
+    },
+    "representations_human-activity": {
+      "detail": "Quantitative test-set analysis rendered; PCA has a separate optional artifact status.",
+      "outputs": [
+        "data/representations_human-activity.csv",
+        "figures/supplementary/representations_human-activity.pdf",
+        "figures/supplementary/representations_human-activity.png"
+      ],
+      "status": "partial"
+    },
+    "representations_jamming": {
+      "detail": "Quantitative test-set analysis rendered; PCA has a separate optional artifact status.",
+      "outputs": [
+        "data/representations_jamming.csv",
+        "figures/supplementary/representations_jamming.pdf",
+        "figures/supplementary/representations_jamming.png"
+      ],
+      "status": "partial"
+    },
+    "representations_paired": {
+      "detail": "Original-space class separation and paired 95% bootstrap differences at all 14 temporal columns.",
+      "outputs": [
+        "data/interference_paired_separation.csv",
+        "figures/main/interference_paired_separation.pdf",
+        "figures/main/interference_paired_separation.png"
+      ],
+      "status": "complete"
+    },
+    "representations_rfs": {
+      "detail": "Quantitative test-set analysis rendered; PCA has a separate optional artifact status.",
+      "outputs": [
+        "data/representations_rfs.csv",
+        "figures/supplementary/representations_rfs.pdf",
+        "figures/supplementary/representations_rfs.png"
+      ],
+      "status": "partial"
+    },
+    "representations_trajectory": {
+      "detail": "Original-space separation versus input length; bootstrap intervals included in plotted-data CSV.",
+      "outputs": [
+        "data/interference_separation_vs_input.csv",
+        "figures/supplementary/interference_separation_vs_input.pdf",
+        "figures/supplementary/interference_separation_vs_input.png"
+      ],
+      "status": "complete"
+    },
+    "rfs_accuracy": {
+      "detail": "Five full-input-trained head seeds; mean +/- sample SD across head seeds at each input length.",
+      "outputs": [
+        "data/rfs_accuracy_vs_input_patches.csv",
+        "figures/main/rfs_accuracy_vs_input_patches.pdf",
+        "figures/main/rfs_accuracy_vs_input_patches.png"
+      ],
+      "status": "complete"
+    },
+    "rfs_representation": {
+      "detail": "Original-space class separation and paired 95% bootstrap differences at all 14 input patch columns.",
+      "outputs": [
+        "data/rfs_paired_separation.csv",
+        "figures/main/rfs_paired_separation.pdf",
+        "figures/main/rfs_paired_separation.png"
+      ],
+      "status": "complete"
+    },
+    "selected": {
+      "detail": "Values validated; some checkpoint epoch, schedule, and mask geometry metadata are unavailable in checked-in reports.",
+      "outputs": [
+        "tables/pretraining_comparison.csv",
+        "tables/pretraining_comparison.tex",
+        "figures/supplementary/selected_exit_frequencies.csv",
+        "data/checkpoint_provenance.json"
+      ],
+      "status": "partial"
+    },
+    "supplement": {
+      "detail": "Fixed-exit means/SD and source-unit paired head-seed gains.",
+      "outputs": [
+        "figures/supplementary/fixed_exit_results.csv",
+        "figures/supplementary/paired_head_seed_gains_source_units.csv"
+      ],
+      "status": "complete"
+    },
+    "temporal_performance": {
+      "detail": "Five full-input-trained head seeds; mean +/- sample SD across head seeds at each input length.",
+      "outputs": [
+        "data/interference_accuracy_vs_time_patches.csv",
+        "figures/main/interference_accuracy_vs_time_patches.pdf",
+        "figures/main/interference_accuracy_vs_time_patches.png"
+      ],
+      "status": "complete"
+    }
+  },
+  "audited_input_revision": "69b3c8746043314dffd45a39a66678d81212d3e2",
+  "command": "python scripts/paper_results/build_all.py",
+  "generator_files": [
+    {
+      "path": "scripts/paper_results/pipeline.py",
+      "sha256": "bc664c0c17bee02971271007fdd411c384fb0044f0e9b8b929fad7026c4ae53b"
+    },
+    {
+      "path": "scripts/paper_results/style.py",
+      "sha256": "35cd2addf6d3579659a37a171ac0ef280e05dcaaf8beb7ca6fbed7ca6edae0a2"
+    },
+    {
+      "path": "scripts/paper_results/build_all.py",
+      "sha256": "10c1f08d6928086f334498728a147c2a99e1b15dc4d2782a0b0bc7e42cc18e69"
+    }
+  ],
+  "input_files": [
+    {
+      "path": "experiments/original_data/vary_time_samples/nrpos-outdoor/hierarchical/input_information_exit_metrics.json",
+      "sha256": "05c6879b9cb376d2de2c9e25ea05e3c3cc90f479706a30bf88fd134fe0dc080c"
+    },
+    {
+      "path": "experiments/original_data/vary_time_samples/nrpos-outdoor/hierarchical/input_information_temporal.csv",
+      "sha256": "70bf94fdfb17ace2ee22d1a6b6d4f0009887c998d500781a13f0752b32dba3e9"
+    },
+    {
+      "path": "experiments/original_data/vary_time_samples/nrpos-outdoor/latentwave_ee/input_information_exit_metrics.json",
+      "sha256": "788cfc1d6592ac676a5bbd5b9a2977fe976180d2c839fb2a433b5cbf0faf2ffb"
+    },
+    {
+      "path": "experiments/original_data/vary_time_samples/nrpos-outdoor/latentwave_ee/input_information_temporal.csv",
+      "sha256": "cb396f5d5963e73dc662d72da2e3586af52219a05575eac041bd5917df577cfc"
+    },
+    {
+      "path": "experiments/original_data/vary_time_samples/nrpos-outdoor/README.md",
+      "sha256": "679d8a34bd8ccc747bee45bbd4de749b6d5a95e2ef1a00ecd2bf3ab860b29675"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/fixed_exit_summary.csv",
+      "sha256": "693555bdab331ff2ad4f81af81e0704e0b9bde424daff23b469cd52768ca068f"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/fixed_exit_variance_sd.csv",
+      "sha256": "c318c450d9e9b3ac9adf42bf6d554353b8f2202000444fd568129fb49b72e300"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/manifest.json",
+      "sha256": "4d8d28c32712cdd40eb5c1f77414ead998657707dd40b426f286dbd075ea83d8"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/per_seed_direction_aware_gains.csv",
+      "sha256": "90f789d5eca98d0c1fb219b92a5b7e893efd1df068f07e9296664e187df2f8fe"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/per_seed_fixed_exit_results.csv",
+      "sha256": "23715735ae2027eeaa8006c45c6e1c2905e2676e12b4dbed10342b55041211c8"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_fusion_adapter_ablation_single_seed/manifest.json",
+      "sha256": "597627e0b100bf0f636faaa2a731c53b2b031138aa55449c92f22b6f6ee5434c"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_fusion_adapter_ablation_single_seed/parameter_counts.csv",
+      "sha256": "f3443932e1395b38f5afd0489c0db2c3a705d1bc81b9070412c94c33f491b021"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_fusion_adapter_ablation_single_seed/validation_selected_results.csv",
+      "sha256": "049ecddde9a1672576f4905b3b2ed4f163b01eae3651c80bf687bda8c1dffce5"
+    },
+    {
+      "path": "reports/masking_study/frequency_n6/manifest.json",
+      "sha256": "dba96eeb37f42a7b8411e8c2f92a21bea96faa1f738d42f801f11ab45c134ed4"
+    },
+    {
+      "path": "reports/masking_study/frequency_n6/multiseed_validation_selected.csv",
+      "sha256": "61a5e2058a1a5a8456ee8f80a022cfe7ea7f2c5717289a6605f6a8efafd713f1"
+    },
+    {
+      "path": "reports/masking_study/frequency_n6/README.md",
+      "sha256": "8535cc136238854164606bdb60e8b40c0f3f363298dabdb8e45448f198b10cb6"
+    },
+    {
+      "path": "reports/masking_study/multi_block_n6/manifest.json",
+      "sha256": "35c6dbe87aa465c06bd88f5bbf6fa62f9aaa6b6f282c59bbea9bf4c47d8f52ff"
+    },
+    {
+      "path": "reports/masking_study/multi_block_n6/multiseed_fixed_exits.csv",
+      "sha256": "4496fcb1cc2bc075fdad82cc0e2643646cbc53e024cdb7d6f75dfe646e794644"
+    },
+    {
+      "path": "reports/masking_study/multi_block_n6/multiseed_inference_cost.csv",
+      "sha256": "a5ddc13b4c2dece8d62051a396ebcf5317185f107a36a86e5ef83198aca8608f"
+    },
+    {
+      "path": "reports/masking_study/multi_block_n6/multiseed_validation_selected.csv",
+      "sha256": "506e73f061effd038f24a1dbb267035c83ae11e854034527626d29683457392f"
+    },
+    {
+      "path": "reports/masking_study/multi_block_n6/README.md",
+      "sha256": "25485202ec440fb5237aa13fdbbe2086707bf79f18910a96a664de67f3fa2ecc"
+    },
+    {
+      "path": "reports/masking_study/region_n6/manifest.json",
+      "sha256": "903b806485414a822e7b4b62299858cac629265f2ad83f124562a2435e830f54"
+    },
+    {
+      "path": "reports/masking_study/region_n6/multiseed_validation_selected.csv",
+      "sha256": "8c310f9a953dd4ad65314302fee42aacda2c274b42dee2e10cf78a3862555b3c"
+    },
+    {
+      "path": "reports/masking_study/region_n6/README.md",
+      "sha256": "9a87b689c281d8b5f4f8717b0f16bccfb3679f134f35a233928225643a189257"
+    },
+    {
+      "path": "reports/masking_study/time_n6/manifest.json",
+      "sha256": "04330e182ecf8dcc5aa92f6312c18c40ff37b32f30f2d440e13ae75d0880fbe0"
+    },
+    {
+      "path": "reports/masking_study/time_n6/multiseed_validation_selected.csv",
+      "sha256": "380a0d284aa8a1ecead190d731e828bed26e8841f9e259efde975787905677f7"
+    },
+    {
+      "path": "reports/masking_study/time_n6/README.md",
+      "sha256": "057e7473c00c7cb736d23fb4572b639f615523972590bea1263b4f909e9adc10"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/human-activity/seed_000/bootstrap_intervals.csv",
+      "sha256": "61bc6f56010e1cdb8b6a80706061a3505180a2afb2ea482cd7ad371eab6dda81"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/human-activity/seed_000/metrics.csv",
+      "sha256": "45e0868dfc0b4ba2b36c287cecea280f60e0d58108ff5a22ae1de183d29f1016"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/human-activity/seed_000/summary.md",
+      "sha256": "e2cd2e634cf51f2517216b08c4e228a1dfc49c6db4d4ab1f4ddf622d09ec1065"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/human-activity/seed_000/temporal_head_robustness.csv",
+      "sha256": "9f8f65f717893717c45517032b9ec592500b1b29b5fde2e17036776c4cf50295"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/human-activity/seed_000/temporal_head_robustness_summary.md",
+      "sha256": "d18a52f6806ff3b09788d068dd9db5dbddb7db1ba8f2a8208f9ceffca4bb75e1"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/interference/seed_000/bootstrap_intervals.csv",
+      "sha256": "a685beeaabd440162e470177dfb4429e28d372d941ab67e40caa52c1e15eeaef"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/interference/seed_000/metrics.csv",
+      "sha256": "f2339273fb55486925583591f8b64bdb9a4870b5275207fedc5380f4778de213"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/interference/seed_000/summary.md",
+      "sha256": "bea7688a888eb07bed60aabc84e06bd5bdd92c600cb0a3df96ffef2079aa7e91"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/interference/seed_000/temporal_head_robustness.csv",
+      "sha256": "df84e1da8cbc3e01421952ce5c93d165b7e694b5544e8d91721c0f8c5cada199"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/interference/seed_000/temporal_head_robustness_summary.md",
+      "sha256": "656651fd45d2ffd93c6176d31347112c4c94bf6088ff3c01391eca9512c82d90"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/jamming/seed_000/bootstrap_intervals.csv",
+      "sha256": "51657bf9db4aa4f7e866bfe9d286aef4eb9116ad9c4f3750860163ce9f3178ba"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/jamming/seed_000/metrics.csv",
+      "sha256": "dbbbfaa44275f643d6453c15703dcb03bfa2d0c6067ba98a66dceca4535362aa"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/jamming/seed_000/summary.md",
+      "sha256": "667cc79c7580fb2d7f4825e6d2f78377f3347b74f913c46779af1cba924dd193"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/jamming/seed_000/temporal_head_robustness.csv",
+      "sha256": "2c1754f6ac20326bd8136694b5f2fdf72001c0e818ec24257607a55261e6c09c"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/jamming/seed_000/temporal_head_robustness_summary.md",
+      "sha256": "2ce992baf935b71faa2ef6c03d0e10abe9cfff645880696d08f8faed50b33d5e"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/rfs/seed_000/bootstrap_intervals.csv",
+      "sha256": "58315bb38b74cc02e4a063bce44a18659f10f6cad8f676134e99f3424af3447a"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/rfs/seed_000/metrics.csv",
+      "sha256": "44a2a1689c25382f93877f0a02615c19a210d71a6832d40cba87793e834f5bf2"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/rfs/seed_000/summary.md",
+      "sha256": "24d38721243b5a0b41988a304a9416f384115c531a7fe5fff3393481af686016"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/rfs/seed_000/temporal_head_robustness.csv",
+      "sha256": "ab7c94abfff56dbcb17e3a2eda6dc9d3562150661accc73bf260114db385e7dc"
+    },
+    {
+      "path": "reports/representation_trajectories/multi_block_n6/rfs/seed_000/temporal_head_robustness_summary.md",
+      "sha256": "aaf4e0a85af51331fdb6977f55ca3b999f5d516772dc403a14a18a51ef729623"
+    }
+  ],
+  "limitations": [
+    "One fixed pretrained checkpoint per method/condition; head-seed SD is not pretraining variability.",
+    "Frequency and multi-block share nominal span-time geometry.",
+    "Representation P2-Reverse source split unverified.",
+    "Fusion cost not measured; historical baseline benchmark protocol is not fully auditable in this checkout."
+  ],
+  "output_files": [
+    {
+      "path": "reports/paper_results/data/ee_pretraining_fusion_six_tasks.csv",
+      "sha256": "3b545268d8ff3fb9c9d68418aea728e160d18c9e358063c941a8014d5b05fb90"
+    },
+    {
+      "path": "reports/paper_results/figures/main/ee_pretraining_fusion_six_tasks.pdf",
+      "sha256": "0d1bfe23f646572eed1f1e9724dac738504a15eee7c19a532cfb183f74daaf27"
+    },
+    {
+      "path": "reports/paper_results/figures/main/ee_pretraining_fusion_six_tasks.png",
+      "sha256": "741438cc70152327f1e5edff98ea498f382b4e2f94ab324faf9ac0a35bda209c"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/ee_pretraining_fusion_uncertainty.pdf",
+      "sha256": "ad1bc755a53b7fe02147fe3faaff19921fc57a73e6c7fa1c72842cd2c4b85837"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/ee_pretraining_fusion_uncertainty.png",
+      "sha256": "2ab14fc15f77d4e1548ffd3872a0215419de5c7b3f88303e9804f05d1322b822"
+    },
+    {
+      "path": "reports/paper_results/tables/pretraining_comparison.csv",
+      "sha256": "c0dfd539b7810f7e9a24aa1ef22e03c88ec1cbe025e6c00527f5fe2b6ed52b18"
+    },
+    {
+      "path": "reports/paper_results/tables/pretraining_comparison.tex",
+      "sha256": "96f7e3830627f4aebbc6ce637834bc8f4e9309c2020e5b96d4258d8f21b2da98"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/selected_exit_frequencies.csv",
+      "sha256": "874b9945c8210d3b4c45892dcf568ba0b60b8c9510b8ccf84d749affaf8c83dc"
+    },
+    {
+      "path": "reports/paper_results/data/checkpoint_provenance.json",
+      "sha256": "23c822e1de917a686021d60f075343d567b02803f733095bdd4d3795c95147cf"
+    },
+    {
+      "path": "reports/paper_results/data/layerwise_representation_analysis.csv",
+      "sha256": "b0731b7c26de49a89c14dded1b9f6e23e63f62cd8908b69846de8ea3bfc60093"
+    },
+    {
+      "path": "reports/paper_results/figures/main/layerwise_representation_analysis.pdf",
+      "sha256": "fca6085e221b46c9bb76a9b00da726beb34ed2aee0045272ba0e55d320312393"
+    },
+    {
+      "path": "reports/paper_results/figures/main/layerwise_representation_analysis.png",
+      "sha256": "9014608b20b6433ee3dcfc06e0caaa11784024f1cf70890afd4f31d4e65378c6"
+    },
+    {
+      "path": "reports/paper_results/data/interference_accuracy_vs_time_patches.csv",
+      "sha256": "2085fea76593deb3b91eb70ea43e4e17f907e828f0ad6bd408ce01765e30a6db"
+    },
+    {
+      "path": "reports/paper_results/figures/main/interference_accuracy_vs_time_patches.pdf",
+      "sha256": "d9ff69cb4b00e34b1b08a4d6516901be5d5ea83d1ad411fa064ac350b80a0ced"
+    },
+    {
+      "path": "reports/paper_results/figures/main/interference_accuracy_vs_time_patches.png",
+      "sha256": "0cfcfa80579c64fa83d3c7c3d677b6494b2a00aacb4d58bcff267d9ff6ac1433"
+    },
+    {
+      "path": "reports/paper_results/data/nrpos_full_input_error_vs_exit.csv",
+      "sha256": "65b3f78292cd6b0046fba4201d2254b7d4a173272a80157fdb2b0b69d520034c"
+    },
+    {
+      "path": "reports/paper_results/figures/main/nrpos_full_input_error_vs_exit.pdf",
+      "sha256": "18e13bcfe40dd9c5f65b78e45db373e92460faf0010bcf27b6f88b8a30fcfbc0"
+    },
+    {
+      "path": "reports/paper_results/figures/main/nrpos_full_input_error_vs_exit.png",
+      "sha256": "481cc4bcabbf188dfe26f66d98dd15c707a062ede029c28ef2e40fae26ec41c4"
+    },
+    {
+      "path": "reports/paper_results/data/nrpos_validation_error_vs_time_patches.csv",
+      "sha256": "a885364e2e96b6ca1b437c6148f07ebdbf206f84c22de5111ec20605dfa728fd"
+    },
+    {
+      "path": "reports/paper_results/figures/main/nrpos_validation_error_vs_time_patches.pdf",
+      "sha256": "40279bd74876515c4e97acb2b7d4eea3ca15558c07445c1ef16e1a833d369a89"
+    },
+    {
+      "path": "reports/paper_results/figures/main/nrpos_validation_error_vs_time_patches.png",
+      "sha256": "6695d61927dce7e888a481950ce282db37c3464a71380e4751377bcaee0ea905"
+    },
+    {
+      "path": "reports/paper_results/data/rfs_paired_separation.csv",
+      "sha256": "3d883a0012db919cef71399a74a8a6e4c13b95b1e34af1258c99dc17eab682dd"
+    },
+    {
+      "path": "reports/paper_results/figures/main/rfs_paired_separation.pdf",
+      "sha256": "7b4e8541760cdc011c9ad437262fa4ca4f954196fe873bd23da0c07036ba170c"
+    },
+    {
+      "path": "reports/paper_results/figures/main/rfs_paired_separation.png",
+      "sha256": "6a409c3f50fa3fe91443888aa64847409d8d5ad1e62108bb8f6d17a0879caecf"
+    },
+    {
+      "path": "reports/paper_results/data/rfs_accuracy_vs_input_patches.csv",
+      "sha256": "0371417dcf60a09b6ec70d9a03a848695585db57da24ab93f2f7493f0fbe694c"
+    },
+    {
+      "path": "reports/paper_results/figures/main/rfs_accuracy_vs_input_patches.pdf",
+      "sha256": "53fbe267216d46176fabba2d6ad22f7a1b10ca8512cdce79b54c99ccab4a0778"
+    },
+    {
+      "path": "reports/paper_results/figures/main/rfs_accuracy_vs_input_patches.png",
+      "sha256": "deb696f22627ab19755d03c47200117fce9105674b9d4c55e20b232cd055eacc"
+    },
+    {
+      "path": "reports/paper_results/data/jamming_paired_separation.csv",
+      "sha256": "0618b0efd8dfd3f00cde9c356259624967b3c20e5c12f55f1c25a2b9cea2d39a"
+    },
+    {
+      "path": "reports/paper_results/figures/main/jamming_paired_separation.pdf",
+      "sha256": "617db943e5f6e3fd38f190ffb04516ecda6648910401ff8badd22d9ee4541f98"
+    },
+    {
+      "path": "reports/paper_results/figures/main/jamming_paired_separation.png",
+      "sha256": "416e880df9fd1e77094983716631884391c40a288a48ff7880ded0c6308e162d"
+    },
+    {
+      "path": "reports/paper_results/data/jamming_accuracy_vs_input_patches.csv",
+      "sha256": "9f2c07e5841ff8ffb0f99d587162256d533e12807066c12383388cee243984eb"
+    },
+    {
+      "path": "reports/paper_results/figures/main/jamming_accuracy_vs_input_patches.pdf",
+      "sha256": "5d281ef5fd3954c656c97447b68f08033c85823d99e7bd74666c473e1c404dc0"
+    },
+    {
+      "path": "reports/paper_results/figures/main/jamming_accuracy_vs_input_patches.png",
+      "sha256": "65d11603002b2753199cbf08f2950b2846956d3742e2370f38c3efbdf8f2c947"
+    },
+    {
+      "path": "reports/paper_results/data/human_activity_paired_separation.csv",
+      "sha256": "d4cc5e05830e1b1fdbf1eabd273016872cf12bfeded140ee79f212c36a88ad73"
+    },
+    {
+      "path": "reports/paper_results/figures/main/human_activity_paired_separation.pdf",
+      "sha256": "ac8f8fd7948cff54a46374cb76236880d64bbdc4fda6eac20e41bee63d869d0d"
+    },
+    {
+      "path": "reports/paper_results/figures/main/human_activity_paired_separation.png",
+      "sha256": "33f221d3eed0d8841ba2754cba2b7baada4ff74f1155d739ab043ed23c242cfc"
+    },
+    {
+      "path": "reports/paper_results/data/human_activity_accuracy_vs_time_patches.csv",
+      "sha256": "2398a5dfbb0cf7ec435780ffa9a208d46b230d2de1f18d4406dbd5874173f099"
+    },
+    {
+      "path": "reports/paper_results/figures/main/human_activity_accuracy_vs_time_patches.pdf",
+      "sha256": "a4aa0e79c4a9897c585ebc04bcea27e99d26ddc91cc38edf374a63c18cdca052"
+    },
+    {
+      "path": "reports/paper_results/figures/main/human_activity_accuracy_vs_time_patches.png",
+      "sha256": "a74065719ad90c8d4e27911eab9972b13a8cfb8c518b7e4a998b473c7074356a"
+    },
+    {
+      "path": "reports/paper_results/data/interference_paired_separation.csv",
+      "sha256": "ba776f19f8352ca9a9f26f9854a6235b4b79dd8135dfabdc59a2de8621d84df2"
+    },
+    {
+      "path": "reports/paper_results/figures/main/interference_paired_separation.pdf",
+      "sha256": "6601505886d3790a6fd08a4e203b95e5778fc233a6ce0c8dd823f24c99b78a53"
+    },
+    {
+      "path": "reports/paper_results/figures/main/interference_paired_separation.png",
+      "sha256": "281df1c43f8df1919ee1aa60b45de1dd6ee0ece55fc1b788b9f8cce28116cd19"
+    },
+    {
+      "path": "reports/paper_results/data/interference_separation_vs_input.csv",
+      "sha256": "39358aed269db74a1c2a414189ebf6453cc8bdffbdd649b983412e082111972c"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/interference_separation_vs_input.pdf",
+      "sha256": "ae138cf8f0c846944f40c3f9884ce8e16bd9c179f53b1b524115207553c6530c"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/interference_separation_vs_input.png",
+      "sha256": "2c25c4fe4caa6c9219dddf109b175ac9a6d54826549d61a941115be22c27b23d"
+    },
+    {
+      "path": "reports/paper_results/tables/ee_performance_cost.csv",
+      "sha256": "ef52435ddff286cfc2a144a2ccf854615a4a2125602fe5091390780441d237ca"
+    },
+    {
+      "path": "reports/paper_results/tables/ee_performance_cost.tex",
+      "sha256": "fd1fc0427bbdf5e9ca5a777c1b28de47e3911dba32f7b281c69523295c7754ed"
+    },
+    {
+      "path": "reports/paper_results/tables/adapter_ablation.csv",
+      "sha256": "43e5e26f150a3584c4b0a8e16898d6c9cfc74d095478a015178f9159bcc5cd81"
+    },
+    {
+      "path": "reports/paper_results/tables/adapter_ablation.tex",
+      "sha256": "78d94b18d2142a3a762fca5f0ac3e9c61d1ea0636f476520a4fac7c27dfac71d"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/fixed_exit_results.csv",
+      "sha256": "3b545268d8ff3fb9c9d68418aea728e160d18c9e358063c941a8014d5b05fb90"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/paired_head_seed_gains_source_units.csv",
+      "sha256": "90f789d5eca98d0c1fb219b92a5b7e893efd1df068f07e9296664e187df2f8fe"
+    },
+    {
+      "path": "reports/paper_results/data/representations_rfs.csv",
+      "sha256": "2333f434fb2e261adb95d5e042815ab7e93ae293c9f112d92c3639390f5f221f"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_rfs.pdf",
+      "sha256": "9ff2999af0edf5390300f06ca1f1f76400b3d46f946f9538d0b0eb8c6a8407e8"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_rfs.png",
+      "sha256": "156b6129f746d546af36048c176a629759e5efed03ffc5ab7b738dee49d80184"
+    },
+    {
+      "path": "reports/paper_results/data/representations_jamming.csv",
+      "sha256": "c12a3669eaa3a2fbf9afde8cbb80f725f8cf9649f520a762c977a64054a2404c"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_jamming.pdf",
+      "sha256": "3d7e26494ab213de7a7b92c7580335781295395a96316b519cb0267fc41831c9"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_jamming.png",
+      "sha256": "25ff50a5d0c534b13a376f8a06d72ba51f55d26930e7dec17cc193fcfcda4338"
+    },
+    {
+      "path": "reports/paper_results/data/representations_human-activity.csv",
+      "sha256": "18f15fdb7b5cebdbca917ed8231abe95692f861e18dc789779a3b3cbf25c1da4"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_human-activity.pdf",
+      "sha256": "c391ee94aeb3b5e94f10fb71770aca259905f3cbd7fe5b656832116228d1794d"
+    },
+    {
+      "path": "reports/paper_results/figures/supplementary/representations_human-activity.png",
+      "sha256": "92e5746902ccd5be4a44496b37841a6b809df6c84b3af11a2b31094884406190"
+    }
+  ],
+  "revision": "69b3c8746043314dffd45a39a66678d81212d3e2",
+  "revision_matches_audit": true,
+  "schema_version": 1,
+  "settings": {
+    "font": "DejaVu Sans",
+    "font_size_pt": 9,
+    "pdf_fonttype": 42,
+    "png_dpi": 400,
+    "width_inches": 7.16
+  },
+  "versions": {
+    "matplotlib": "3.9.4",
+    "numpy": "1.26.4",
+    "python": "3.12.6"
+  },
+  "working_tree_dirty": true
+}

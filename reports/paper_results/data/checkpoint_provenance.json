@@ -1,0 +1,186 @@
+{
+  "frequency_n6": {
+    "p0": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/frequency_n6/P0/last.ckpt",
+      "checkpoint_sha256": "8ee4e7bc50ca627de237fcfe537e402e4dd8d9eb387bd6971d16495a8d45dd28",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p1": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/frequency_n6/P1/last.ckpt",
+      "checkpoint_sha256": "2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/frequency_n6/P2/last.ckpt",
+      "checkpoint_sha256": "36ad4164c4585d5478e41df95fadebb7f43773009e46fb724d5369ef25840993",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2_reverse": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/frequency_n6/proposed_hierarchical/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "78ef658181549360172f92abf0899a11ce5e6e58a4b34370985ff1c1699dab6d",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  },
+  "multi_block_n6": {
+    "p0": {
+      "actual_epoch": 64,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P0/last.ckpt",
+      "checkpoint_sha256": "8faa7245b6692e2d74d753fde2268fb712264c02c1da19632c045d022d192f1f",
+      "checkpoint_source_note": "Recovered phase5_formal checkpoint, epoch 64 of configured 240; differs from the report-referenced M-block P0 checkpoint.",
+      "configured_epochs": 240,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p1": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/frequency_n6/P1/last.ckpt",
+      "checkpoint_sha256": "2469d6c797461409f128e2732696cecfd3540f9e609d7f8bcaebdf9eff7f0025",
+      "checkpoint_source_note": "M-block P1 reuses the frequency_n6 P1 checkpoint, as recorded in the checkpoint mapping manifest.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/multi_block_n6/P2/last.ckpt",
+      "checkpoint_sha256": "7e1e27d96183b8f9d1c0d6b7493b93945633ccfb1514555135b4d04f22bf18ac",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2_reverse": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/multi_block_n6/hierarchy_ablation/p2_reverse/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "a1d38e7e951e52765ec0ba5de0b6aed27de6d7b8e604569cd9df5b40eecd3973",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "span_time (nominal, as stated in report)",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  },
+  "region_n6": {
+    "p0": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/region_n6/P0/last.ckpt",
+      "checkpoint_sha256": "ca7e3ba86c19f09adce0811fd0da4d4d380b9069841107e379bab5922eeb76e3",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p1": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/region_n6/P1/last.ckpt",
+      "checkpoint_sha256": "af5f450655acf8011c1b8fdeee07ff2373e9295b22c54f0d9ffb41321b45f07c",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/region_n6/P2/last.ckpt",
+      "checkpoint_sha256": "4834851124e48e6bb76862015fda329a564c1cef460ac62f96e6c709577edce5",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2_reverse": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/region_n6/proposed_hierarchical/seed_000/checkpoints/epoch=epoch=044-step=step=10170.ckpt",
+      "checkpoint_sha256": "1f278c3dc6833ad37e71f10d5747aba1f14d586cecbd1b002655d67fdd1d3bd9",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  },
+  "time_n6": {
+    "p0": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/time_n6/P0/last.ckpt",
+      "checkpoint_sha256": "b1b4416467917df3cf2b9f4337bf23769f998e26424c698ee31ce4407345ede1",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p1": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/time_n6/P1/last.ckpt",
+      "checkpoint_sha256": "5ae9e684ffe1571357f4689f1a9f872a76861f2c0e071a689955ae3b6c4231dc",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_head_seeds/checkpoint_bundle/checkpoints/time_n6/P2/last.ckpt",
+      "checkpoint_sha256": "114eccc5988d9bfcf058968709ea11c9919140ddf5e6da7a38dd003108c31ce4",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    },
+    "p2_reverse": {
+      "actual_epoch": null,
+      "checkpoint_path": "/home/muhammadsufyan.haide/Hierarchical-MultiScaleJEPA/runs/masking_study/time_n6/proposed_hierarchical/seed_000/checkpoints/last.ckpt",
+      "checkpoint_sha256": "45942e41600f64d628853f6cfa1e593af0ca048179b67fba0c54739c1fd277a3",
+      "checkpoint_source_note": "Checkpoint source/mapping is documented in checkpoint_bundle/README.md.",
+      "configured_epochs": null,
+      "mask_geometry": "not verified by checked-in report",
+      "metadata_status": "epoch/schedule and geometry not fully recorded in checked-in reports",
+      "pretrain_seed": 0,
+      "split_manifest_sha256": "c617ee71716d273e5bef8318ec0d50d7c0b6e7e44d2c1bd6c3514e6909b571ae"
+    }
+  }
+}

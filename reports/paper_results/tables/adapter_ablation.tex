@@ -1,0 +1,37 @@
+\begin{table*}[t]
+\centering
+\caption{P0 adapter pilot: selected test performance (exit in parentheses), head seed 0. Macro accuracy is percent; positioning error is metres. B and S denote bottleneck and single-layer adapters; Lin and Sig denote linear and sigmoid. Head parameter counts are in the accompanying CSV.}
+\begingroup\small\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrrr}
+\hline
+Task & Base & B-GELU & B-Lin & B-Sig & S-Lin & S-GELU & S-Sig \\
+\hline
+RF classification & 63.22 (L4) & 71.29 (L6) & 74.80 (L6) & 74.13 (L8) & 73.80 (L8) & 75.11 (L4) & 72.54 (L8) \\
+Jamming & 88.00 (L8) & 91.07 (L8) & 92.00 (L8) & 91.20 (L8) & 89.87 (L8) & 92.67 (L8) & 92.40 (L8) \\
+Human activity & 96.67 (L4) & 100.00 (L4) & 98.33 (L4) & 100.00 (L4) & 95.83 (L4) & 100.00 (L4) & 100.00 (L4) \\
+Interference & 75.21 (L6) & 98.71 (L8) & 98.29 (L6) & 98.93 (L4) & 97.43 (L4) & 98.43 (L8) & 98.07 (L6) \\
+NR positioning & 3.025 (L8) & 1.029 (L8) & 1.145 (L8) & 1.094 (L8) & 1.162 (L8) & 1.051 (L8) & 1.211 (L8) \\
+Beam prediction & 45.69 (L8) & 55.71 (L8) & 52.42 (L8) & 54.45 (L8) & 53.51 (L8) & 57.00 (L8) & 54.84 (L6) \\
+\hline
+\end{tabular}
+\endgroup
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{P2 adapter pilot: selected test performance (exit in parentheses), head seed 0. Macro accuracy is percent; positioning error is metres. B and S denote bottleneck and single-layer adapters; Lin and Sig denote linear and sigmoid. Head parameter counts are in the accompanying CSV.}
+\begingroup\small\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrrr}
+\hline
+Task & Base & B-GELU & B-Lin & B-Sig & S-Lin & S-GELU & S-Sig \\
+\hline
+RF classification & 72.26 (L8) & 81.73 (L8) & 79.11 (L4) & 77.99 (L4) & 79.85 (L6) & 81.82 (L6) & 82.42 (L4) \\
+Jamming & 87.60 (L8) & 93.60 (L8) & 91.87 (L8) & 93.20 (L8) & 93.07 (L8) & 94.00 (L8) & 92.67 (L8) \\
+Human activity & 100.00 (L4) & 100.00 (L4) & 99.17 (L4) & 100.00 (L4) & 100.00 (L4) & 100.00 (L4) & 99.17 (L4) \\
+Interference & 75.86 (L8) & 98.36 (L8) & 98.57 (L8) & 98.79 (L6) & 97.57 (L6) & 98.86 (L8) & 98.79 (L8) \\
+NR positioning & 2.760 (L6) & 0.863 (L8) & 1.078 (L8) & 0.954 (L8) & 1.036 (L8) & 0.884 (L8) & 0.978 (L8) \\
+Beam prediction & 43.47 (L4) & 58.81 (L8) & 54.12 (L8) & 56.40 (L8) & 53.34 (L8) & 57.20 (L8) & 58.14 (L6) \\
+\hline
+\end{tabular}
+\endgroup
+\end{table*}
