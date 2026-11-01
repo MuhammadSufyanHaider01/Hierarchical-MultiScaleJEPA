@@ -205,7 +205,7 @@
   "generator_files": [
     {
       "path": "scripts/paper_results/pipeline.py",
-      "sha256": "aa0171f876de0e735d20f95051d2f144cece030261e5315a523065063f02eb70"
+      "sha256": "789579abc186b0e56a350aadbc84102c05c40b13c13415f195a717bfc8153d82"
     },
     {
       "path": "scripts/paper_results/style.py",
@@ -427,19 +427,19 @@
     },
     {
       "path": "reports/paper_results/figures/main/ee_pretraining_fusion_six_tasks.pdf",
-      "sha256": "0d1bfe23f646572eed1f1e9724dac738504a15eee7c19a532cfb183f74daaf27"
+      "sha256": "d2d6214bc818686354a0bfa63a3abd55c0ba031416d7dcf2ed97b059002380af"
     },
     {
       "path": "reports/paper_results/figures/main/ee_pretraining_fusion_six_tasks.png",
-      "sha256": "741438cc70152327f1e5edff98ea498f382b4e2f94ab324faf9ac0a35bda209c"
+      "sha256": "591588fb6a3817ab097aafbaf193a9015e45c9beeee853c3e728a166971ad18e"
     },
     {
       "path": "reports/paper_results/figures/supplementary/ee_pretraining_fusion_uncertainty.pdf",
-      "sha256": "ad1bc755a53b7fe02147fe3faaff19921fc57a73e6c7fa1c72842cd2c4b85837"
+      "sha256": "0ce65c009d2c84485ee23cb2b59fe11dbe78c2a4ce7ebc37656627e7c99ad4f8"
     },
     {
       "path": "reports/paper_results/figures/supplementary/ee_pretraining_fusion_uncertainty.png",
-      "sha256": "2ab14fc15f77d4e1548ffd3872a0215419de5c7b3f88303e9804f05d1322b822"
+      "sha256": "41f44f2a5c0944a4e21649810152e3c8989c75d8ae5175f7dde9af037c22dc0f"
     },
     {
       "path": "reports/paper_results/tables/pretraining_comparison.csv",
@@ -677,6 +677,13 @@
   "revision": "f6195763ac98f9344010db8afd0daf403b00bebb",
   "revision_matches_audit": false,
   "schema_version": 1,
+  "selective_regeneration": {
+    "artifact": "fusion",
+    "command": "python -c \"import sys; sys.path.insert(0, \"scripts/paper_results\"); import pipeline; pipeline.make_fusion()\"",
+    "note": "Fusion figures regenerated after compact layout adjustment; all other outputs retained.",
+    "revision": "40ba5b2ad9d37ad687fb685c9174dd6261d72b4b",
+    "working_tree_dirty": true
+  },
   "settings": {
     "font": "DejaVu Sans",
     "font_size_pt": 9,

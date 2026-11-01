@@ -209,7 +209,7 @@ def load_fusion():
 def plot_fusion(rows, *, uncertainty):
     configure()
     lookup = {(r["method"], r["algorithm"], r["task"], r["exit"]): r for r in rows}
-    fig, axes = plt.subplots(2, 3, figsize=(WIDTH, 5.85))
+    fig, axes = plt.subplots(2, 3, figsize=(WIDTH, 4.5))
     handles = []
     for panel, (task, ax) in enumerate(zip(TASK_ORDER, axes.flat)):
         for method in ("p0", "p2"):
@@ -231,7 +231,7 @@ def plot_fusion(rows, *, uncertainty):
         ax.tick_params(length=2, pad=2)
     fig.legend(handles=handles, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(.5, .995), columnspacing=1.5, handlelength=1.7)
     fig.text(.5, .014, "Encoder exit", ha="center", va="bottom")
-    fig.subplots_adjust(left=.075, right=.99, bottom=.085, top=.84, wspace=.40, hspace=.55)
+    fig.subplots_adjust(left=.075, right=.99, bottom=.11, top=.845, wspace=.40, hspace=.32)
     return fig
 
 
