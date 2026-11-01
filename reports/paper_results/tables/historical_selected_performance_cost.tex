@@ -1,0 +1,34 @@
+\begin{table*}[t]
+\centering
+\caption{Historical baseline costs at exits selected on validation, with held-out test performance. GFLOPs are averaged over seven head seeds; reduction uses the same encoder and baseline head at L8. Original benchmark input shapes and measurement protocol cannot be verified; baseline costs are provisional and fusion costs are unavailable. This is not per-sample dynamic stopping.}
+\begin{tabular}{lllrrrr}
+\hline
+Task & Encoder/head & L2/L4/L6/L8 & Test metric & GFLOPs & Latency (ms) & Reduction (\%) \\
+\hline
+RF classification & LatentWave / baseline & 0/4/3/0 & 64.58 $\pm$ 1.20 \% & 1.714 & 2.299 & 38.926 \\
+Jamming & LatentWave / baseline & 0/0/0/7 & 89.58 $\pm$ 0.78 \% & 2.807 & 3.338 & 0.000 \\
+Human activity & LatentWave / baseline & 0/7/0/0 & 98.10 $\pm$ 0.79 \% & 5.193 & 2.812 & 49.626 \\
+Interference & LatentWave / baseline & 0/0/2/5 & 74.73 $\pm$ 0.33 \% & 2.608 & 3.187 & 7.077 \\
+NR positioning & LatentWave / baseline & 0/0/0/7 & 3.021 $\pm$ 0.016 m & 15.003 & 7.493 & 0.000 \\
+Beam prediction & LatentWave / baseline & 0/1/5/1 & 45.05 $\pm$ 1.66 \% & 0.077 & 2.736 & 24.742 \\
+RF classification & LatentWave / fusion & 0/2/1/4 & 75.25 $\pm$ 2.43 \% & -- & -- & -- \\
+Jamming & LatentWave / fusion & 0/0/0/7 & 92.72 $\pm$ 1.05 \% & -- & -- & -- \\
+Human activity & LatentWave / fusion & 0/7/0/0 & 99.29 $\pm$ 0.75 \% & -- & -- & -- \\
+Interference & LatentWave / fusion & 0/1/1/5 & 98.87 $\pm$ 0.44 \% & -- & -- & -- \\
+NR positioning & LatentWave / fusion & 0/0/0/7 & 1.051 $\pm$ 0.020 m & -- & -- & -- \\
+Beam prediction & LatentWave / fusion & 0/3/2/2 & 56.48 $\pm$ 1.19 \% & -- & -- & -- \\
+RF classification & Fine-to-coarse / baseline & 0/0/2/5 & 72.83 $\pm$ 2.05 \% & 2.608 & 3.170 & 7.077 \\
+Jamming & Fine-to-coarse / baseline & 0/0/0/7 & 88.42 $\pm$ 0.59 \% & 2.807 & 3.392 & 0.000 \\
+Human activity & Fine-to-coarse / baseline & 0/6/0/1 & 99.88 $\pm$ 0.31 \% & 5.923 & 3.151 & 42.537 \\
+Interference & Fine-to-coarse / baseline & 0/0/3/4 & 75.40 $\pm$ 0.32 \% & 2.509 & 3.087 & 10.616 \\
+NR positioning & Fine-to-coarse / baseline & 0/0/3/4 & 2.757 $\pm$ 0.019 m & 13.407 & 6.613 & 10.641 \\
+Beam prediction & Fine-to-coarse / baseline & 2/3/2/0 & 44.57 $\pm$ 0.98 \% & 0.052 & 2.091 & 49.483 \\
+RF classification & Fine-to-coarse / fusion & 0/3/2/2 & 81.90 $\pm$ 1.79 \% & -- & -- & -- \\
+Jamming & Fine-to-coarse / fusion & 0/0/0/7 & 93.71 $\pm$ 0.46 \% & -- & -- & -- \\
+Human activity & Fine-to-coarse / fusion & 0/7/0/0 & 99.76 $\pm$ 0.41 \% & -- & -- & -- \\
+Interference & Fine-to-coarse / fusion & 0/0/2/5 & 99.16 $\pm$ 0.22 \% & -- & -- & -- \\
+NR positioning & Fine-to-coarse / fusion & 0/0/0/7 & 0.872 $\pm$ 0.054 m & -- & -- & -- \\
+Beam prediction & Fine-to-coarse / fusion & 0/2/1/4 & 59.93 $\pm$ 1.93 \% & -- & -- & -- \\
+\hline
+\end{tabular}
+\end{table*}

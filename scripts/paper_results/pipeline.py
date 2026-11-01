@@ -32,6 +32,7 @@ SEEDS = {str(i) for i in range(7)}
 ALGORITHMS = ("current", "single_gelu")
 EXPECTED_REVISION = "69b3c8746043314dffd45a39a66678d81212d3e2"
 INPUTS = set()
+BENCHMARK = ROOT / "reports/matched_exit_benchmark/benchmark.json"
 
 
 def source(path):
@@ -759,7 +760,223 @@ def make_ablation():
     return "complete", "Single-head-seed validation-selected pilot; parameter counts joined at the selected exit."
 
 
+def load_matched_benchmark(path=None):
+    """Validate all measurements before allowing any performance/cost join."""
+    path = Path(path or BENCHMARK)
+    data = read_json(path)
+    protocol = data.get("protocol", {})
+    if data.get("schema_version") != 1 or data.get("study") != "multi_block_n6_matched_exit":
+        raise ValueError("Incompatible matched benchmark schema or study")
+    required = ("batch_size", "precision", "matmul_precision", "allow_tf32_matmul", "allow_tf32_cudnn",
+                "warmup_iterations", "measure_iterations", "synchronize_each_inference", "flop_counter",
+                "flop_convention", "flop_exclusions", "device", "gpu_name", "gpu_memory_bytes",
+                "torch_version", "cuda_version", "python_version", "revision", "working_tree_dirty",
+                "input_source", "head_execution")
+    if any(k not in protocol or protocol[k] is None or protocol[k] == "" for k in required):
+        raise ValueError("Benchmark protocol has missing metadata")
+    if (protocol["batch_size"] != 1 or protocol["precision"] != "float32" or
+        not str(protocol["device"]).startswith("cuda") or protocol["synchronize_each_inference"] is not True or
+        protocol["warmup_iterations"] < 1 or protocol["measure_iterations"] < 2 or
+        protocol["flop_counter"] != "torch.utils.flop_counter.FlopCounterMode" or
+        protocol["input_source"] != "authenticated original seed-0 evaluation packets"):
+        raise ValueError("Benchmark protocol incompatible with matched comparison")
+    if protocol['working_tree_dirty'] is not False:
+        raise ValueError("Benchmark code revision must have a clean working tree")
+    provenance = fusion_provenance()
+    params = load_parameters()
+    entries = index_unique(data.get("entries", []), ("method", "algorithm", "task", "exit"))
+    expected = {(m, a, t, e) for m in ("p0", "p2") for a in ALGORITHMS for t in TASK_ORDER for e in EXITS}
+    require_keys(entries, expected, "matched benchmark")
+    shapes = {}
+    for key, row in entries.items():
+        m, alg, task, layer = key
+        expected_source = provenance[(m, alg, 0)]
+        if row.get("checkpoint_sha256") != expected_source["checkpoint_sha256"] or row.get("packet_sha256") != expected_source["metrics_sha256"]:
+            raise ValueError(f"Benchmark checkpoint or source packet mismatch: {key}")
+        shape = row.get("input_shape")
+        outputs = row.get("num_outputs")
+        if not isinstance(shape, list) or len(shape) < 2 or shape[0] != 1 or any(not isinstance(x, int) or x <= 0 for x in shape) or not isinstance(outputs, int) or outputs < 1:
+            raise ValueError(f"Invalid input/output shape: {key}")
+        spec = (tuple(shape), outputs)
+        if task in shapes and shapes[task] != spec:
+            raise ValueError(f"Unmatched task shape or outputs: {task}")
+        shapes[task] = spec
+        if row.get("head_parameters") != int(params[(m, alg, task, str(layer))]["total"]):
+            raise ValueError(f"Head parameter mismatch: {key}")
+        if row.get("head_weights") not in ("initialized", "trained_seed_0") or (row["head_weights"] == "trained_seed_0" and not row.get("head_sha256")):
+            raise ValueError(f"Head weight provenance invalid: {key}")
+        check = row.get("execution", {})
+        expected_fusion = [e for e in EXITS if e <= layer] if alg == "single_gelu" else []
+        if check.get("executed_blocks") != list(range(1, layer + 1)) or check.get("fusion_layers") != expected_fusion:
+            raise ValueError(f"Encoder prefix or fusion source mismatch: {key}")
+        if number(row.get("flops", 0)) <= 0:
+            raise ValueError(f"Invalid FLOP count: {key}")
+        operators = row.get("counted_operators")
+        if not isinstance(operators, dict) or not operators or any(number(x) < 0 for x in operators.values()) or sum(number(x) for x in operators.values()) != number(row["flops"]):
+            raise ValueError(f"Missing or inconsistent FLOP operator coverage: {key}")
+        latency = row.get("latency", {})
+        for field in ("mean_ms", "median_ms", "standard_deviation_ms", "p95_ms"):
+            if field not in latency or number(latency[field]) < 0 or (field != "standard_deviation_ms" and number(latency[field]) == 0):
+                raise ValueError(f"Invalid latency {field}: {key}")
+    return entries, protocol
+
+
+def make_selected_cost():
+    if not BENCHMARK.is_file():
+        return "unavailable", f"Matched benchmark absent: {BENCHMARK}; no selected-exit costs generated."
+    bench, protocol = load_matched_benchmark()
+    selected = read_csv(FUSION / "per_seed_validation_selected_results.csv", ("method", "algorithm", "head_seed", "task", "metric", "higher_is_better", "selected_exit", "selected_test_value"))
+    fixed = read_csv(FUSION / "per_seed_fixed_exit_results.csv", ("method", "algorithm", "head_seed", "task", "exit", "metric", "test_value", "selected_by_validation"))
+    selected = index_unique(selected, ("method", "algorithm", "task", "head_seed"))
+    fixed = index_unique(fixed, ("method", "algorithm", "task", "exit", "head_seed"))
+    expected = {(m, a, t, seed) for m in ("p0", "p2") for a in ALGORITHMS for t in TASK_ORDER for seed in SEEDS}
+    require_keys(selected, expected, "selected performance")
+    require_keys(fixed, {(*k[:3], str(e), k[3]) for k in expected for e in EXITS}, "fixed performance")
+    benchmark_rows = []
+    for key, r in sorted(bench.items()):
+        benchmark_rows.append({k: r[k] for k in ("method", "algorithm", "task", "exit", "num_outputs", "head_parameters", "checkpoint_sha256", "packet_sha256", "head_weights", "head_sha256", "flops")} | {
+            "input_shape": json.dumps(r["input_shape"]), **r["latency"], "benchmark_sha256": sha(BENCHMARK), "counted_operators": json.dumps(r.get("counted_operators", {}), sort_keys=True)})
+    per_seed, summary = [], []
+    for method in ("p0", "p2"):
+        for alg in ALGORITHMS:
+            for task in TASK_ORDER:
+                metric, higher, unit, factor = task_metric(task)
+                costs, values, frequencies = [], [], {str(e): 0 for e in EXITS}
+                ref_values = []
+                for seed in sorted(SEEDS):
+                    row = selected[(method, alg, task, seed)]
+                    validate_metric(row, task)
+                    layer = int(row["selected_exit"])
+                    if layer not in EXITS:
+                        raise ValueError(f"Invalid selected exit: {row}")
+                    match = fixed[(method, alg, task, str(layer), seed)]
+                    if match["metric"] != metric or match["selected_by_validation"].lower() != "true":
+                        raise ValueError("Selected exit does not match fixed-exit source")
+                    check_close(row["selected_test_value"], match["test_value"], "selected held-out value")
+                    cost = bench[(method, alg, task, layer)]["flops"]
+                    l8 = bench[(method, alg, task, 8)]["flops"]
+                    reference = fixed[("p0", "current", task, "8", seed)]
+                    validate_metric(reference, task)
+                    value = number(row["selected_test_value"]) * factor
+                    costs.append(cost); values.append(value); frequencies[str(layer)] += 1
+                    ref_values.append(number(reference["test_value"]) * factor)
+                    per_seed.append({"method": method, "algorithm": alg, "task": task, "head_seed": seed,
+                        "selected_exit": layer, "metric": metric, "unit": unit, "selected_test_value": value,
+                        "selected_flops": cost, "same_head_l8_flops": l8})
+                avg = statistics.mean(costs)
+                l8 = bench[(method, alg, task, 8)]["flops"]
+                summary.append({"method": method, "algorithm": alg, "task": task, "metric": metric,
+                    "direction": "higher" if higher else "lower", "unit": unit, "head_seed_count": 7,
+                    "exit_frequencies": json.dumps(frequencies, sort_keys=True), "test_mean": statistics.mean(values),
+                    "test_sample_sd": statistics.stdev(values), "selected_mean_gflops": avg / 1e9,
+                    "same_head_l8_gflops": l8 / 1e9, "reduction_vs_same_head_l8_percent": 100 * (1 - avg / l8),
+                    "latentwave_baseline_l8_test_mean": statistics.mean(ref_values),
+                    "latentwave_baseline_l8_test_sample_sd": statistics.stdev(ref_values),
+                    "latentwave_baseline_l8_gflops": bench[("p0", "current", task, 8)]["flops"] / 1e9})
+    write_csv(OUT / "data/matched_exit_benchmarks.csv", benchmark_rows)
+    write_csv(OUT / "data/selected_exit_cost_by_seed.csv", per_seed)
+    write_csv(OUT / "tables/selected_exit_performance_cost.csv", summary)
+    lines = [r"\begin{table*}[t]", r"\centering", r"\caption{Held-out test performance at validation-selected fixed exits, mean $\pm$ sample SD over seven downstream heads. GFLOPs are averaged over selected exits; reduction uses the same encoder and head at L8. L8 reference is LatentWave with the baseline head. No per-sample dynamic stopping is measured.}", r"\begin{tabular}{lllrrrrr}", r"\hline", r"Task & Encoder/head & L2/L4/L6/L8 & Test metric & GFLOPs & Reduction (\%) & Reference L8 metric & Reference GFLOPs \\", r"\hline"]
+    for r in summary:
+        freq = json.loads(r['exit_frequencies'])
+        label = ('LatentWave' if r['method'] == 'p0' else 'Fine-to-coarse') + (' / baseline' if r['algorithm'] == 'current' else ' / fusion')
+        digits = 3 if r['unit'] == 'm' else 2
+        metric = f"{r['test_mean']:.{digits}f} $\\pm$ {r['test_sample_sd']:.{digits}f} " + (r"\%" if r['unit'] == '%' else 'm')
+        reference = f"{r['latentwave_baseline_l8_test_mean']:.{digits}f} $\\pm$ {r['latentwave_baseline_l8_test_sample_sd']:.{digits}f}"
+        lines.append(' & '.join([latex_escape(TASKS[r['task']]), label, '/'.join(str(freq[str(e)]) for e in EXITS), metric,
+            f"{r['selected_mean_gflops']:.3f}", f"{r['reduction_vs_same_head_l8_percent']:.1f}", reference,
+            f"{r['latentwave_baseline_l8_gflops']:.3f}"]) + r" \\")
+    lines += [r"\hline", r"\end{tabular}", r"\end{table*}"]
+    write_text(OUT / "tables/selected_exit_performance_cost.tex", '\n'.join(lines) + '\n')
+    return "complete", "Matched fixed-exit costs averaged over seven validation-selected heads; no dynamic stopping."
+
+
+def make_historical_selected_cost():
+    """Expose reported baseline costs without inventing fusion measurements."""
+    provenance = fusion_provenance()
+    mask = mask_provenance("multi_block_n6")
+    manifest = read_json(MASK / "multi_block_n6/manifest.json")
+    cost = read_csv(MASK / "multi_block_n6/multiseed_inference_cost.csv", ("method", "task", "exit", "flops", "latency_mean_ms", "latency_sd_ms", "checkpoint_sha256", "benchmark_sha256"))
+    costs = index_unique([r for r in cost if r["method"] in ("p0", "p2")], ("method", "task", "exit"))
+    require_keys(costs, {(m, t, str(e)) for m in ("p0", "p2") for t in TASK_ORDER for e in EXITS}, "historical baseline costs")
+    selected = index_unique(read_csv(FUSION / "per_seed_validation_selected_results.csv", ("method", "algorithm", "task", "head_seed", "metric", "higher_is_better", "selected_exit", "selected_test_value")), ("method", "algorithm", "task", "head_seed"))
+    fixed = index_unique(read_csv(FUSION / "per_seed_fixed_exit_results.csv", ("method", "algorithm", "task", "exit", "head_seed", "metric", "higher_is_better", "test_value", "selected_by_validation")), ("method", "algorithm", "task", "exit", "head_seed"))
+    expected = {(m, a, t, seed) for m in ("p0", "p2") for a in ALGORITHMS for t in TASK_ORDER for seed in SEEDS}
+    require_keys(selected, expected, "historical selected performance")
+    require_keys(fixed, {(*k[:3], str(e), k[3]) for k in expected for e in EXITS}, "historical fixed performance")
+    for (method, task, layer), row in costs.items():
+        source = provenance[(method, "current", 0)]
+        if (row["checkpoint_sha256"] != source["checkpoint_sha256"] or row["checkpoint_sha256"] != mask[method]["checkpoint_sha256"] or
+            source["split_manifest_sha256"] != mask[method]["split_manifest_sha256"] or
+            row["benchmark_sha256"] != manifest["benchmark_artifacts"][method]["sha256"]):
+            raise ValueError(f"Historical cost provenance mismatch: {method}/{task}/L{layer}")
+        if number(row["flops"]) <= 0 or number(row["latency_mean_ms"]) <= 0 or number(row["latency_sd_ms"]) < 0:
+            raise ValueError(f"Invalid historical measurement: {method}/{task}/L{layer}")
+    seed_rows, summary = [], []
+    for method in ("p0", "p2"):
+        for alg in ALGORITHMS:
+            for task in TASK_ORDER:
+                metric, higher, unit, factor = task_metric(task)
+                values, flops, latencies = [], [], []
+                frequencies = {str(e): 0 for e in EXITS}
+                for seed in sorted(SEEDS):
+                    row = selected[method, alg, task, seed]
+                    validate_metric(row, task)
+                    layer = row["selected_exit"]
+                    if layer not in {str(e) for e in EXITS}:
+                        raise ValueError(f"Invalid selected exit: {layer}")
+                    selected_fixed = fixed[method, alg, task, layer, seed]
+                    validate_metric(selected_fixed, task)
+                    if selected_fixed["selected_by_validation"].lower() != "true":
+                        raise ValueError("Selected exit does not match fixed-exit report")
+                    check_close(row["selected_test_value"], selected_fixed["test_value"], "selected test performance")
+                    value = number(row["selected_test_value"]) * factor
+                    values.append(value)
+                    frequencies[layer] += 1
+                    entry = costs[method, task, layer] if alg == "current" else None
+                    flop = int(entry["flops"]) if entry else ""
+                    latency = number(entry["latency_mean_ms"]) if entry else ""
+                    if entry:
+                        flops.append(flop)
+                        latencies.append(latency)
+                    seed_rows.append({"method": method, "algorithm": alg, "task": task, "head_seed": seed,
+                        "selected_exit": layer, "metric": metric, "unit": unit, "selected_test_value": value,
+                        "reported_flops": flop, "reported_latency_mean_ms": latency,
+                        "cost_status": "provisional_historical_baseline" if entry else "unavailable_fusion"})
+                l8 = costs[method, task, "8"] if alg == "current" else None
+                avg = statistics.mean(flops) if flops else None
+                summary.append({"method": method, "algorithm": alg, "task": task, "metric": metric,
+                    "direction": "higher" if higher else "lower", "unit": unit, "head_seed_count": 7,
+                    "exit_frequencies": json.dumps(frequencies, sort_keys=True),
+                    "test_mean": statistics.mean(values), "test_sample_sd": statistics.stdev(values),
+                    "reported_selected_mean_gflops": avg / 1e9 if avg is not None else "",
+                    "reported_selected_mean_latency_ms": statistics.mean(latencies) if latencies else "",
+                    "reported_same_head_l8_gflops": int(l8["flops"]) / 1e9 if l8 else "",
+                    "reported_reduction_vs_same_head_l8_percent": 100 * (1 - avg / int(l8["flops"])) if l8 else "",
+                    "cost_status": "provisional_historical_baseline" if l8 else "unavailable_fusion",
+                    "benchmark_sha256": l8["benchmark_sha256"] if l8 else "",
+                    "checkpoint_sha256": provenance[(method, alg, 0)]["checkpoint_sha256"],
+                    "limitation": "Original benchmark artifact, input shape and full timing/FLOP protocol unavailable" if l8 else "Single-GELU fusion execution path not measured"})
+    write_csv(OUT / "data/historical_selected_cost_by_seed.csv", seed_rows)
+    write_csv(OUT / "tables/historical_selected_performance_cost.csv", summary)
+    lines = [r"\begin{table*}[t]", r"\centering", r"\caption{Historical baseline costs at exits selected on validation, with held-out test performance. GFLOPs are averaged over seven head seeds; reduction uses the same encoder and baseline head at L8. Original benchmark input shapes and measurement protocol cannot be verified; baseline costs are provisional and fusion costs are unavailable. This is not per-sample dynamic stopping.}", r"\begin{tabular}{lllrrrr}", r"\hline", r"Task & Encoder/head & L2/L4/L6/L8 & Test metric & GFLOPs & Latency (ms) & Reduction (\%) \\", r"\hline"]
+    for row in summary:
+        freq = json.loads(row["exit_frequencies"])
+        label = ("LatentWave" if row["method"] == "p0" else "Fine-to-coarse") + (" / baseline" if row["algorithm"] == "current" else " / fusion")
+        digits = 3 if row["unit"] == "m" else 2
+        metric_text = f"{row['test_mean']:.{digits}f} $\\pm$ {row['test_sample_sd']:.{digits}f} " + (r"\%" if row["unit"] == "%" else "m")
+        def fmt(value):
+            return f"{value:.3f}" if value != "" else "--"
+        lines.append(" & ".join([latex_escape(TASKS[row["task"]]), label, "/".join(str(freq[str(e)]) for e in EXITS),
+            metric_text, fmt(row["reported_selected_mean_gflops"]), fmt(row["reported_selected_mean_latency_ms"]),
+            fmt(row["reported_reduction_vs_same_head_l8_percent"])]) + r" \\")
+    lines.extend([r"\hline", r"\end{tabular}", r"\end{table*}"])
+    write_text(OUT / "tables/historical_selected_performance_cost.tex", "\n".join(lines) + "\n")
+    return "partial", "Historical baseline costs reproduced from summaries; original protocol unavailable and fusion costs unmeasured."
+
+
 def make_cost():
+    matched = load_matched_benchmark() if BENCHMARK.is_file() else None
     fusion = load_fusion()
     fusion_sources = fusion_provenance()
     params = load_parameters()
@@ -794,11 +1011,19 @@ def make_cost():
                           cost_status="reported_original_benchmark_unavailable_for_protocol_audit", batch_size="",
                           precision="",
                           measurement_protocol="synchronized when CUDA; warm-up/iterations not verified: original benchmark unavailable")
+        if matched is not None:
+            measured, protocol = matched
+            item = measured[(method, alg, task, int(exit_layer))]
+            record.update(flops=item["flops"], latency_mean_ms=item["latency"]["mean_ms"],
+                          latency_sd_ms=item["latency"]["standard_deviation_ms"], benchmark_sha256=sha(BENCHMARK),
+                          device=protocol["gpu_name"], batch_size=protocol["batch_size"], precision=protocol["precision"],
+                          input_shape=json.dumps(item["input_shape"]), cost_status="matched_benchmark",
+                          measurement_protocol="Matched synchronized GPU protocol; see benchmark JSON")
         results.append(record)
     write_csv(OUT / "tables/ee_performance_cost.csv", results)
     lines = []
     for method in ("p0", "p2"):
-        lines += [r"\begin{table*}[t]", r"\centering", r"\caption{" + method.upper() + r" performance and reported cost at L4. Mean $\pm$ SD over seven head seeds; macro accuracy (\%) or position error (m). Fusion cost is unmeasured. Baseline benchmark protocol details require the original benchmark artifact.}",
+        lines += [r"\begin{table*}[t]", r"\centering", r"\caption{" + method.upper() + r" performance and reported cost at L4. Mean $\pm$ SD over seven head seeds; macro accuracy (\%) or position error (m). " + (r"Matched benchmark for both heads." if matched is not None else r"Fusion cost is unmeasured. Baseline benchmark protocol details require the original benchmark artifact.") + r"}",
                   r"\begin{tabular}{llrrrrr}", r"\hline", r"Task & Head & Exit & Test metric & Parameters & GFLOPs & Latency (ms) \\", r"\hline"]
         for task in TASK_ORDER:
             choices = [(method, "current", 4), (method, "single_gelu", 4)]
@@ -813,6 +1038,8 @@ def make_cost():
                 lines.append(" & ".join([latex_escape(TASKS[task]), "Baseline" if alg == "current" else "Single GELU", f"L{e}", metric, str(r["head_parameters"]), flops, latency]) + r" \\")
         lines += [r"\hline", r"\end{tabular}", r"\end{table*}", ""]
     write_text(OUT / "tables/ee_performance_cost.tex", "\n".join(lines))
+    if matched is not None:
+        return "complete", "Matched GPU benchmark for baseline and fusion; head-seed performance on fixed checkpoints."
     return "partial", "Fusion FLOPs/latency are unavailable; original baseline benchmark artifacts are absent, so full measurement protocol/input shape cannot be audited."
 
 
@@ -946,6 +1173,7 @@ def revision():
 
 def write_readme(statuses, rev):
     status_lines = "\n".join(f"| {name} | {record['status']} | {record['detail']} |" for name, record in statuses.items())
+    cost_description = ("A validated matched GPU benchmark supplies baseline and fusion costs; see its recorded protocol and checkpoint provenance." if statuses.get("cost", {}).get("status") == "complete" else "Historical baseline costs are provisional: the original benchmark files, shapes and timing protocol are unavailable. Fusion cost is unmeasured and must not be replaced by baseline cost.")
     text = f'''# Paper results
 
 Generated with `python scripts/paper_results/build_all.py` at repository revision `{rev}`. The input audit target is `{EXPECTED_REVISION}`. Run `python scripts/paper_results/build_all.py --help` for individual generators. The pipeline reads existing reports and does not run training or benchmarks. Python, NumPy, and Matplotlib are required; no checkpoint or dataset is required for the checked-in report inputs.
@@ -976,7 +1204,11 @@ Generated with `python scripts/paper_results/build_all.py` at repository revisio
 
 **Representation analysis.** The main figure follows class separation across encoder layers for a fixed input length; the companion `interference_separation_vs_input` figure shows point estimates of the same score as the number of visible temporal patch columns increases, separately for each layer. Its CSV includes the 95% bootstrap intervals. A higher ratio means class centroids are farther apart relative to within-class spread; it is a descriptive geometric statistic and does not by itself establish downstream accuracy. The original class-centroid PCA trajectories follow changing input length within each layer, rather than connecting layers. The main interference figure uses held-out test features from all 14 temporal patch columns and frozen context encoders; the source report predeclared its separate four-column comparison, so the full-input analysis is descriptive. Class-separation ratio is mean pairwise distance between class centroids divided by mean within-class RMS radius in the original 256-dimensional feature space. Error bars are 95% class-stratified paired bootstrap intervals (2,000 resamples) conditional on the evaluated pretrained checkpoints, not head-seed variability or pretraining variability. LatentWave, same-scale, and fine-to-coarse are at epoch 59 with differing configured schedules; coarse-to-fine is epoch 49. The coarse-to-fine source split equality could not be verified. This is a descriptive analysis. In the optional PCA figure, pale dots are test examples at four visible temporal columns. Lines show each class centroid as the input grows through 2, 4, 8 and 14 columns; arrows indicate increasing input, and endpoint labels show 2 and 14. The panels compare L2 and L6, and axis percentages indicate the variance explained on the validation fit. PCA uses a separate validation-fitted basis per method; panel positions and axes are not directly comparable across methods. Panel limits can differ, and visual separation is descriptive rather than a quantitative performance measure. Additional task plots use the same four leading input patch columns, which are not necessarily temporal for every task; see each source summary.
 
-**Performance and cost.** The full CSV reports all fixed exits; LaTeX shows a representative L4 comparison and, for LatentWave, an L8 baseline. The baseline report attributes the measurements to an NVIDIA A100 80GB PCIe MIG 1g.10gb. The original benchmark files and exact input shapes, warm-up, iterations, and precision are unavailable in this checkout; the current benchmark script uses batch 1, float32 and synchronized CUDA timing, but its defaults do not verify the historical run. The reported baseline costs must be treated as provisional until the original benchmark metadata is recovered. Fusion cost is unavailable, not equal to baseline cost. Latency SD is timing variation, not head-seed SD. No performance-versus-FLOPs figure is generated without comparable fusion measurements.
+**Performance and cost.** The full CSV reports fixed exits; LaTeX shows an L4 comparison and a LatentWave L8 reference. {cost_description} Latency SD is timing variation, not head-seed SD. FLOPs exclude operations without registered counter formulas; review the recorded operator coverage.
+
+**Historical selected-exit costs.** `tables/historical_selected_performance_cost.csv` and `.tex` reproduce P0/P2 baseline FLOPs and latency from the prior multi-block summary, joined to validation-selected held-out results across seven heads. The `data/historical_selected_cost_by_seed.csv` file contains the per-head joins. Cost and its L8 reduction are provisional: the original benchmark artifacts, exact input shapes, FLOP convention and full timing protocol are unavailable. Fusion entries have no cost because the proposed path was not measured. Selected-exit averages describe head runs, not dynamic per-sample stopping. The reported latency is an average of prior fixed-exit means, not variation across head seeds.
+
+**Matched benchmark.** See `scripts/paper_results/MATCHED_BENCHMARK.md` for exact inputs and commands. Run `python scripts/matched_exit_benchmark.py --help` on a CUDA machine with the two original checkpoints and four authenticated seed-0 evaluation packets. The benchmark checks exact packet hashes, verified task shapes, model execution and parameter counts; it does not train. Supply the resulting JSON with `python scripts/paper_results/build_all.py --matched-benchmark <path>`. Selected-exit costs average fixed exit costs over seven validation-selected head runs, not an input-dependent stopping policy. Matched-capacity fusion controls and matched independent pretraining seeds are future experiments; optional PCA requires original features or coordinates.
 
 **Adapter ablation.** Head seed 0 pilot. Validation chooses the exit; reported test value and head parameter count correspond to that selected exit. Baseline and each adapter retain their own selected exit. Single-layer width does not imply fewer parameters. See the CSV for exact parameters. L2 has no earlier source and is a reproducibility control.
 
@@ -991,9 +1223,13 @@ Inspect the PDF at final print size and in grayscale; check clipping, line disti
 
 def cli(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    names = ("fusion", "selected", "representations", "cost", "ablation", "supplement", "pca", "temporal_performance", "human_activity", "rfs", "jamming", "nrpos")
+    names = ("fusion", "selected", "representations", "cost", "ablation", "supplement", "pca", "temporal_performance", "human_activity", "rfs", "jamming", "nrpos", "selected_cost", "historical_cost")
     parser.add_argument("--only", choices=names, help="Build one artifact group")
+    parser.add_argument("--matched-benchmark", type=Path, help="Validated matched benchmark JSON; defaults to reports/matched_exit_benchmark/benchmark.json")
     args = parser.parse_args(argv)
+    global BENCHMARK
+    if args.matched_benchmark is not None:
+        BENCHMARK = args.matched_benchmark.resolve()
     OUT.mkdir(parents=True, exist_ok=True)
     rev = revision()
     print(f"Repository revision: {rev}; audited target: {EXPECTED_REVISION}")
@@ -1012,6 +1248,8 @@ def cli(argv=None):
         "human_activity_temporal": (lambda: make_temporal_performance("human-activity"), ["data/human_activity_accuracy_vs_time_patches.csv", "figures/main/human_activity_accuracy_vs_time_patches.pdf", "figures/main/human_activity_accuracy_vs_time_patches.png"]),
         "representations_paired": (make_paired_representation, ["data/interference_paired_separation.csv", "figures/main/interference_paired_separation.pdf", "figures/main/interference_paired_separation.png"]),
         "representations_trajectory": (make_interference_trajectory, ["data/interference_separation_vs_input.csv", "figures/supplementary/interference_separation_vs_input.pdf", "figures/supplementary/interference_separation_vs_input.png"]),
+        "historical_cost": (make_historical_selected_cost, ["data/historical_selected_cost_by_seed.csv", "tables/historical_selected_performance_cost.csv", "tables/historical_selected_performance_cost.tex"]),
+        "selected_cost": (make_selected_cost, ["data/matched_exit_benchmarks.csv", "data/selected_exit_cost_by_seed.csv", "tables/selected_exit_performance_cost.csv", "tables/selected_exit_performance_cost.tex"]),
         "cost": (make_cost, ["tables/ee_performance_cost.csv", "tables/ee_performance_cost.tex"]),
         "ablation": (make_ablation, ["tables/adapter_ablation.csv", "tables/adapter_ablation.tex"]),
         "supplement": (make_supplement, ["figures/supplementary/fixed_exit_results.csv", "figures/supplementary/paired_head_seed_gains_source_units.csv"]),
@@ -1047,13 +1285,13 @@ def cli(argv=None):
         dirty = None
     manifest = {"schema_version": 1, "revision": rev, "working_tree_dirty": dirty, "audited_input_revision": EXPECTED_REVISION,
                 "revision_matches_audit": rev == EXPECTED_REVISION,
-                "command": "python scripts/paper_results/build_all.py" + (f" --only {args.only}" if args.only else ""),
+                "command": "python scripts/paper_results/build_all.py" + (f" --only {args.only}" if args.only else "") + (f" --matched-benchmark {args.matched_benchmark}" if args.matched_benchmark else ""),
                 "versions": {"python": platform.python_version(), "numpy": np.__version__, "matplotlib": matplotlib.__version__},
                 "settings": {"width_inches": WIDTH, "font": "DejaVu Sans", "font_size_pt": 9, "png_dpi": 400, "pdf_fonttype": 42},
-                "input_files": [{"path": str(p.relative_to(ROOT)).replace("\\", "/"), "sha256": sha(p) if p.is_file() else None} for p in sorted(INPUTS)],
-                "generator_files": [{"path": str(p.relative_to(ROOT)).replace("\\", "/"), "sha256": sha(p)} for p in (ROOT / "scripts/paper_results/pipeline.py", ROOT / "scripts/paper_results/style.py", ROOT / "scripts/paper_results/build_all.py")],
+                "input_files": [{"path": (str(p.relative_to(ROOT)).replace("\\", "/") if p.is_relative_to(ROOT) else str(p)), "sha256": sha(p) if p.is_file() else None} for p in sorted(INPUTS)],
+                "generator_files": [{"path": str(p.relative_to(ROOT)).replace("\\", "/"), "sha256": sha(p)} for p in (ROOT / "scripts/paper_results/pipeline.py", ROOT / "scripts/paper_results/style.py", ROOT / "scripts/paper_results/build_all.py", ROOT / "scripts/matched_exit_benchmark.py")],
                 "output_files": [{"path": str((OUT / rel).relative_to(ROOT)).replace("\\", "/"), "sha256": sha(OUT / rel)} for entry in statuses.values() for rel in entry["outputs"]],
                 "artifacts": statuses,
-                "limitations": ["One fixed pretrained checkpoint per method/condition; head-seed SD is not pretraining variability.", "Frequency and multi-block share nominal span-time geometry.", "Representation P2-Reverse source split unverified.", "Fusion cost not measured; historical baseline benchmark protocol is not fully auditable in this checkout."]}
+                "limitations": ["One fixed pretrained checkpoint per method/condition; head-seed SD is not pretraining variability.", "Frequency and multi-block share nominal span-time geometry.", "Representation P2-Reverse source split unverified.", ("Fusion cost not measured; historical baseline benchmark protocol is not fully auditable in this checkout." if not BENCHMARK.is_file() else "Matched measurements require review of benchmark operator coverage and its recorded initialized or trained head weights.")]}
     write_text(OUT / "manifest.json", json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return 1 if any(v["status"] == "failed" for v in statuses.values()) else 0

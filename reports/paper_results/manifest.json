@@ -27,6 +27,15 @@
       ],
       "status": "partial"
     },
+    "historical_cost": {
+      "detail": "Historical baseline costs reproduced from summaries; original protocol unavailable and fusion costs unmeasured.",
+      "outputs": [
+        "data/historical_selected_cost_by_seed.csv",
+        "tables/historical_selected_performance_cost.csv",
+        "tables/historical_selected_performance_cost.tex"
+      ],
+      "status": "partial"
+    },
     "human_activity_representation": {
       "detail": "Original-space class separation and paired 95% bootstrap differences at all 14 temporal columns.",
       "outputs": [
@@ -168,6 +177,11 @@
       ],
       "status": "partial"
     },
+    "selected_cost": {
+      "detail": "Matched benchmark absent: C:\\Users\\PMLS\\Desktop\\Mitacs GRI\\Hierarchical-MultiScaleJEPA\\reports\\matched_exit_benchmark\\benchmark.json; no selected-exit costs generated.",
+      "outputs": [],
+      "status": "unavailable"
+    },
     "supplement": {
       "detail": "Fixed-exit means/SD and source-unit paired head-seed gains.",
       "outputs": [
@@ -191,7 +205,7 @@
   "generator_files": [
     {
       "path": "scripts/paper_results/pipeline.py",
-      "sha256": "bc664c0c17bee02971271007fdd411c384fb0044f0e9b8b929fad7026c4ae53b"
+      "sha256": "aa0171f876de0e735d20f95051d2f144cece030261e5315a523065063f02eb70"
     },
     {
       "path": "scripts/paper_results/style.py",
@@ -200,6 +214,10 @@
     {
       "path": "scripts/paper_results/build_all.py",
       "sha256": "10c1f08d6928086f334498728a147c2a99e1b15dc4d2782a0b0bc7e42cc18e69"
+    },
+    {
+      "path": "scripts/matched_exit_benchmark.py",
+      "sha256": "a5824b452f252ffca463190e1c06f68344a571d0a159b53da21915b6a635740d"
     }
   ],
   "input_files": [
@@ -242,6 +260,10 @@
     {
       "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/per_seed_fixed_exit_results.csv",
       "sha256": "23715735ae2027eeaa8006c45c6e1c2905e2676e12b4dbed10342b55041211c8"
+    },
+    {
+      "path": "reports/early_exit_optimization/multi_block_n6/residual_dynamic_fusion_multiseed/per_seed_validation_selected_results.csv",
+      "sha256": "e3bac66995760d644785527a6618d77fbab95a664dd0253ec2c4ba50808444df"
     },
     {
       "path": "reports/early_exit_optimization/multi_block_n6/residual_fusion_adapter_ablation_single_seed/manifest.json",
@@ -580,6 +602,18 @@
       "sha256": "2c25c4fe4caa6c9219dddf109b175ac9a6d54826549d61a941115be22c27b23d"
     },
     {
+      "path": "reports/paper_results/data/historical_selected_cost_by_seed.csv",
+      "sha256": "14194d039b13774160fc54d57978832051c5a06180b8ad7be940b0bf7913d70f"
+    },
+    {
+      "path": "reports/paper_results/tables/historical_selected_performance_cost.csv",
+      "sha256": "3f9bd899299fd6f061e459cc146d5a0b43c04257fa95a51a199e4007db1a4255"
+    },
+    {
+      "path": "reports/paper_results/tables/historical_selected_performance_cost.tex",
+      "sha256": "07f74cc30f5e14d611fee465e6825bafa583d916ce79897b91c544e8e7891e24"
+    },
+    {
       "path": "reports/paper_results/tables/ee_performance_cost.csv",
       "sha256": "ef52435ddff286cfc2a144a2ccf854615a4a2125602fe5091390780441d237ca"
     },
@@ -640,8 +674,8 @@
       "sha256": "92e5746902ccd5be4a44496b37841a6b809df6c84b3af11a2b31094884406190"
     }
   ],
-  "revision": "69b3c8746043314dffd45a39a66678d81212d3e2",
-  "revision_matches_audit": true,
+  "revision": "f6195763ac98f9344010db8afd0daf403b00bebb",
+  "revision_matches_audit": false,
   "schema_version": 1,
   "settings": {
     "font": "DejaVu Sans",
